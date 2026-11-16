@@ -77,7 +77,7 @@ class Parametres(Gtk.Application):
         couleurs(self.cfg)
         self.css = Gtk.CssProvider(); self.css.load_from_string(theme.css_parametres(self.cfg))
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), self.css, Gtk.STYLE_PROVIDER_PRIORITY_USER + 10)
-        Gtk.Settings.get_default().set_property("gtk-icon-theme-name", "XIII")
+        Gtk.Settings.get_default().set_property("gtk-icon-theme-name", theme.nom_icones(self.cfg))
         w = Gtk.ApplicationWindow(application=self, title="Paramètres", default_width=1180, default_height=780)
         w.add_css_class("parametres"); self.win = w
         corps = boite(False, 0); w.set_child(corps)
@@ -118,8 +118,11 @@ class Parametres(Gtk.Application):
 
     def regler(self, **kw):
         """Enregistre des réglages ; propage le thème au système si besoin."""
+        if "theme" in kw and "fond" not in kw:
+            c2 = dict(self.cfg); c2.update(kw); kw["fond"] = theme.fond_assorti(c2)
         self.cfg = config.modifier(**kw)
         if CLES_THEME & set(kw):
+            Gtk.Settings.get_default().set_property("gtk-icon-theme-name", theme.nom_icones(self.cfg))
             theme.appliquer_systeme(self.cfg)
             couleurs(self.cfg); theme._cache.clear(); self.css.load_from_string(theme.css_parametres(self.cfg))
             GLib.idle_add(lambda: (self.remplir_nav(), self.aller(self.page, histo=False), False)[-1])

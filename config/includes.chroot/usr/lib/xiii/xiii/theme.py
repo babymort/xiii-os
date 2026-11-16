@@ -33,11 +33,11 @@ def palette(cfg):
     t = cfg.get("theme", "sombre"); A = cfg.get("accent", "#f0b378")
     verre = cfg.get("transparence", True) and t != "sobre"
     if t == "clair":
-        p = dict(fond="#eef0f2", panneau="rgba(250,249,247,%s)" % (".90" if verre else "1"), panneau_plein="#faf9f7",
+        p = dict(fond="#eef0f2", panneau="rgba(250,249,247,%s)" % (".95" if verre else "1"), panneau_plein="#faf9f7",
                  carte="#ffffff", carte2="#f3f1ee", texte="#1d1b19", attenue="#6d675f", bord="rgba(0,0,0,0.09)",
                  survol="rgba(0,0,0,0.05)", ombre="rgba(60,40,20,0.18)", accent_texte=melange(A, "#000000", 0.30), clair=True)
     else:
-        p = dict(fond="#1e1e1e", panneau="rgba(28,27,26,%s)" % (".88" if verre else "1"), panneau_plein="#1c1b1a",
+        p = dict(fond="#1e1e1e", panneau="rgba(28,27,26,%s)" % (".94" if verre else "1"), panneau_plein="#1c1b1a",
                  carte="#2a2928" if t != "sobre" else "#2d2d2d", carte2="#232221", texte="#eee9e3", attenue="#9b938a",
                  bord="rgba(255,255,255,0.08)", survol="rgba(255,255,255,0.07)", ombre="rgba(0,0,0,0.50)", accent_texte=A, clair=False)
     p.update(accent=A, accent_survol=melange(A, "#ffffff", 0.18), sur_accent=sur_accent(A), sobre=(t == "sobre"),
@@ -234,6 +234,39 @@ def _ecrire(chemin, texte):
     with open(chemin, "w") as f:
         f.write(texte)
 
+FONDS_XIII = {"sombre": "/usr/share/xiii/wallpapers/xiii-sombre.png", "clair": "/usr/share/xiii/wallpapers/xiii-clair.png",
+              "sobre": "/usr/share/xiii/wallpapers/xiii-sobre.png"}
+
+def fond_assorti(cfg):
+    """Si le fond est un fond XIII par défaut, prend celui assorti au thème."""
+    if cfg.get("fond") in FONDS_XIII.values():
+        return FONDS_XIII.get(cfg.get("theme"), cfg["fond"])
+    return cfg.get("fond")
+
+def nom_icones(cfg):
+    """Thème d'icônes : XIII (cuivre) ou copie teintée à la couleur d'accent."""
+    A = cfg.get("accent", "#f0b378").lower()
+    if A == "#f0b378": return "XIII"
+    dest = os.path.join(GLib.get_user_data_dir(), "icons", "XIII-accent")
+    marque = os.path.join(dest, ".accent")
+    try:
+        if open(marque).read() == A: return "XIII-accent"
+    except OSError:
+        pass
+    import shutil
+    shutil.rmtree(dest, True)
+    for racine, dossiers, fichiers in os.walk("/usr/share/icons/XIII"):
+        rel = os.path.relpath(racine, "/usr/share/icons/XIII"); os.makedirs(os.path.join(dest, rel), exist_ok=True)
+        for f in fichiers:
+            src = os.path.join(racine, f)
+            if f.endswith(".svg"):
+                txt = open(src).read().replace("#f0b378", A)
+                open(os.path.join(dest, rel, f), "w").write(txt)
+            elif f == "index.theme":
+                open(os.path.join(dest, rel, f), "w").write(open(src).read().replace("Name=XIII", "Name=XIII-accent"))
+    open(marque, "w").write(A)
+    return "XIII-accent"
+
 def appliquer_systeme(cfg):
     """Propage thème / accent / tailles aux apps GTK, aux fenêtres (labwc) et au verrouillage."""
     p = palette(cfg); A = p["accent"]; conf = GLib.get_user_config_dir()
@@ -241,11 +274,12 @@ def appliquer_systeme(cfg):
     anim = "true" if cfg.get("animations", True) else "false"
     curseur = int(cfg.get("curseur_taille", 24))
     police = "%s %d" % (cfg.get("police", "IBM Plex Sans"), 10)
+    icones = nom_icones(cfg)
     for v in ("3.0", "4.0"):
         _ecrire(f"{conf}/gtk-{v}/settings.ini", f"""[Settings]
 gtk-theme-name={'XIII-clair' if (clair and v == '3.0') else ('XIII' if v == '3.0' else 'Adwaita')}
 gtk-application-prefer-dark-theme={'0' if clair else '1'}
-gtk-icon-theme-name=XIII
+gtk-icon-theme-name={icones}
 gtk-font-name={police}
 gtk-cursor-theme-name=XIII-curseur
 gtk-cursor-theme-size={curseur}

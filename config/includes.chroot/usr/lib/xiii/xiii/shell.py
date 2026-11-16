@@ -42,7 +42,7 @@ class Shell(Gtk.Application):
         couleurs(self.cfg)
         self.css = Gtk.CssProvider(); self.css.load_from_string(theme.css_shell(self.cfg))
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), self.css, Gtk.STYLE_PROVIDER_PRIORITY_USER + 10)
-        Gtk.Settings.get_default().set_property("gtk-icon-theme-name", "XIII")
+        Gtk.Settings.get_default().set_property("gtk-icon-theme-name", theme.nom_icones(self.cfg))
         for nom, typ in (("basculer", "s"), ("fermer", None), ("parametres", "s")):
             a = Gio.SimpleAction.new(nom, GLib.VariantType.new(typ) if typ else None)
             a.connect("activate", getattr(self, "_act_" + nom)); self.add_action(a)
@@ -131,6 +131,7 @@ class Shell(Gtk.Application):
     def ouvrir(self, nom):
         if nom not in self.panneaux: return
         self.fermer(garder_voile=True)
+        self.bulles.set_visible(False)
         w, obj = self.panneaux[nom]
         self.ouvert = nom
         self.voile.present()
@@ -163,7 +164,7 @@ class Shell(Gtk.Application):
         # centre : Démarrer, recherche, applications
         self.groupe = boite(False, 2)
         self.b_start = Gtk.Button(); self.b_start.add_css_class("tb"); self.b_start.set_tooltip_text("Démarrer")
-        logo = vignette("/usr/share/xiii/logos/xiii-orange.png", 28, 23, couvrir=False)
+        logo = vignette("/usr/share/xiii/logos/xiii-orange.png", 27, 22, couvrir=False, echelle=1)
         logo.set_halign(Gtk.Align.CENTER); logo.set_valign(Gtk.Align.CENTER); self.b_start.set_child(logo)
         self.b_start.connect("clicked", lambda *_: self.basculer("demarrer"))
         clic_droit(self.b_start, lambda: popover_menu(self.b_start, [
@@ -395,7 +396,16 @@ class Shell(Gtk.Application):
 
     # ============================================================== réglages & services
     def cfg_change(self, cfg):
-        ancien = self.cfg; self.cfg = cfg; self.p = theme.palette(cfg); couleurs(cfg)
+        ancien = self.cfg
+        if ancien["theme"] != cfg["theme"]:
+            f = theme.fond_assorti(cfg)
+            if f != cfg["fond"]:
+                config.modifier(fond=f); return
+            theme.appliquer_systeme(cfg)
+        if ancien["accent"] != cfg["accent"] and not os.environ.get("XIII_PARAM"):
+            theme.appliquer_systeme(cfg)
+        self.cfg = cfg; self.p = theme.palette(cfg); couleurs(cfg)
+        Gtk.Settings.get_default().set_property("gtk-icon-theme-name", theme.nom_icones(cfg))
         self.css.load_from_string(theme.css_shell(cfg))
         theme._cache.clear()
         if ancien["barre_alignement"] != cfg["barre_alignement"] or ancien["barre_meteo"] != cfg["barre_meteo"] or ancien["barre_recherche"] != cfg["barre_recherche"]:

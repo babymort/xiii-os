@@ -17,14 +17,14 @@ def ico(nom, taille=18, role="t"):
     return im
 
 _vign = {}
-def vignette(chemin, l, h, couvrir=True):
+def vignette(chemin, l, h, couvrir=True, echelle=2):
     """Gtk.Picture d'une image réduite (évite les tailles naturelles géantes)."""
     from gi.repository import GdkPixbuf
-    cle = (chemin, l, h)
+    cle = (chemin, l, h, echelle)
     tex = _vign.get(cle)
     if tex is None:
         try:
-            pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(chemin, l * 2, h * 2, True)
+            pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(chemin, l * echelle, h * echelle, True)
             tex = Gdk.Texture.new_for_pixbuf(pb)
         except Exception:
             tex = None
