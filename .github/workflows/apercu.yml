@@ -44,5 +44,5 @@ jobs:
         run: |
           apt-get install -y -qq git >/dev/null
           cd /out && git init -q -b apercu && git config user.name "CI XIII" && git config user.email "ci@xiii.local"
-          git add -A && git commit -qm "Captures ${GITHUB_SHA::7}"
+          git add -A && git commit -qm "Captures $GITHUB_SHA"
           git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" apercu
