@@ -14,7 +14,6 @@ for p in demarrer son wifi bluetooth batterie centre alim volet meteo; do
   xiii-ctl $p; sleep 2; grim /out/p-$p.png; xiii-ctl fermer; sleep 0.6
 done
 xiii-ctl demarrer-toutes; sleep 2; grim /out/p-toutes.png; xiii-ctl fermer; sleep 0.5
-xiii-ctl demarrer; sleep 1; wtype paramet 2>/dev/null; sleep 1; xiii-ctl fermer
 xiii-parametres --page accueil >> /out/param.log 2>&1 &
 sleep 6; grim /out/s-accueil.png
 for pg in ecran son theme fond barre perso wifi bluetooth apropos alimentation stockage souris clavier xiii maj apps notifications heure; do

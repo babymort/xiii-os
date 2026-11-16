@@ -14,6 +14,7 @@ jobs:
       - uses: actions/checkout@v5
       - name: Paquets
         run: |
+          sed -i 's/^Components: main$/Components: main contrib/' /etc/apt/sources.list.d/debian.sources
           apt-get update -qq
           DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends labwc grim wlr-randr swaybg python3-gi gir1.2-gtk-4.0 \
             libgtk4-layer-shell0 gir1.2-gtk4layershell-1.0 librsvg2-common gir1.2-gdkpixbuf-2.0 fonts-ibm-plex fonts-noto-core fonts-noto-color-emoji \
