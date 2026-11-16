@@ -14,3 +14,4 @@ ufw
 accountsservice
 xdg-utils
 libglib2.0-bin
+python3-gi-cairo

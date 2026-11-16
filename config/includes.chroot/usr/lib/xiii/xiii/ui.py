@@ -12,7 +12,27 @@ def couleurs(cfg):
 
 def ico(nom, taille=18, role="t"):
     """Icône Lucide teintée : role c=accent, t=texte, d=atténué, ou couleur #hex."""
-    return theme.image(nom, taille, ACC.get(role, role))
+    im = theme.image(nom, taille, ACC.get(role, role))
+    im.set_halign(Gtk.Align.CENTER); im.set_valign(Gtk.Align.CENTER)
+    return im
+
+_vign = {}
+def vignette(chemin, l, h, couvrir=True):
+    """Gtk.Picture d'une image réduite (évite les tailles naturelles géantes)."""
+    from gi.repository import GdkPixbuf
+    cle = (chemin, l, h)
+    tex = _vign.get(cle)
+    if tex is None:
+        try:
+            pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(chemin, l * 2, h * 2, True)
+            tex = Gdk.Texture.new_for_pixbuf(pb)
+        except Exception:
+            tex = None
+        _vign[cle] = tex
+    p = Gtk.Picture.new_for_paintable(tex) if tex else Gtk.Picture()
+    p.set_content_fit(Gtk.ContentFit.COVER if couvrir else Gtk.ContentFit.CONTAIN)
+    p.set_size_request(l, h); p.set_can_shrink(True)
+    return p
 
 def label(txt, *classes, xalign=0, wrap=False, ellipsize=False, markup=False, largeur=None, **kw):
     l = Gtk.Label(xalign=xalign, **kw)
@@ -111,7 +131,7 @@ def defilant(enfant, hauteur_max=None, h=False):
 
 def gicon_image(gicon, taille):
     im = Gtk.Image.new_from_gicon(gicon) if gicon else Gtk.Image.new_from_icon_name("application-x-executable")
-    im.set_pixel_size(taille)
+    im.set_pixel_size(taille); im.set_halign(Gtk.Align.CENTER); im.set_valign(Gtk.Align.CENTER)
     return im
 
 def icone_wifi(signal):

@@ -163,8 +163,8 @@ class Shell(Gtk.Application):
         # centre : Démarrer, recherche, applications
         self.groupe = boite(False, 2)
         self.b_start = Gtk.Button(); self.b_start.add_css_class("tb"); self.b_start.set_tooltip_text("Démarrer")
-        logo = Gtk.Picture.new_for_filename("/usr/share/xiii/logos/xiii-orange.png"); logo.set_size_request(26, 22)
-        logo.set_content_fit(Gtk.ContentFit.CONTAIN); self.b_start.set_child(logo)
+        logo = vignette("/usr/share/xiii/logos/xiii-orange.png", 28, 23, couvrir=False)
+        logo.set_halign(Gtk.Align.CENTER); logo.set_valign(Gtk.Align.CENTER); self.b_start.set_child(logo)
         self.b_start.connect("clicked", lambda *_: self.basculer("demarrer"))
         clic_droit(self.b_start, lambda: popover_menu(self.b_start, [
             ("app-window", "Applications installées", lambda: self.parametres("apps")),
@@ -516,7 +516,7 @@ class MenuDemarrer:
         ux = boite(False, 10); av = Gtk.Overlay(); av.add_css_class("avatar")
         face = os.path.expanduser("~/.face")
         if os.path.exists(face):
-            pic = Gtk.Picture.new_for_filename(face); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(34, 34); av.set_child(pic)
+            av.set_child(vignette(face, 34, 34))
         else:
             av.set_child(label(nom[:1].upper(), xalign=0.5))
         av.set_size_request(34, 34); ux.append(av); ux.append(label(nom, "gras")); ub.set_child(ux)
@@ -556,6 +556,10 @@ class MenuDemarrer:
 
     def lancer(self, a):
         self.shell.fermer(); apps.lancer(a)
+
+    def rafraichir(self):
+        self.remplir_epingles()
+        GLib.idle_add(lambda: (self.recherche.grab_focus(), False)[1])
 
     def remplir_epingles(self):
         vider(self.grille_ep)

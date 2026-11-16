@@ -20,5 +20,11 @@ for pg in ecran son theme fond barre perso wifi bluetooth apropos alimentation s
   xiii-parametres --page $pg >> /out/param.log 2>&1
   sleep 2.5; grim /out/s-$pg.png
 done
+pkill -f xiii.parametres; sleep 1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(theme="clair", accent="#3d8bfd")'
+sleep 3; xiii-ctl demarrer; sleep 2; grim /out/c-clair-menu.png; xiii-ctl fermer
+xiii-ctl centre; sleep 2; grim /out/c-clair-centre.png; xiii-ctl fermer
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(theme="sobre", accent="#f0b378", barre_alignement="gauche")'
+sleep 3; xiii-ctl demarrer; sleep 2; grim /out/c-sobre-menu.png; xiii-ctl fermer
 cp /root/.config/xiii/reglages.json /out/ 2>/dev/null
 labwc --exit

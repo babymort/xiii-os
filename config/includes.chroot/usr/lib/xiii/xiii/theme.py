@@ -76,8 +76,9 @@ popover > contents {{ background: {p['panneau_plein']}; border: 1px solid alpha(
 popover modelbutton:hover, popover row:hover {{ background: alpha({p['accent']},0.16); }}
 popover listview row:selected {{ background: alpha({p['accent']},0.22); }}
 scale trough {{ background: alpha({p['texte']},0.16); min-height: 4px; border-radius: 3px; border: none; }}
-scale highlight {{ background: {p['accent']}; border-radius: 3px; border: none; }}
-scale slider {{ background: {p['accent']}; border: 4px solid {p['panneau_plein']}; min-width: 20px; min-height: 20px; border-radius: 50%; box-shadow: 0 0 0 1px alpha({p['accent']},0.6); margin: -9px; }}
+scale highlight {{ background: {p['accent']}; border-radius: 3px; border: none; min-height: 4px; }}
+scale slider {{ background: {p['accent']}; border: 3px solid {p['panneau_plein']}; min-width: 14px; min-height: 14px; border-radius: 50%; box-shadow: 0 0 0 1px alpha({p['accent']},0.55); margin: -7px; }}
+scale highlight, scale trough {{ min-width: 4px; }}
 switch {{ background: alpha({p['texte']},0.18); border-radius: 999px; border: none; min-height: 22px; }}
 switch:checked {{ background: {p['accent']}; }}
 switch slider {{ background: #ffffff; border-radius: 50%; min-width: 16px; min-height: 16px; margin: 3px; box-shadow: none; border: none; }}

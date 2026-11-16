@@ -307,7 +307,7 @@ class Centre(Panneau):
         b = Gtk.Button(); b.add_css_class("tuile")
         if on: b.add_css_class("on")
         bx = boite(True, 2)
-        bx.append(ico(icone, 18, self.shell.p["sur_accent"] if on else "t"))
+        i = ico(icone, 18, self.shell.p["sur_accent"] if on else "t"); i.set_halign(Gtk.Align.START); bx.append(i)
         bx.append(label(nom, "petit", "gras", ellipsize=True))
         bx.append(label(sous or ("Activé" if on else "Désactivé"), "tuile-sous", ellipsize=True))
         b.set_child(bx); b.set_sensitive(dispo)
@@ -473,23 +473,24 @@ def carte_notif(n, shell, volet=False):
     c = boite(False, 12, "notif" if volet else "toast")
     c.set_size_request(340 if not volet else -1, -1)
     c.append(image_notif(n))
-    v = boite(True, 3, hexpand=True)
+    v = boite(True, 2, hexpand=True)
+    if not volet:
+        h0 = boite(False, 6); h0.append(label(n.app, "notif-app", hexpand=True)); h0.append(label(depuis(n.heure), "attenue", "petit")); v.append(h0)
     h = boite(False, 6)
-    if not volet: h.append(label(n.app, "notif-app"))
-    h.append(Gtk.Box(hexpand=True)); h.append(label(depuis(n.heure), "attenue", "petit"))
+    h.append(label(n.titre or n.app, "notif-titre", wrap=True, hexpand=True))
+    if volet: h.append(label(depuis(n.heure), "attenue", "petit"))
     h.append(bouton(None, "x", "plat", taille=12, role="d", rappel=lambda: shell.serveur.fermer(n.id)))
     v.append(h)
-    if n.titre: v.append(label(n.titre, "notif-titre", wrap=True))
     if n.corps:
         l = label("", "notif-corps", wrap=True)
         try:
             Pango.parse_markup(n.corps, -1, "\0"); l.set_markup(n.corps)
         except Exception:
             l.set_text(n.corps)
-        l.set_lines(4); v.append(l)
+        l.set_lines(4); l.set_ellipsize(Pango.EllipsizeMode.END); v.append(l)
     acts = [a for a in n.actions if a[0] != "default"]
     if acts:
-        r = boite(False, 6, margin_top=4)
+        r = boite(False, 6, margin_top=6)
         for cle, nom in acts:
             r.append(bouton(nom, None, "fantome", rappel=lambda k=cle: shell.serveur.action(n.id, k)))
         v.append(r)

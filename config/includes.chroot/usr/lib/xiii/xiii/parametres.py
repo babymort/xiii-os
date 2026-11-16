@@ -202,7 +202,7 @@ class Parametres(Gtk.Application):
     def p_accueil(self, c, cle):
         i = S.infos_systeme(); cfg = self.cfg
         hero = boite(False, 20, "hero")
-        pic = Gtk.Picture.new_for_filename(cfg["fond"]); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(220, 124)
+        pic = vignette(cfg["fond"], 220, 124)
         f = Gtk.Frame(); f.set_child(pic); f.add_css_class("apercu-theme"); hero.append(f)
         v = boite(True, 4, valign=Gtk.Align.CENTER, hexpand=True)
         v.append(label(i["hote"], "hero-grand")); v.append(label(i["nom"] + (" · " + i["version"] if i["version"] else ""), "attenue"))
@@ -396,13 +396,13 @@ class Parametres(Gtk.Application):
     def p_apropos(self, c, cle):
         i = S.infos_systeme()
         h = boite(False, 18, "hero")
-        lg = Gtk.Picture.new_for_filename("/usr/share/xiii/logos/xiii-orange.png"); lg.set_size_request(90, 74); lg.set_content_fit(Gtk.ContentFit.CONTAIN); h.append(lg)
+        h.append(vignette("/usr/share/xiii/logos/xiii-orange.png", 90, 74, couvrir=False))
         v = boite(True, 4, hexpand=True, valign=Gtk.Align.CENTER); v.append(label(i["hote"], "hero-grand")); v.append(label(i["nom"], "attenue")); h.append(v)
         h.append(bouton("Renommer ce PC", None, "fantome", rappel=self.renommer)); c.append(h)
         c.append(groupe_titre("Caractéristiques de l'appareil"))
         txt = []
         for k, n in (("cpu", "Processeur"), ("ram", "Mémoire vive"), ("gpu", "Carte graphique"), ("arch", "Architecture")):
-            c.append(reglage(None, n, None, droite=label(i[k], "attenue", wrap=True, xalign=1, largeur=50, selectable=True))); txt.append("%s : %s" % (n, i[k]))
+            c.append(reglage(None, n, None, droite=label(i[k], "attenue", xalign=1, selectable=True, ellipsize=True, largeur=60))); txt.append("%s : %s" % (n, i[k]))
         c.append(groupe_titre("Caractéristiques du système"))
         for k, n in (("nom", "Système"), ("base", "Base"), ("noyau", "Noyau Linux"), ("uptime", "Allumé depuis")):
             c.append(reglage(None, n, None, droite=label(i[k], "attenue", xalign=1, selectable=True))); txt.append("%s : %s" % (n, i[k]))
@@ -595,7 +595,7 @@ class Parametres(Gtk.Application):
         v.append(label("Partager le Wi-Fi", "page-titre"))
         v.append(label("Scannez ce code avec un téléphone pour rejoindre « %s »." % ssid, "attenue", wrap=True))
         if os.path.exists(chemin):
-            pic = Gtk.Picture.new_for_filename(chemin); pic.set_size_request(300, 300); v.append(pic)
+            v.append(vignette(chemin, 300, 300, couvrir=False))
         else:
             v.append(info("Générateur de QR code indisponible."))
         r = boite(False, 8); r.append(label("Mot de passe :", "attenue")); r.append(label(mdp or "(réseau ouvert)", "mono", "accent", selectable=True)); v.append(r)
@@ -636,7 +636,7 @@ class Parametres(Gtk.Application):
     # ================================================================== PERSONNALISATION
     def p_perso(self, c, cle):
         h = boite(False, 18, "hero")
-        pic = Gtk.Picture.new_for_filename(self.cfg["fond"]); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(320, 180)
+        pic = vignette(self.cfg["fond"], 320, 180)
         f = Gtk.Frame(); f.set_child(pic); h.append(f)
         v = boite(True, 6, valign=Gtk.Align.CENTER)
         v.append(label("Choisissez un thème", "gras"))
@@ -683,7 +683,7 @@ class Parametres(Gtk.Application):
 
     def p_fond(self, c, cle):
         cfg = self.cfg
-        pic = Gtk.Picture.new_for_filename(cfg["fond"]); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(-1, 260)
+        pic = vignette(cfg["fond"], 640, 260)
         f = Gtk.Frame(); f.set_child(pic); c.append(f)
         c.append(groupe_titre("Images récentes et fonds XIII"))
         fl = Gtk.FlowBox(max_children_per_line=5, min_children_per_line=3, selection_mode=Gtk.SelectionMode.NONE, column_spacing=8, row_spacing=8, homogeneous=True)
@@ -691,7 +691,7 @@ class Parametres(Gtk.Application):
             if "connexion" in p: continue
             b = Gtk.Button(); b.add_css_class("vignette")
             if p == cfg["fond"]: b.add_css_class("sel")
-            im = Gtk.Picture.new_for_filename(p); im.set_content_fit(Gtk.ContentFit.COVER); im.set_size_request(160, 90)
+            im = vignette(p, 160, 90)
             b.set_child(im); b.set_tooltip_text(os.path.basename(p)); b.connect("clicked", lambda _b, p=p: self.regler(fond=p)); fl.append(b)
         c.append(fl)
         c.append(reglage("image", "Choisir une photo", "JPG, PNG, WebP…", droite=bouton("Parcourir les photos", None, "pilule", rappel=lambda: self.choisir_image("fond"))))
@@ -714,7 +714,7 @@ class Parametres(Gtk.Application):
 
     def p_verrou(self, c, cle):
         cfg = self.cfg
-        pic = Gtk.Picture.new_for_filename(cfg["verrou_fond"]); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(-1, 220)
+        pic = vignette(cfg["verrou_fond"], 640, 220)
         f = Gtk.Frame(); f.set_child(pic); c.append(f)
         c.append(reglage("image", "Image de l'écran de verrouillage", "", droite=bouton("Parcourir", None, "pilule", rappel=lambda: self.choisir_image("verrou_fond"))))
         c.append(reglage("image", "Utiliser le fond d'écran actuel", "", droite=bouton("Utiliser", None, "fantome", rappel=lambda: self.regler(verrou_fond=cfg["fond"]))))
@@ -800,7 +800,10 @@ class Parametres(Gtk.Application):
                 if q and q not in a.get_display_name().lower(): continue
                 dr = boite(False, 6)
                 dr.append(bouton(None, "app-window", "plat", taille=15, tip="Ouvrir", rappel=lambda a=a: apps.lancer(a)))
-                dr.append(bouton("Désinstaller", None, "fantome", rappel=lambda a=a: self.desinstaller(a)))
+                if not (a.get_id() or "").startswith("xiii-"):
+                    dr.append(bouton("Désinstaller", None, "fantome", rappel=lambda a=a: self.desinstaller(a)))
+                else:
+                    dr.append(label("Intégrée à OS XIII", "attenue", "petit"))
                 zone.append(reglage(None, a.get_display_name(), a.get_description() or a.get_id(), droite=dr, gicon=a.get_icon()))
         e.connect("search-changed", rendu); rendu()
 
@@ -988,7 +991,7 @@ class Parametres(Gtk.Application):
     def p_xiii(self, c, cle):
         cfg = self.cfg
         h = boite(False, 16, "hero")
-        lg = Gtk.Picture.new_for_filename("/usr/share/xiii/logos/suite-xiii-a.png"); lg.set_size_request(150, 94); lg.set_content_fit(Gtk.ContentFit.CONTAIN); h.append(lg)
+        h.append(vignette("/usr/share/xiii/logos/suite-xiii-a.png", 150, 94, couvrir=False))
         v = boite(True, 4, valign=Gtk.Align.CENTER); v.append(label("OS XIII × Suite XIII", "hero-grand")); v.append(label("Outils de production audiovisuelle intégrés au système", "attenue")); h.append(v); c.append(h)
         c.append(groupe_titre("Mode tournage"))
         c.append(reglage("clapperboard", "Mode tournage", "Performances maximales, notifications en silence, jamais de mise en veille — pour le plateau",
@@ -1096,7 +1099,7 @@ def avatar(taille, nom):
     face = os.path.expanduser("~/.face")
     ov = Gtk.Overlay(); ov.add_css_class("avatar"); ov.set_size_request(taille, taille)
     if os.path.exists(face):
-        p = Gtk.Picture.new_for_filename(face); p.set_content_fit(Gtk.ContentFit.COVER); p.set_size_request(taille, taille)
+        p = vignette(face, taille, taille)
         fr = Gtk.Frame(); fr.set_child(p); fr.set_overflow(Gtk.Overflow.HIDDEN)
         pr = Gtk.CssProvider(); pr.load_from_string("frame { border-radius: 50%%; border: none; min-width: %dpx; min-height: %dpx; }" % (taille, taille))
         fr.get_style_context().add_provider(pr, 900); ov.set_child(fr)
