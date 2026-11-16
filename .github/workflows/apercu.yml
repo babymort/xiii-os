@@ -5,6 +5,8 @@ on:
     branches: [beta]
     paths: ['config/includes.chroot/usr/lib/xiii/**', 'config/includes.chroot/usr/local/bin/**', '.github/workflows/apercu.yml', 'tests/**']
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   apercu:
     runs-on: ubuntu-latest
@@ -37,8 +39,10 @@ jobs:
           chmod +x tests/scenario.sh
           timeout 600 dbus-run-session -- labwc -s tests/scenario.sh > /out/labwc.log 2>&1 || true
           ls -la /out
-      - uses: actions/upload-artifact@v5
+      - name: Publier les captures (branche apercu)
         if: always()
-        with:
-          name: apercu
-          path: /out
+        run: |
+          apt-get install -y -qq git >/dev/null
+          cd /out && git init -q -b apercu && git config user.name "CI XIII" && git config user.email "ci@xiii.local"
+          git add -A && git commit -qm "Captures ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" apercu
