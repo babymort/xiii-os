@@ -1,0 +1,9 @@
+font=IBM Plex Sans 11
+background-color=#252525F2
+text-color=#eee9e3
+border-color=#f0b378
+border-size=1
+border-radius=8
+default-timeout=6000
+margin=12
+padding=12

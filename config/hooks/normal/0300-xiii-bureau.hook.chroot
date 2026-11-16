@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+fc-cache -f >/dev/null 2>&1 || true
+gtk-update-icon-cache -f /usr/share/icons/hicolor >/dev/null 2>&1 || true

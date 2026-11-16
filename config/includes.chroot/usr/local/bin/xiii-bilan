@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+# OS XIII — Bilan matériel & Pilotes. Application développée par Matthieu Lamotte.
+import gi, subprocess, sys, os, re, glob, threading, shutil
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gtk, GLib, Gdk
+
+CSS = b"""
+window { background: #1e1e1e; color: #eee9e3; }
+.wm { font-family: Astoria, 'Archivo Black', sans-serif; font-size: 64px; color: alpha(#f0b378,0.10); }
+.titre { font-family: Astoria, sans-serif; font-size: 26px; color: #f0b378; }
+.sous { color: #9b938a; }
+.carte { background: #2d2d2d; border-radius: 10px; padding: 12px 14px; border: 1px solid #35302b; }
+.nom { font-weight: bold; }
+.val { color: #c9c3bb; }
+.ok { color: #6fbf73; font-size: 16px; } .ko { color: #e98080; font-size: 16px; } .neutre { color: #6d675f; font-size: 16px; }
+.conseil { color: #f0b378; font-size: 12px; }
+button.acc { background: #f0b378; color: #1a1a1a; border-radius: 6px; font-weight: bold; padding: 4px 12px; }
+button.acc:hover { background: #f5c594; }
+button.ghost { background: none; color: #f0b378; border: 1px solid alpha(#f0b378,0.5); border-radius: 6px; }
+stackswitcher button { background: none; color: #9b938a; border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 6px 14px; }
+stackswitcher button:checked { color: #f0b378; border-bottom-color: #f0b378; }
+.credit { color: #6d675f; font-size: 11px; }
+"""
+
+def sh(cmd):
+    try: return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=15).stdout.strip()
+    except Exception: return ""
+
+def installe(pkgs):
+    return subprocess.run(["pkexec", "sh", "-c", "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y " + " ".join(pkgs)]).returncode == 0
+
+# ---------- collecte ----------
+def bilan():
+    L = []
+    L.append(("Processeur", sh("grep -m1 'model name' /proc/cpuinfo | cut -d: -f2").strip() or "?", True, None))
+    L.append(("Mémoire", sh("free -h | awk '/Mem:/{print $2\" (\"$7\" libres)\"}'"), True, None))
+    gpus = [l.split(": ",1)[-1] for l in sh("lspci | grep -iE 'vga|3d|display'").splitlines()]
+    L.append(("Carte graphique", "\n".join(gpus) or "non détectée", bool(gpus), None))
+    vk = "Vulkan disponible" if sh("vulkaninfo --summary 2>/dev/null | grep -c deviceName") not in ("", "0") else "Vulkan absent (jeux Windows plus lents)"
+    L.append(("Vulkan", vk, "disponible" in vk, None))
+    wifi = sh("iw dev | awk '/Interface/{print $2}' | head -1")
+    if wifi:
+        ssid = sh(f"iw dev {wifi} link | awk -F': ' '/SSID/{{print $2}}'")
+        L.append(("Wifi", f"{wifi} — " + (f"connecté à {ssid}" if ssid else "non connecté"), True, None if ssid else ("Se connecter", "nm-connection-editor")))
+    else:
+        L.append(("Wifi", "aucune carte wifi (ou firmware manquant)", False, ("Scanner les pilotes", "PILOTES")))
+    eth = sh("ip -o link | awk -F': ' '$2 ~ /^(en|eth)/{print $2}' | head -1")
+    L.append(("Ethernet", (eth + " — " + sh(f"cat /sys/class/net/{eth}/operstate").replace("up","branché").replace("down","débranché")) if eth else "aucun port", bool(eth), None))
+    net = subprocess.run("ping -c1 -W2 1.1.1.1", shell=True, capture_output=True).returncode == 0
+    L.append(("Internet", "connecté" if net else "pas de connexion", net, None))
+    bt = sh("bluetoothctl list 2>/dev/null")
+    L.append(("Bluetooth", "adaptateur présent" if bt else "aucun adaptateur", bool(bt), ("Ouvrir", "blueman-manager") if bt else None))
+    snd = re.findall(r"\[([^\]]+)\]", sh("aplay -l 2>/dev/null | grep -E '^(card|carte)'"))
+    L.append(("Son", ", ".join(dict.fromkeys(snd[::2])) or "aucune carte", bool(snd), ("Réglages du son", "pavucontrol") if snd else None))
+    cams = glob.glob("/dev/video*")
+    L.append(("Webcam", f"{len(cams)} périphérique(s)" if cams else "aucune", None if not cams else True, None))
+    bats = glob.glob("/sys/class/power_supply/BAT*")
+    if bats:
+        cap = sh(f"cat {bats[0]}/capacity"); st = sh(f"cat {bats[0]}/status").replace("Charging","en charge").replace("Discharging","sur batterie").replace("Full","pleine")
+        L.append(("Batterie", f"{cap} % — {st}", True, None))
+    disks = sh("lsblk -dno NAME,SIZE,MODEL | grep -v '^loop\\|^sr\\|^zram'")
+    L.append(("Disques", disks.replace("  ", " ") or "aucun", bool(disks), None))
+    return L
+
+FW = {"iwlwifi":"firmware-iwlwifi","rtl":"firmware-realtek","rtw":"firmware-realtek","brcm":"firmware-brcm80211","ath":"firmware-atheros",
+      "amdgpu":"firmware-amd-graphics","radeon":"firmware-amd-graphics","i915":"firmware-intel-graphics","xe/":"firmware-intel-graphics",
+      "mediatek":"firmware-mediatek","mt7":"firmware-mediatek","intel/sof":"firmware-sof-signed","nvidia":"firmware-nvidia-graphics"}
+
+def pilotes():
+    """Retourne (lignes, paquets_conseillés)"""
+    L, P = [], set()
+    # 1. périphériques sans pilote
+    cur, sans = None, []
+    for l in sh("lspci -k").splitlines():
+        if not l.startswith(("\t", " ")):
+            if cur and not cur[1]: sans.append(cur[0])
+            cur = [l.split(" ", 1)[1], False]
+        elif "Kernel driver in use" in l and cur: cur[1] = True
+    if cur and not cur[1]: sans.append(cur[0])
+    sans = [d for d in sans if not re.search(r"bridge|Host|SMBus|Signal processing|RAM memory|Communication controller|Serial bus", d, re.I)]
+    L.append(("Périphériques sans pilote", "\n".join(sans) or "aucun — tout est reconnu", not sans))
+    # 2. firmwares manquants
+    miss = sorted(set(re.findall(r"firmware[: ]\S*?(?:failed to load|load failed|Direct firmware load for) (\S+)", sh("dmesg 2>/dev/null"))))
+    miss += sorted(set(re.findall(r"Direct firmware load for (\S+) failed", sh("dmesg 2>/dev/null"))))
+    miss = sorted(set(miss))
+    for m in miss:
+        for k, v in FW.items():
+            if k in m: P.add(v)
+    L.append(("Firmwares manquants", "\n".join(miss) or "aucun", not miss))
+    # 3. NVIDIA
+    if sh("lspci | grep -i nvidia"):
+        nd = re.findall(r"(nvidia-[a-z0-9-]*driver[a-z0-9-]*|nvidia-tesla-[0-9]+-driver)", sh("nvidia-detect 2>/dev/null"))
+        if nd: P.update([nd[0], "linux-headers-amd64"])
+        L.append(("Carte NVIDIA", f"pilote conseillé : {nd[0]}" if nd else "pilote libre (nouveau) utilisé", None))
+    # 4. suggestions Debian (isenkram)
+    if shutil.which("isenkram-lookup"):
+        inst = set(sh("dpkg-query -W -f='${Package}\\n'").split())
+        sug = [p for p in sh("isenkram-lookup 2>/dev/null").split() if p not in inst]
+        P.update(sug)
+        L.append(("Paquets conseillés pour ce matériel", ", ".join(sug) or "aucun — tout est déjà installé", not sug))
+    inst = set(sh("dpkg-query -W -f='${Package}\\n'").split())
+    return L, sorted(p for p in P if p not in inst)
+
+# ---------- interface ----------
+class App(Gtk.Application):
+    def __init__(self, page):
+        super().__init__(application_id="fr.xiii.bilan"); self.page = page
+    def do_activate(self):
+        prov = Gtk.CssProvider(); prov.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), prov, 800)
+        self.win = Gtk.ApplicationWindow(application=self, title="Utilitaires XIII", default_width=760, default_height=640)
+        over = Gtk.Overlay(); self.win.set_child(over)
+        wm = Gtk.Label(label="XIII", css_classes=["wm"], halign=Gtk.Align.END, valign=Gtk.Align.START, margin_end=20, can_target=False)
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin_top=18, margin_bottom=12, margin_start=22, margin_end=22)
+        over.set_child(root); over.add_overlay(wm)
+        root.append(Gtk.Label(label="Utilitaires XIII", css_classes=["titre"], xalign=0))
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, vexpand=True)
+        sw = Gtk.StackSwitcher(stack=self.stack, halign=Gtk.Align.START); root.append(sw)
+        self.p_bilan = self.page_vide("bilan", "Bilan matériel", "Ce qui fonctionne sur cet ordinateur.", self.charge_bilan)
+        self.p_pil = self.page_vide("pilotes", "Pilotes", "Scan des pilotes et firmwares manquants.", self.charge_pilotes)
+        root.append(self.stack)
+        root.append(Gtk.Label(label="Application développée par Matthieu Lamotte", css_classes=["credit"], xalign=1))
+        self.stack.set_visible_child_name(self.page)
+        self.win.present()
+        self.charge_bilan(); self.charge_pilotes()
+
+    def page_vide(self, nom, titre, sous, recharge):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        head = Gtk.Box(spacing=8)
+        head.append(Gtk.Label(label=sous, css_classes=["sous"], xalign=0, hexpand=True))
+        b = Gtk.Button(label="↻ Actualiser", css_classes=["ghost"]); b.connect("clicked", lambda *_: recharge()); head.append(b)
+        box.append(head)
+        liste = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        sc = Gtk.ScrolledWindow(vexpand=True); sc.set_child(liste); box.append(sc)
+        self.stack.add_titled(box, nom, titre)
+        return liste
+
+    def vider(self, liste, msg="Analyse en cours…"):
+        while (c := liste.get_first_child()): liste.remove(c)
+        liste.append(Gtk.Label(label=msg, css_classes=["sous"]))
+
+    def carte(self, nom, val, etat, action=None):
+        c = Gtk.Box(spacing=12, css_classes=["carte"])
+        dot = Gtk.Label(label="●", css_classes=["ok" if etat else "ko" if etat is False else "neutre"], valign=Gtk.Align.START)
+        txt = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
+        txt.append(Gtk.Label(label=nom, css_classes=["nom"], xalign=0))
+        txt.append(Gtk.Label(label=val, css_classes=["val"], xalign=0, wrap=True, selectable=True))
+        c.append(dot); c.append(txt)
+        if action:
+            lab, cmd = action
+            b = Gtk.Button(label=lab, css_classes=["ghost"], valign=Gtk.Align.CENTER)
+            b.connect("clicked", lambda *_: self.stack.set_visible_child_name("pilotes") if cmd == "PILOTES" else subprocess.Popen(cmd, shell=True))
+            c.append(b)
+        return c
+
+    def async_(self, liste, fn, rendu):
+        self.vider(liste)
+        threading.Thread(target=lambda: GLib.idle_add(rendu, fn()), daemon=True).start()
+
+    def charge_bilan(self):
+        def rendu(L):
+            self.vider(self.p_bilan, "")
+            self.p_bilan.remove(self.p_bilan.get_first_child())
+            for n, v, e, a in L: self.p_bilan.append(self.carte(n, v, e, a))
+        self.async_(self.p_bilan, bilan, rendu)
+
+    def charge_pilotes(self):
+        def rendu(res):
+            L, P = res
+            self.vider(self.p_pil, ""); self.p_pil.remove(self.p_pil.get_first_child())
+            for n, v, e in L: self.p_pil.append(self.carte(n, v, e))
+            if P:
+                c = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, css_classes=["carte"])
+                c.append(Gtk.Label(label="À installer : " + ", ".join(P), css_classes=["conseil"], xalign=0, wrap=True))
+                b = Gtk.Button(label="Installer les pilotes conseillés", css_classes=["acc"], halign=Gtk.Align.START)
+                def go(btn):
+                    btn.set_sensitive(False); btn.set_label("Installation…")
+                    def run():
+                        ok = installe(P)
+                        GLib.idle_add(lambda: (btn.set_label("Installé — redémarrez l'ordinateur" if ok else "Échec de l'installation"), False))
+                    threading.Thread(target=run, daemon=True).start()
+                b.connect("clicked", go); c.append(b)
+                self.p_pil.append(c)
+            else:
+                self.p_pil.append(self.carte("Résultat", "Aucun pilote à installer.", True))
+        self.async_(self.p_pil, pilotes, rendu)
+
+if __name__ == "__main__":
+    App("pilotes" if "--pilotes" in sys.argv else "bilan").run([sys.argv[0]])

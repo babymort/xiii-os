@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Pilotes XIII
+Comment=Scanner et installer les pilotes manquants
+Exec=xiii-bilan --pilotes
+Icon=xiii-pilotes
+Type=Application
+Categories=System;Settings;XIII;

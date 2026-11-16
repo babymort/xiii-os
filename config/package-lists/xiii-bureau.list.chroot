@@ -1,0 +1,40 @@
+# Phase 03 — bureau XIII (Wayland léger)
+labwc
+xwayland
+waybar
+fuzzel
+mako-notifier
+swaybg
+foot
+grim
+slurp
+wl-clipboard
+xdg-desktop-portal-wlr
+xdg-user-dirs
+# Applications de base
+thunar
+thunar-volman
+gvfs
+gvfs-backends
+firefox-esr
+firefox-esr-l10n-fr
+mpv
+imv
+mousepad
+pavucontrol
+network-manager-gnome
+blueman
+# Droits administrateur graphiques
+polkitd
+pkexec
+lxpolkit
+# Apparence
+papirus-icon-theme
+adwaita-icon-theme
+fonts-ibm-plex
+fonts-noto-core
+fonts-noto-color-emoji
+# Utilitaires XIII (GTK4)
+python3-gi
+gir1.2-gtk-4.0
+isenkram-cli

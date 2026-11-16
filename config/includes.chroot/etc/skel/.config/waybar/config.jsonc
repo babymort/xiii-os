@@ -1,0 +1,15 @@
+{
+  "layer": "top", "position": "top", "height": 34, "spacing": 6,
+  "modules-left": ["custom/xiii", "wlr/taskbar"],
+  "modules-center": ["clock"],
+  "modules-right": ["tray", "pulseaudio", "network", "bluetooth", "battery", "custom/reglages", "custom/power"],
+  "custom/xiii": { "format": "XIII", "tooltip-format": "Applications", "on-click": "fuzzel" },
+  "wlr/taskbar": { "format": "{icon}", "icon-size": 18, "on-click": "activate", "on-click-middle": "close" },
+  "clock": { "format": "{:%H:%M  ·  %a %d %b}", "tooltip-format": "<tt>{calendar}</tt>", "locale": "fr_FR.UTF-8" },
+  "pulseaudio": { "format": "♪ {volume}%", "format-muted": "♪ muet", "on-click": "pavucontrol", "scroll-step": 5 },
+  "network": { "format-wifi": "wifi · {essid}", "format-ethernet": "câble", "format-disconnected": "hors ligne", "on-click": "nm-connection-editor" },
+  "bluetooth": { "format": "BT", "format-disabled": "BT off", "format-connected": "BT · {num_connections}", "on-click": "blueman-manager" },
+  "battery": { "format": "▮ {capacity}%", "states": {"warning": 25, "critical": 10} },
+  "custom/reglages": { "format": "⚙", "tooltip-format": "Utilitaires XIII", "on-click": "xiii-bilan" },
+  "custom/power": { "format": "⏻", "tooltip-format": "Éteindre / redémarrer", "on-click": "xiii-session" }
+}

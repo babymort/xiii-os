@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Bilan matériel XIII
+Comment=Voir ce qui fonctionne sur cet ordinateur
+Exec=xiii-bilan
+Icon=xiii-bilan
+Type=Application
+Categories=System;Settings;XIII;

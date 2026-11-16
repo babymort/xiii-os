@@ -1,0 +1,3 @@
+#!/bin/bash
+c=$(printf 'Éteindre\nRedémarrer\nSe déconnecter\n' | fuzzel --dmenu --lines 3 --prompt 'Session › ')
+case "$c" in Éteindre) systemctl poweroff;; Redémarrer) systemctl reboot;; 'Se déconnecter') labwc --exit;; esac
