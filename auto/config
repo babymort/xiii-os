@@ -12,6 +12,6 @@ lb config noauto \
   --iso-application "OS XIII" \
   --iso-publisher "Matthieu Lamotte" \
   --iso-volume "OS_XIII" \
-  --bootappend-live "boot=live components locales=fr_FR.UTF-8 keyboard-layouts=fr timezone=Europe/Paris username=xiii hostname=xiii-os" \
+  --bootappend-live "boot=live components quiet splash locales=fr_FR.UTF-8 keyboard-layouts=fr timezone=Europe/Paris username=xiii hostname=xiii-os" \
   --memtest none \
   "${@}"

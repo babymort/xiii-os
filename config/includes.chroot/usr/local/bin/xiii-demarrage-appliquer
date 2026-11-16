@@ -1,0 +1,27 @@
+#!/bin/bash
+# Usage (root) : xiii-demarrage-appliquer <thème>  |  xiii-demarrage-appliquer --importer <fichier> <nom>
+set -e
+if [ "$1" = "--importer" ]; then
+  src="$2"; nom=$(echo "$3" | tr -cd 'a-zA-Z0-9-' | tr A-Z a-z); [ -n "$nom" ] || nom=perso
+  D=/usr/share/plymouth/themes/xiii-$nom; rm -rf "$D"; mkdir -p "$D"
+  ffmpeg -loglevel error -y -i "$src" -t 12 -vf "fps=20,scale='min(480,iw)':-2" "$D/f-%04d.png"
+  n=$(ls "$D"/f-*.png | wc -l); [ "$n" -gt 0 ] || { echo "Aucune image extraite"; exit 1; }
+  cat > "$D/xiii-$nom.plymouth" <<P
+[Plymouth Theme]
+Name=$nom (perso)
+Description=Animation importée
+ModuleName=script
+[script]
+ImageDir=$D
+ScriptFile=$D/anim.script
+P
+  { echo "Window.SetBackgroundTopColor(0.07,0.07,0.07); Window.SetBackgroundBottomColor(0.07,0.07,0.07);"
+    echo "n = $n; for (i = 0; i < n; i++) { s = \"\" + (i + 1); while (s.Length() < 4) s = \"0\" + s; img[i] = Image(\"f-\" + s + \".png\"); }"
+    echo "sp = Sprite(img[0]); t = 0;"
+    echo "fun r () { t++; k = Math.Int(t / 3) % n; sp.SetImage(img[k]); sp.SetX(Window.GetWidth()/2 - img[k].GetWidth()/2); sp.SetY(Window.GetHeight()/2 - img[k].GetHeight()/2); }"
+    echo "Plymouth.SetRefreshFunction(r);"; } > "$D/anim.script"
+  set -- "xiii-$nom"
+fi
+plymouth-set-default-theme "$1"
+update-initramfs -u >/dev/null 2>&1 || true
+echo "OK $1"

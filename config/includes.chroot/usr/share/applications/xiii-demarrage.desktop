@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Animation de démarrage
+Comment=Choisir ou importer l'animation de démarrage
+Exec=xiii-demarrage
+Icon=xiii-demarrage
+Type=Application
+Categories=Settings;XIII;

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=XIII
+Description=Animation de démarrage OS XIII
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/xiii
+ScriptFile=/usr/share/plymouth/themes/xiii/xiii.script

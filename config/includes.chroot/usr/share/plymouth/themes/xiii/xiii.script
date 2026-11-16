@@ -1,0 +1,29 @@
+# OS XIII — logo cuivre qui respire + barre de progression
+Window.SetBackgroundTopColor(0.10, 0.10, 0.10);
+Window.SetBackgroundBottomColor(0.06, 0.06, 0.06);
+cx = Window.GetWidth() / 2; cy = Window.GetHeight() / 2;
+halo = Sprite(Image("halo.png"));
+halo.SetX(cx - halo.GetImage().GetWidth() / 2); halo.SetY(cy - halo.GetImage().GetHeight() / 2 - 30); halo.SetZ(1);
+logo = Sprite(Image("logo.png"));
+logo.SetX(cx - logo.GetImage().GetWidth() / 2); logo.SetY(cy - logo.GetImage().GetHeight() / 2 - 30); logo.SetZ(2);
+fond = Sprite(Image("barre-fond.png")); fond.SetX(cx - 120); fond.SetY(cy + 110); fond.SetZ(2);
+barimg = Image("barre.png"); bar = Sprite(); bar.SetX(cx - 120); bar.SetY(cy + 110); bar.SetZ(3);
+t = 0;
+fun refresh_callback () {
+  t++;
+  a = 0.55 + 0.45 * Math.Sin(t / 18);
+  halo.SetOpacity(a * 0.8);
+  logo.SetOpacity(0.75 + 0.25 * a);
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+fun progress_callback (duration, progress) {
+  w = Math.Int(240 * progress); if (w < 1) w = 1;
+  bar.SetImage(barimg.Scale(w, 3));
+}
+Plymouth.SetBootProgressFunction(progress_callback);
+msg = Sprite(); msg.SetZ(3);
+fun message_callback (text) {
+  img = Image.Text(text, 0.6, 0.57, 0.54);
+  msg.SetImage(img); msg.SetX(cx - img.GetWidth() / 2); msg.SetY(cy + 130);
+}
+Plymouth.SetMessageFunction(message_callback);

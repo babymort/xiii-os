@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+# OS XIII — Animation de démarrage. Application développée par Matthieu Lamotte.
+import gi, subprocess, os, glob, threading, configparser
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gtk, GLib, Gdk, Gio
+CSS = b"""
+window { background:#1e1e1e; color:#eee9e3; }
+.titre { font-family: Astoria, sans-serif; font-size: 26px; color:#f0b378; }
+.sous { color:#9b938a; } .credit { color:#6d675f; font-size:11px; }
+.carte { background:#2d2d2d; border-radius:10px; padding:12px 14px; border:1px solid #35302b; }
+.carte.actif { border-color:#f0b378; background: alpha(#f0b378,0.08); }
+.nom { font-weight:bold; } .etat { color:#f0b378; font-size:12px; }
+button.acc { background:#f0b378; color:#1a1a1a; border-radius:999px; font-weight:bold; padding:5px 16px; }
+button.ghost { background:none; color:#f0b378; border:1px solid alpha(#f0b378,0.5); border-radius:999px; }
+entry { background:#252525; color:#eee9e3; border:1px solid #35302b; border-radius:6px; }
+"""
+def themes():
+    L=[]
+    for f in sorted(glob.glob("/usr/share/plymouth/themes/*/*.plymouth")):
+        c=configparser.ConfigParser(); 
+        try: c.read(f); n=c["Plymouth Theme"].get("Name", os.path.basename(f))
+        except Exception: n=os.path.basename(f)
+        L.append((os.path.basename(f)[:-9], n))
+    return L
+def courant():
+    try: return subprocess.run(["plymouth-set-default-theme"],capture_output=True,text=True).stdout.strip()
+    except Exception: return ""
+class App(Gtk.Application):
+    def __init__(s): super().__init__(application_id="fr.xiii.demarrage")
+    def do_activate(s):
+        p=Gtk.CssProvider(); p.load_from_data(CSS); Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(),p,800)
+        s.w=Gtk.ApplicationWindow(application=s,title="Animation de démarrage XIII",default_width=620,default_height=560)
+        b=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_top=18,margin_bottom=12,margin_start=22,margin_end=22); s.w.set_child(b)
+        b.append(Gtk.Label(label="Animation de démarrage",css_classes=["titre"],xalign=0))
+        b.append(Gtk.Label(label="Choisissez l'animation affichée pendant le démarrage, ou importez la vôtre (vidéo, GIF).",css_classes=["sous"],xalign=0,wrap=True))
+        s.liste=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8); sc=Gtk.ScrolledWindow(vexpand=True); sc.set_child(s.liste); b.append(sc)
+        imp=Gtk.Box(spacing=8,css_classes=["carte"])
+        s.nom=Gtk.Entry(placeholder_text="Nom de l'animation",hexpand=True); imp.append(s.nom)
+        bi=Gtk.Button(label="Importer une vidéo / un GIF…",css_classes=["acc"]); bi.connect("clicked",s.choisir); imp.append(bi)
+        b.append(imp)
+        s.statut=Gtk.Label(label="",css_classes=["etat"],xalign=0); b.append(s.statut)
+        b.append(Gtk.Label(label="Application développée par Matthieu Lamotte",css_classes=["credit"],xalign=1))
+        s.remplir(); s.w.present()
+    def remplir(s):
+        while (c:=s.liste.get_first_child()): s.liste.remove(c)
+        cur=courant()
+        for tid,nom in themes():
+            c=Gtk.Box(spacing=10,css_classes=["carte"]+(["actif"] if tid==cur else []))
+            c.append(Gtk.Label(label=nom,css_classes=["nom"],xalign=0,hexpand=True))
+            if tid==cur: c.append(Gtk.Label(label="● utilisée",css_classes=["etat"]))
+            else:
+                bt=Gtk.Button(label="Utiliser",css_classes=["ghost"]); bt.connect("clicked",lambda _b,t=tid: s.lancer([t])); c.append(bt)
+            s.liste.append(c)
+    def lancer(s,args):
+        s.statut.set_label("Application en cours… (mot de passe demandé)")
+        def run():
+            r=subprocess.run(["pkexec","/usr/local/bin/xiii-demarrage-appliquer"]+args,capture_output=True,text=True)
+            GLib.idle_add(lambda:(s.statut.set_label("✓ Appliquée — visible au prochain démarrage" if r.returncode==0 else "Échec : "+(r.stdout+r.stderr).strip()[-200:]),s.remplir(),False)[-1])
+        threading.Thread(target=run,daemon=True).start()
+    def choisir(s,_b):
+        d=Gtk.FileDialog(title="Choisir une animation")
+        f=Gtk.FileFilter(); f.set_name("Vidéos et GIF"); [f.add_suffix(x) for x in ("gif","mp4","mov","webm","mkv","avi","apng")]
+        st=Gio.ListStore.new(Gtk.FileFilter); st.append(f); d.set_filters(st)
+        def fini(dlg,res):
+            try: fi=dlg.open_finish(res)
+            except Exception: return
+            s.lancer(["--importer",fi.get_path(),s.nom.get_text() or "perso"])
+        d.open(s.w,None,fini)
+if __name__=="__main__": App().run([])

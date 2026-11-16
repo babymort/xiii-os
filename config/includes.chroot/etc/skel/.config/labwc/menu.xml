@@ -6,6 +6,7 @@
     <item label="Fichiers"><action name="Execute" command="thunar" /></item>
     <separator />
     <item label="Bilan matériel XIII"><action name="Execute" command="xiii-bilan" /></item>
+    <item label="Animation de démarrage"><action name="Execute" command="xiii-demarrage" /></item>
     <item label="Pilotes XIII"><action name="Execute" command="xiii-bilan --pilotes" /></item>
     <separator />
     <item label="Redémarrer"><action name="Execute" command="systemctl reboot" /></item>
