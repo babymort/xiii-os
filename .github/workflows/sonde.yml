@@ -1,0 +1,12 @@
+name: Sonde paquets
+on: workflow_dispatch
+jobs:
+  sonde:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - run: |
+          apt-get update -qq
+          for p in libgtk4-layer-shell0 gir1.2-gtk4layershell-1.0 wlr-randr wlsunset power-profiles-daemon pulseaudio-utils labwc grim slurp swappy cliphist wl-clipboard accountsservice ufw python3-gi gir1.2-gtk-4.0 librsvg2-common gir1.2-gdkpixbuf-2.0 wtype; do
+            v=$(apt-cache policy $p | awk '/Candidat|Candidate/{print $2}'); echo "$p => ${v:-ABSENT}"; done
+          apt-cache show labwc | grep -m1 Version
