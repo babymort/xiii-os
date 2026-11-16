@@ -17,25 +17,26 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends live-build git ca-certificates xorriso
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Configuration
         run: lb config
       - name: Construction de l'ISO
         run: lb build
       - name: Nommage
+        shell: bash
         run: |
           V=$(date +%Y%m%d)-${GITHUB_REF_NAME}-${GITHUB_SHA::7}
           mv *.iso "OS-XIII-$V.iso"
           sha256sum OS-XIII-*.iso > SHA256SUMS
           ls -lh OS-XIII-*.iso
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: OS-XIII-${{ github.ref_name }}
           path: |
             OS-XIII-*.iso
             SHA256SUMS
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: build-log-${{ github.ref_name }}
