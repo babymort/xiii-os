@@ -1,0 +1,28 @@
+# Socle système
+live-boot
+live-config
+live-config-systemd
+systemd-sysv
+sudo
+locales
+console-setup
+keyboard-configuration
+tzdata
+# Firmwares (wifi, GPU, CPU)
+firmware-linux
+firmware-linux-nonfree
+firmware-misc-nonfree
+firmware-iwlwifi
+firmware-realtek
+firmware-atheros
+firmware-brcm80211
+intel-microcode
+amd64-microcode
+# Réseau
+network-manager
+wpasupplicant
+# Outils de base
+nano
+curl
+ca-certificates
+htop

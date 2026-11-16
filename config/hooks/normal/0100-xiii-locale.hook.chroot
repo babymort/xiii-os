@@ -1,0 +1,6 @@
+#!/bin/sh
+# Français par défaut
+set -e
+sed -i 's/^# *fr_FR.UTF-8/fr_FR.UTF-8/' /etc/locale.gen
+locale-gen
+update-locale LANG=fr_FR.UTF-8
