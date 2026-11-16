@@ -38,3 +38,7 @@ fonts-noto-color-emoji
 python3-gi
 gir1.2-gtk-4.0
 isenkram-cli
+# Session (droits sur l'écran, bus de messages)
+libpam-systemd
+dbus-user-session
+dbus-bin
