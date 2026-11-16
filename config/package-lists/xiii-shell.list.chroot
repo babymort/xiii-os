@@ -1,0 +1,16 @@
+# Bureau XIII (phase Bureau)
+libgtk4-layer-shell0
+gir1.2-gtk4layershell-1.0
+librsvg2-common
+gir1.2-gdkpixbuf-2.0
+pulseaudio-utils
+power-profiles-daemon
+wlr-randr
+wlsunset
+swappy
+cliphist
+qrencode
+ufw
+accountsservice
+xdg-utils
+libglib2.0-bin

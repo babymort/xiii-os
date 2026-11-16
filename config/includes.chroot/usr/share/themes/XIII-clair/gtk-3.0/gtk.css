@@ -1,0 +1,12 @@
+/* OS XIII — thème GTK3 clair (papier chaud) */
+@import url("resource:///org/gtk/libgtk/theme/Adwaita/gtk-contained.css");
+@define-color theme_bg_color #eef0f2;
+@define-color theme_base_color #ffffff;
+@define-color theme_fg_color #1d1b19;
+@define-color theme_selected_bg_color #f0b378;
+@define-color theme_selected_fg_color #1a1a1a;
+window, .background { background-color: #eef0f2; color: #1d1b19; }
+headerbar { background: #e8e6e3; border-bottom: 1px solid alpha(#b8651f,0.3); box-shadow: none; }
+headerbar .title { color: #b8651f; font-weight: bold; }
+*:selected, selection { background-color: #f0b378; color: #1a1a1a; }
+button.suggested-action { background: #f0b378; color: #1a1a1a; border-radius: 999px; }

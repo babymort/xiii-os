@@ -1,0 +1,9 @@
+#!/bin/bash
+# Capture d'écran : xiii-capture zone | ecran
+D="$(xdg-user-dir PICTURES 2>/dev/null || echo ~/Images)/Captures"; mkdir -p "$D"
+F="$D/capture-$(date +%Y-%m-%d-%H%M%S).png"
+if [ "$1" = zone ]; then G=$(slurp -d -b 1a1a1a88 -c f0b378 -w 2) || exit 0; grim -g "$G" "$F"; else grim "$F"; fi
+[ -f "$F" ] || exit 1
+wl-copy < "$F"
+r=$(notify-send -a "Capture" -i "$F" --action=modifier="Annoter" --action=dossier="Ouvrir le dossier" "Capture enregistrée" "Copiée dans le presse-papiers · $(basename "$F")")
+case "$r" in modifier) swappy -f "$F" ;; dossier) thunar "$D" ;; esac

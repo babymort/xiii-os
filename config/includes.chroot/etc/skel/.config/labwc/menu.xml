@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_menu>
   <menu id="root-menu" label="">
-    <item label="Applications"><action name="Execute" command="fuzzel" /></item>
+    <item label="Personnaliser"><action name="Execute" command="xiii-parametres --page perso" /></item>
+    <item label="Changer de fond d'écran"><action name="Execute" command="xiii-parametres --page fond" /></item>
+    <item label="Paramètres d'affichage"><action name="Execute" command="xiii-parametres --page ecran" /></item>
+    <separator />
+    <item label="Explorateur de fichiers"><action name="Execute" command="thunar" /></item>
     <item label="Terminal"><action name="Execute" command="foot" /></item>
-    <item label="Fichiers"><action name="Execute" command="thunar" /></item>
+    <item label="Capture d'écran"><action name="Execute" command="xiii-capture zone" /></item>
     <separator />
-    <item label="Bilan matériel XIII"><action name="Execute" command="xiii-bilan" /></item>
-    <item label="Animation de démarrage"><action name="Execute" command="xiii-demarrage" /></item>
-    <item label="Pilotes XIII"><action name="Execute" command="xiii-bilan --pilotes" /></item>
-    <separator />
-    <item label="Redémarrer"><action name="Execute" command="systemctl reboot" /></item>
-    <item label="Éteindre"><action name="Execute" command="systemctl poweroff" /></item>
+    <item label="Paramètres"><action name="Execute" command="xiii-parametres" /></item>
   </menu>
 </openbox_menu>

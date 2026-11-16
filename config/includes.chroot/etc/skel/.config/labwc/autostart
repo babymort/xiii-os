@@ -1,9 +1,6 @@
-swaybg -m fill -i /usr/share/xiii/wallpapers/xiii-sombre.png >/dev/null 2>&1 &
-waybar >/dev/null 2>&1 &
-mako >/dev/null 2>&1 &
-nm-applet --indicator >/dev/null 2>&1 &
-blueman-applet >/dev/null 2>&1 &
+# OS XIII — le bureau gère fond d'écran, veille, lumière nocturne, disques et notifications
+xiii-shell >"$HOME/.cache/xiii/shell.log" 2>&1 &
 lxpolkit >/dev/null 2>&1 &
-udiskie --tray --notify >/dev/null 2>&1 &
-swayidle -w timeout 600 'swaylock -f' before-sleep 'swaylock -f' >/dev/null 2>&1 &
+blueman-applet >/dev/null 2>&1 &
+wl-paste --watch cliphist store >/dev/null 2>&1 &
 (sleep 8; xiii-verif-pilotes) >/dev/null 2>&1 &

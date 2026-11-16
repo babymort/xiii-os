@@ -1,0 +1,6 @@
+#!/bin/sh
+# Pilote le bureau XIII : xiii-ctl demarrer | centre | volet | son | wifi | bluetooth | batterie | alim | meteo | fermer
+case "$1" in
+  fermer) gdbus call --session --dest fr.xiii.Shell --object-path /fr/xiii/Shell --method org.gtk.Actions.Activate fermer "[]" "{}" >/dev/null ;;
+  *) gdbus call --session --dest fr.xiii.Shell --object-path /fr/xiii/Shell --method org.gtk.Actions.Activate basculer "[<'$1'>]" "{}" >/dev/null ;;
+esac

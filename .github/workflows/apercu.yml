@@ -1,0 +1,43 @@
+name: Aperçu du bureau
+# Lance le bureau XIII sur un écran virtuel (labwc headless) et prend des captures de chaque panneau.
+on:
+  push:
+    branches: [beta]
+    paths: ['config/includes.chroot/usr/lib/xiii/**', 'config/includes.chroot/usr/local/bin/**', '.github/workflows/apercu.yml', 'tests/**']
+  workflow_dispatch:
+jobs:
+  apercu:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Paquets
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends labwc grim wlr-randr swaybg python3-gi gir1.2-gtk-4.0 \
+            libgtk4-layer-shell0 gir1.2-gtk4layershell-1.0 librsvg2-common gir1.2-gdkpixbuf-2.0 fonts-ibm-plex fonts-noto-core fonts-noto-color-emoji \
+            papirus-icon-theme adwaita-icon-theme dbus dbus-user-session libglib2.0-bin libnotify-bin thunar mousepad imv pavucontrol gnome-disk-utility \
+            shared-mime-info hicolor-icon-theme >/dev/null
+      - name: Installation des fichiers XIII
+        run: |
+          cp -a config/includes.chroot/. /
+          cp -a /etc/skel/. /root/
+          rm -f /root/.config/labwc/autostart
+          gtk-update-icon-cache -f /usr/share/icons/XIII || true
+          fc-cache -f >/dev/null 2>&1 || true
+          printf '[Desktop Entry]\nName=Firefox ESR\nExec=true\nIcon=firefox-esr\nType=Application\nCategories=Network;WebBrowser;\n' > /usr/share/applications/firefox-esr.desktop
+          printf '[Desktop Entry]\nName=mpv\nExec=true\nIcon=mpv\nType=Application\nCategories=AudioVideo;Video;\n' > /usr/share/applications/mpv.desktop
+          mkdir -p /out
+      - name: Captures
+        run: |
+          export XDG_RUNTIME_DIR=/tmp/xdg; mkdir -p -m 700 $XDG_RUNTIME_DIR
+          export WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 HOME=/root XIII_DEMO=1 LANG=C.UTF-8
+          chmod +x tests/scenario.sh
+          timeout 600 dbus-run-session -- labwc -s tests/scenario.sh > /out/labwc.log 2>&1 || true
+          ls -la /out
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: apercu
+          path: /out

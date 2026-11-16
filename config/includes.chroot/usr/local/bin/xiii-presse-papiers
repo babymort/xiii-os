@@ -1,0 +1,3 @@
+#!/bin/sh
+# Historique du presse-papiers (Super + V)
+cliphist list | fuzzel --dmenu --prompt "Presse-papiers › " --width 60 | cliphist decode | wl-copy

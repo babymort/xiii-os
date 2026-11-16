@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Paramètres
+Comment=Tous les réglages d'OS XIII
+Exec=xiii-parametres
+Icon=preferences-system
+Type=Application
+Categories=Settings;System;XIII;
+Keywords=réglages;configuration;panneau;

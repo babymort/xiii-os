@@ -37,7 +37,6 @@ usbutils
 pciutils
 lshw
 # Portables
-tlp
 upower
 acpid
 brightnessctl

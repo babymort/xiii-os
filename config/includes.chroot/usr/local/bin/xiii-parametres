@@ -1,0 +1,3 @@
+#!/bin/sh
+# OS XIII — Paramètres
+exec python3 -c 'import sys; sys.path.insert(0, "/usr/lib/xiii"); from xiii.parametres import main; main()' "$@"
