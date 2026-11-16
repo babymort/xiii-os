@@ -1,0 +1,52 @@
+# Phase 02 — matériel « évident »
+# Firmwares supplémentaires
+firmware-amd-graphics
+firmware-intel-graphics
+firmware-intel-sound
+firmware-sof-signed
+firmware-mediatek
+firmware-libertas
+firmware-ti-connectivity
+# GPU (Mesa, Vulkan, accélération vidéo)
+mesa-utils
+mesa-vulkan-drivers
+libgl1-mesa-dri
+vulkan-tools
+intel-media-va-driver
+mesa-va-drivers
+vainfo
+nvidia-detect
+# Wifi / réseau
+iw
+rfkill
+wireless-regdb
+modemmanager
+# Bluetooth
+bluez
+bluez-obexd
+# Son (PipeWire)
+pipewire
+pipewire-pulse
+pipewire-alsa
+wireplumber
+alsa-utils
+alsa-ucm-conf
+# Webcam, USB, matériel
+v4l-utils
+usbutils
+pciutils
+lshw
+# Portables
+tlp
+upower
+acpid
+brightnessctl
+# Disques
+udisks2
+ntfs-3g
+exfatprogs
+dosfstools
+# Imprimantes
+cups
+ipp-usb
+printer-driver-gutenprint

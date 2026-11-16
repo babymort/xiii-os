@@ -1,0 +1,4 @@
+#!/bin/sh
+# Services matériel activés au démarrage
+set -e
+systemctl enable NetworkManager bluetooth tlp cups acpid || true
