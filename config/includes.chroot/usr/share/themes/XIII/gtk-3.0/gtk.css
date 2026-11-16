@@ -1,0 +1,30 @@
+/* OS XIII — thème GTK3 : Adwaita sombre + accent cuivre de la Suite XIII */
+@import url("resource:///org/gtk/libgtk/theme/Adwaita/gtk-contained-dark.css");
+@define-color theme_bg_color #1e1e1e;
+@define-color theme_base_color #252525;
+@define-color theme_fg_color #eee9e3;
+@define-color theme_text_color #eee9e3;
+@define-color theme_selected_bg_color #f0b378;
+@define-color theme_selected_fg_color #1a1a1a;
+@define-color accent_color #f0b378;
+window, .background { background-color: #1e1e1e; color: #eee9e3; }
+headerbar, .titlebar { background: #1a1a1a; border-bottom: 1px solid alpha(#f0b378,0.30); box-shadow: none; }
+headerbar .title { font-family: "IBM Plex Sans"; font-weight: bold; color: #f0b378; }
+*:selected, selection, *:selected:focus { background-color: #f0b378; color: #1a1a1a; }
+button { border-radius: 6px; }
+button.suggested-action, button.default { background: #f0b378; color: #1a1a1a; border-color: #f0b378; border-radius: 999px; font-weight: bold; }
+button.suggested-action:hover { background: #f5c594; }
+entry:focus, spinbutton:focus { border-color: #f0b378; box-shadow: inset 0 0 0 1px #f0b378; }
+check:checked, radio:checked, switch:checked { background: #f0b378; border-color: #f0b378; color: #1a1a1a; }
+scale highlight, progressbar progress, levelbar block.filled { background: #f0b378; border-color: #f0b378; }
+notebook > header tab:checked { box-shadow: inset 0 -2px #f0b378; color: #f0b378; }
+.sidebar row:selected, placessidebar row:selected { background: alpha(#f0b378,0.18); color: #f0b378; }
+menu, .menu, popover { background: #252525; border: 1px solid alpha(#f0b378,0.35); }
+menuitem:hover { background: #f0b378; color: #1a1a1a; }
+link, *:link { color: #f0b378; }
+/* Écran de connexion */
+#login_window, #restart_dialog, #shutdown_dialog { background: alpha(#1a1a1a,0.82); border: 1px solid alpha(#f0b378,0.45); border-radius: 14px; box-shadow: 0 0 60px alpha(#f0b378,0.18); padding: 18px; }
+#panel_window { background: alpha(#1a1a1a,0.85); border-bottom: 1px solid alpha(#f0b378,0.35); color: #eee9e3; }
+#login_window #user_combobox { font-size: 15px; }
+#login_window entry { background: #252525; border-radius: 8px; }
+#login_window #login_button { background: #f0b378; color: #1a1a1a; border-radius: 999px; font-weight: bold; }

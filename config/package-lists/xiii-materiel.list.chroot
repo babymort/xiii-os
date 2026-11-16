@@ -50,3 +50,11 @@ dosfstools
 cups
 ipp-usb
 printer-driver-gutenprint
+# Contrôles graphiques (phase 02 — zéro terminal)
+gnome-disk-utility
+system-config-printer
+switcheroo-control
+udiskie
+libnotify-bin
+swayidle
+swaylock

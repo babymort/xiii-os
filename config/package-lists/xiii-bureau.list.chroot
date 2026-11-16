@@ -42,3 +42,7 @@ isenkram-cli
 libpam-systemd
 dbus-user-session
 dbus-bin
+# Écran de connexion
+lightdm
+lightdm-gtk-greeter
+xserver-xorg

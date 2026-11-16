@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+gtk-update-icon-cache -f /usr/share/icons/XIII >/dev/null 2>&1 || true
+systemctl enable lightdm switcheroo-control || true

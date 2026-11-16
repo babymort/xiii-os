@@ -4,3 +4,6 @@ mako >/dev/null 2>&1 &
 nm-applet --indicator >/dev/null 2>&1 &
 blueman-applet >/dev/null 2>&1 &
 lxpolkit >/dev/null 2>&1 &
+udiskie --tray --notify >/dev/null 2>&1 &
+swayidle -w timeout 600 'swaylock -f' before-sleep 'swaylock -f' >/dev/null 2>&1 &
+(sleep 8; xiii-verif-pilotes) >/dev/null 2>&1 &

@@ -1,0 +1,11 @@
+#!/bin/bash
+# Prévient si un pilote manque (NVIDIA, firmware), ouvre l'app Pilotes en un clic.
+msg=""
+if lspci | grep -qi nvidia && ! lsmod | grep -q '^nvidia '; then
+  p=$(nvidia-detect 2>/dev/null | grep -oE 'nvidia-[a-z0-9-]*driver' | head -1); [ -n "$p" ] && msg="Carte NVIDIA détectée : le pilote $p améliorera les performances."
+fi
+n=$(dmesg 2>/dev/null | grep -ciE 'Direct firmware load for .* failed')
+[ "${n:-0}" -gt 0 ] && msg="${msg:+$msg\n}$n firmware(s) manquant(s) pour votre matériel."
+[ -z "$msg" ] && exit 0
+r=$(notify-send -a "Pilotes XIII" -i xiii-pilotes --action=ouvrir="Ouvrir Pilotes XIII" "Pilotes à installer" "$(printf "$msg")")
+[ "$r" = ouvrir ] && exec xiii-bilan --pilotes

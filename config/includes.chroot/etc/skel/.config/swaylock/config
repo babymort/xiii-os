@@ -1,0 +1,16 @@
+image=/usr/share/xiii/wallpapers/xiii-connexion.png
+scaling=fill
+indicator-radius=90
+indicator-thickness=6
+inside-color=1a1a1acc
+ring-color=f0b378ff
+key-hl-color=f5c594ff
+line-color=00000000
+text-color=eee9e3ff
+inside-ver-color=1a1a1acc
+ring-ver-color=f0b378ff
+inside-wrong-color=1a1a1acc
+ring-wrong-color=e98080ff
+separator-color=00000000
+font=IBM Plex Sans
+show-failed-attempts

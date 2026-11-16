@@ -3,6 +3,7 @@
   <core><gap>6</gap></core>
   <theme>
     <name>XIII</name>
+    <icon>XIII</icon>
     <cornerRadius>8</cornerRadius>
     <font place="ActiveWindow"><name>IBM Plex Sans</name><size>10</size><weight>bold</weight></font>
     <font place="MenuItem"><name>IBM Plex Sans</name><size>10</size></font>
@@ -14,6 +15,14 @@
     <keybind key="W-Return"><action name="Execute" command="foot" /></keybind>
     <keybind key="W-e"><action name="Execute" command="thunar" /></keybind>
     <keybind key="Print"><action name="Execute" command="sh -c 'grim ~/Images/capture-$(date +%F-%H%M%S).png'" /></keybind>
+    <keybind key="XF86AudioRaiseVolume"><action name="Execute" command="wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+" /></keybind>
+    <keybind key="XF86AudioLowerVolume"><action name="Execute" command="wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-" /></keybind>
+    <keybind key="XF86AudioMute"><action name="Execute" command="wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" /></keybind>
+    <keybind key="XF86AudioMicMute"><action name="Execute" command="wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle" /></keybind>
+    <keybind key="XF86MonBrightnessUp"><action name="Execute" command="brightnessctl set +5%" /></keybind>
+    <keybind key="XF86MonBrightnessDown"><action name="Execute" command="brightnessctl set 5%-" /></keybind>
+    <keybind key="W-l"><action name="Execute" command="swaylock -f" /></keybind>
+    <keybind key="XF86TouchpadToggle"><action name="Execute" command="labwc --reconfigure" /></keybind>
     <keybind key="A-F4"><action name="Close" /></keybind>
     <keybind key="W-Up"><action name="ToggleMaximize" /></keybind>
   </keyboard>

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Test webcam
+Comment=Vérifier que la webcam fonctionne
+Exec=sh -c 'ls /dev/video0 >/dev/null 2>&1 && mpv --title="Test webcam XIII" --profile=low-latency --untimed av://v4l2:/dev/video0 || notify-send -i camera-web "Test webcam" "Aucune webcam détectée"'
+Icon=camera-web
+Type=Application
+Categories=AudioVideo;XIII;

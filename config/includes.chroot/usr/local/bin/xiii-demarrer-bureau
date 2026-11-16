@@ -1,19 +1,16 @@
 #!/bin/bash
 # OS XIII — lance le bureau, avec repli automatique si la carte graphique pose problème.
 mkdir -p ~/.cache/xiii; LOG=~/.cache/xiii/bureau.log; : > "$LOG"
-export XDG_CURRENT_DESKTOP=labwc XDG_SESSION_TYPE=wayland
-# Machine virtuelle ou pas d'accélération 3D : rendu logiciel d'emblée
+export XDG_CURRENT_DESKTOP=labwc XDG_SESSION_TYPE=wayland XCURSOR_THEME=XIII-curseur XCURSOR_SIZE=24
 if systemd-detect-virt -q 2>/dev/null || ! ls /dev/dri/renderD* >/dev/null 2>&1; then
-  export WLR_RENDERER=pixman WLR_NO_HARDWARE_CURSORS=1
-  echo "[xiii] rendu logiciel (VM ou pas de 3D)" >>"$LOG"
+  export WLR_RENDERER=pixman WLR_NO_HARDWARE_CURSORS=1; echo "[xiii] rendu logiciel (VM ou pas de 3D)" >>"$LOG"
 fi
-t=$(date +%s); dbus-run-session labwc >>"$LOG" 2>&1
+run(){ if [ -n "$DBUS_SESSION_BUS_ADDRESS" ]; then labwc >>"$LOG" 2>&1; else dbus-run-session labwc >>"$LOG" 2>&1; fi; }
+t=$(date +%s); run
 if [ $(( $(date +%s) - t )) -lt 8 ]; then
-  echo "[xiii] échec, nouvel essai en rendu logiciel" >>"$LOG"
-  WLR_RENDERER=pixman WLR_NO_HARDWARE_CURSORS=1 dbus-run-session labwc >>"$LOG" 2>&1
-  if [ $(( $(date +%s) - t )) -lt 16 ]; then
-    clear; printf '\n\e[38;2;240;179;120m  OS XIII — le bureau n’a pas pu démarrer.\e[0m\n\n'
-    tail -n 25 "$LOG"; printf '\n  Journal complet : ~/.cache/xiii/bureau.log\n  Relancer : xiii-demarrer-bureau\n\n'
-    exec bash
+  echo "[xiii] échec, nouvel essai en rendu logiciel" >>"$LOG"; export WLR_RENDERER=pixman WLR_NO_HARDWARE_CURSORS=1; run
+  if [ $(( $(date +%s) - t )) -lt 16 ] && [[ "$(tty)" == /dev/tty* ]]; then
+    clear; printf '\n\e[38;2;240;179;120m  OS XIII — le bureau n’a pas pu démarrer.\e[0m\n\n'; tail -n 25 "$LOG"
+    printf '\n  Journal complet : ~/.cache/xiii/bureau.log\n\n'; exec bash
   fi
 fi
