@@ -28,4 +28,13 @@
 	<patterns>*.exe;*.EXE;*.msi;*.MSI</patterns>
 	<other-files/>
 </action>
+<action>
+	<icon>claude-desktop</icon>
+	<name>Ouvrir Claude Code ici</name>
+	<unique-id>xiii-claude-1</unique-id>
+	<command>xiii-claude-code %f</command>
+	<description>Claude Code dans ce dossier</description>
+	<patterns>*</patterns>
+	<directories/>
+</action>
 </actions>

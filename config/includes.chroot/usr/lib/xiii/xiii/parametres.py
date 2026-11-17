@@ -234,6 +234,7 @@ class Parametres(Gtk.Application):
         for ic, t, s, pg in (("wifi", "Partager le Wi-Fi par QR code", "Affichez le QR code du réseau actuel", "wifi"),
                              ("clapperboard", "Mode tournage", "Performances, silence et éveil en un clic", "xiii"),
                              ("image", "Changer de fond d'écran", "Fonds XIII ou vos images", "fond"),
+                             ("sparkles", "Relier OS XIII à Claude", "Claude voit votre PC, votre projet et vos fichiers XIII", "claude"),
                              ("cpu", "Vérifier les pilotes", "Scan des pilotes et firmwares manquants", None)):
             c.append(reglage(ic, t, s, clic=(lambda pg=pg: self.aller(pg)) if pg else (lambda: S.detacher("xiii-bilan --pilotes"))))
 
@@ -868,6 +869,71 @@ class Parametres(Gtk.Application):
             c.append(info("Profil vieux PC : %.1f Go de mémoire%s. Conseils : limiter à 30 i/s, jouer en 720p, préférer Proton 8 si un jeu plante au lancement (Propriétés du jeu › Compatibilité)."
                           % (ram, "" if vk else ", pas de Vulkan (jeux Windows en mode compatibilité, plus lent)")))
         c.append(info("Les jeux protégés par certains anti-triche (Valorant, Fortnite…) ne fonctionnent pas sous Linux. Vérifiez la compatibilité d'un jeu sur protondb.com."))
+
+    def p_claude(self, c, cle):
+        from . import claude as CL
+        demo = S.DEMO
+        vd = "5.11492.5" if demo else CL.version_paquet("claude-desktop")
+        vc = "2.1.311" if demo else (CL.version_code() if CL.code_installe() else None)
+        h = boite(False, 16, "hero"); h.append(gicon_image(Gio.ThemedIcon.new("claude-desktop"), 48) if (vd or demo) else ico("sparkles", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER)
+        v.append(label("Claude", "hero-grand"))
+        v.append(label(" · ".join(x for x in (("Claude Desktop " + vd) if vd else "Claude Desktop non installé", ("Claude Code " + vc) if vc else "Claude Code non installé") if x), "attenue"))
+        h.append(v)
+        if vd: h.append(bouton("Ouvrir Claude", None, "pilule", rappel=lambda: CL.ouvrir()))
+        else:
+            def installer():
+                S.en_fond(lambda: subprocess.run(["pkexec", "sh", "-c", "apt-get update && apt-get install -y claude-desktop claude-code"]).returncode,
+                          lambda r: (self.toast("Claude installé" if r == 0 else "Installation impossible (connexion Internet ?)"), self.aller("claude", False)))
+                self.toast("Installation de Claude…")
+            h.append(bouton("Installer", None, "pilule", rappel=installer))
+        c.append(h)
+
+        c.append(groupe_titre("Claude Desktop"))
+        c.append(reglage("message-square", "Nouvelle conversation", "Discuter, joindre des fichiers, créer des documents — raccourci Super+C",
+                         clic=lambda: CL.ouvrir("claude://claude.ai/new?surface=chat&source=desktop_action")))
+        c.append(reglage("code-xml", "Nouvelle session Claude Code dans l'app", "Sessions en parallèle, revue des modifications, terminal et aperçu intégrés",
+                         clic=lambda: CL.ouvrir("claude://code/new?source=desktop_action")))
+        c.append(reglage("bot", "Cowork", "Confiez une tâche longue : Claude travaille dans une machine virtuelle sécurisée", clic=lambda: CL.ouvrir()))
+
+        c.append(groupe_titre("Claude Code"))
+        pj = self.cfg.get("projet_actif")
+        c.append(reglage("square-terminal", "Ouvrir Claude Code" + (" dans « %s »" % pj if pj else ""),
+                         ("Dans le dossier du projet XIII actif" if pj else "Dans votre dossier personnel") + " — raccourci Super+Maj+C", clic=lambda: CL.code_dans()))
+        def dossier():
+            d = Gtk.FileDialog(title="Ouvrir Claude Code dans…")
+            d.select_folder(self.win, None, lambda dlg, res: (lambda f: f and CL.code_dans(f.get_path()))(self._fichier_ou_rien(dlg.select_folder_finish, res)))
+        c.append(reglage("folder-open", "Ouvrir Claude Code dans un dossier…", "Aussi en clic droit sur un dossier dans Fichiers", clic=dossier))
+        c.append(reglage("user-round-key", "Compte", "Connecté" if (demo or CL.connecte_code()) else "La connexion est proposée au premier lancement (abonnement Pro ou Max, ou clé API)",
+                         droite=label("✓", "accent") if (demo or CL.connecte_code()) else None))
+
+        c.append(groupe_titre("Relier OS XIII à Claude"))
+        c.append(info("Claude peut alors voir l'état de l'ordinateur et votre écran, lire le projet XIII actif et les fichiers de la Suite XIII (fiche projet, conducteur, plan de travail), "
+                      "appliquer un profil de travail, changer le thème, ouvrir une application, un dossier ou une page des Paramètres, et vous envoyer une notification. "
+                      "Claude demande votre accord avant chaque action."))
+        c.append(reglage("plug-zap", "Dans Claude Desktop", "Pris en compte au prochain lancement de Claude",
+                         droite=interrupteur(demo or CL.mcp_desktop(), lambda on: (CL.regler_mcp_desktop(on), self.toast("Relancez Claude pour appliquer")))))
+        def code_mcp(on):
+            S.en_fond(CL.regler_mcp_code, lambda ok: self.toast(("OS XIII relié à Claude Code" if on else "Lien retiré") if ok else "Claude Code est absent"), on)
+        c.append(reglage("plug", "Dans Claude Code", "Outils « os-xiii » disponibles dans toutes vos sessions",
+                         droite=interrupteur(demo or CL.mcp_code(), code_mcp)))
+
+        c.append(groupe_titre("Cowork sur ce PC"))
+        conds = [(t, True, a) for t, _, a in CL.cowork()] if demo else CL.cowork()
+        for t, ok, conseil in conds:
+            c.append(reglage("circle-check" if ok else "circle-x", t, None if ok else conseil, droite=label("OK" if ok else "À régler", "accent" if ok else "attenue")))
+        if not all(ok for _, ok, _ in conds[2:]):
+            c.append(reglage("wrench", "Réparer Cowork", "Charge les modules, donne l'accès à la virtualisation et installe QEMU (mot de passe administrateur)",
+                             droite=bouton("Réparer", None, "pilule", rappel=lambda: S.en_fond(CL.reparer_cowork, lambda ok: (self.toast("Fermez puis rouvrez la session" if ok else "Réparation annulée"), self.aller("claude", False))))))
+
+        c.append(groupe_titre("Mises à jour"))
+        c.append(reglage("refresh-cw", "Claude se met à jour avec OS XIII", "Dépôts officiels d'Anthropic (canal stable), comme le reste du système", clic=lambda: self.aller("maj")))
+        c.append(info("Pas encore dans la version Linux de Claude : le contrôle de l'écran (Computer Use) et la dictée vocale. "
+                      "La capture d'écran d'OS XIII permet déjà à Claude de voir ce qui est affiché."))
+
+    def _fichier_ou_rien(self, fin, res):
+        try: return fin(res)
+        except GLib.Error: return None
 
     def p_sauvegarde(self, c, cle):
         c.append(info("Deux protections complémentaires : vos dossiers (photos, documents, projets) sur un disque externe ou en ligne, et des instantanés du système pour revenir en arrière après une mauvaise mise à jour."))

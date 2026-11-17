@@ -1,0 +1,47 @@
+#!/bin/sh
+# Phase 08 — Claude Desktop (Chat, Cowork, Code) et Claude Code, depuis les dépôts officiels d'Anthropic
+# Les mises à jour arrivent ensuite avec celles du système (Paramètres › Mises à jour).
+set -e
+EMPREINTE=31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl gnupg ca-certificates
+
+cle() { # url destination
+  curl -fsSL --retry 4 -o "$2" "$1"
+  gpg --show-keys --with-colons "$2" | grep -q "^fpr:::::::::$EMPREINTE:" || { echo "Clé Anthropic inattendue : $1" >&2; exit 1; }
+  chmod 0644 "$2"
+}
+install -d -m 0755 /etc/apt/keyrings
+cle https://downloads.claude.ai/claude-desktop/key.asc /usr/share/keyrings/claude-desktop-archive-keyring.asc
+cle https://downloads.claude.ai/keys/claude-code.asc /etc/apt/keyrings/claude-code.asc
+echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/claude-desktop-archive-keyring.asc] https://downloads.claude.ai/claude-desktop/apt/stable stable main" > /etc/apt/sources.list.d/claude-desktop.list
+echo "deb [signed-by=/etc/apt/keyrings/claude-code.asc] https://downloads.claude.ai/claude-code/apt/stable stable main" > /etc/apt/sources.list.d/claude-code.list
+
+apt-get update
+# Cowork : machine virtuelle QEMU/KVM ; connexion mémorisée : trousseau GNOME ; icône de zone de notification
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends claude-desktop claude-code \
+  qemu-system-x86 ovmf virtiofsd bubblewrap socat openssh-client \
+  gnome-keyring libpam-gnome-keyring libsecret-tools libayatana-appindicator3-1 xdg-desktop-portal-gtk
+apt-get clean
+
+# Le paquet peut réécrire sa source : on vérifie qu'il n'y en a qu'une
+ls /etc/apt/sources.list.d/ | grep -i claude || true
+
+# Cowork : module vsock chargé au démarrage
+echo vhost_vsock > /etc/modules-load.d/xiii-cowork.conf
+
+# Les comptes créés par l'installateur rejoignent le groupe kvm
+for f in /etc/calamares/modules/users.conf /usr/share/calamares/modules/users.conf; do
+  [ -f "$f" ] || continue
+  grep -qE '^\s*-\s*kvm\s*$|name:\s*kvm' "$f" && continue
+  awk '{print} /^defaultGroups:/{getline n; m=n; sub(/-.*/,"",m); print m "- kvm"; print n}' "$f" > "$f.xiii" && mv "$f.xiii" "$f"
+  grep -A3 '^defaultGroups:' "$f"
+done
+
+# Lanceur Claude en français
+D=/usr/share/applications/com.anthropic.Claude.desktop
+if [ -f "$D" ]; then
+  sed -i '/^Comment=/a Comment[fr]=Assistant IA d'"'"'Anthropic : discussion, Cowork et Claude Code' "$D"
+  sed -i '/^GenericName=/a GenericName[fr]=Assistant IA' "$D"
+  sed -i '/^Name=New Chat/a Name[fr]=Nouvelle conversation' "$D"
+  sed -i '/^Name=New Claude Code Session/a Name[fr]=Nouvelle session Claude Code' "$D"
+fi

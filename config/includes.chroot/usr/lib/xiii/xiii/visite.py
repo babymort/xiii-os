@@ -6,7 +6,7 @@ import gi
 gi.require_version("Gtk4LayerShell", "1.0")
 from gi.repository import Gtk, Gdk, GLib
 from gi.repository import Gtk4LayerShell as LS
-from . import config
+from . import config, claude
 from .ui import *
 
 def etapes(sh):
@@ -20,6 +20,9 @@ def etapes(sh):
         (sh.droite, B, "Heure et notifications", "Le volet de notifications avec le calendrier et le mode Ne pas déranger."),
         (sh.zone_haut, H, "Réglages rapides", "Wi-Fi, Bluetooth, son, énergie. Clic gauche : réglage rapide. Clic droit : la page complète des Paramètres."),
         (sh.h_centre, H, "Centre de contrôle", "Mode avion, lumière nocturne, thème clair/sombre, mode tournage, capture d'écran… (Super + A)."),
+        (sh.taches, B, "Claude intégré", "Claude Desktop (discussion, Cowork, Claude Code) est épinglé à la barre : Super + C pour l'ouvrir, Super + Maj + C pour Claude Code dans votre projet. "
+         "Il est relié à OS XIII : il voit l'état du PC et vos fichiers de la Suite XIII. Connectez-vous avec votre compte Claude.",
+         ("Se connecter à Claude", lambda: claude.ouvrir())),
         (None, None, "C'est parti !", "Raccourcis utiles : Super (menu), Super + I (Paramètres), Super + Maj + S (capture), Super + V (presse-papiers), Super + L (verrouiller)."),
     ]
 
@@ -59,12 +62,15 @@ class Visite:
         return (x - m, y - m, w + 2 * m, h + 2 * m)
 
     def montrer(self):
-        cible, ou, titre, texte = self.L[self.i]
+        cible, ou, titre, texte = self.L[self.i][:4]
+        action = self.L[self.i][4] if len(self.L[self.i]) > 4 else None
         self.trou = self.rect(cible, ou) if cible is not None else None
         vider(self.bulle)
         h = boite(False, 10); h.append(ico("sparkles", 20, "c")); h.append(label(titre, "panneau-titre", hexpand=True))
         h.append(label("%d / %d" % (self.i + 1, len(self.L)), "attenue", "petit")); self.bulle.append(h)
         self.bulle.append(label(texte, wrap=True, largeur=46))
+        if action:
+            ab = boite(False, 0); ab.append(bouton(action[0], "sparkles", "fantome", taille=14, rappel=action[1])); self.bulle.append(ab)
         bas = boite(False, 8, margin_top=6)
         self.case = Gtk.CheckButton(label="Ne plus afficher", active=True); bas.append(self.case); bas.append(Gtk.Box(hexpand=True))
         if self.i < len(self.L) - 1: bas.append(bouton("Passer la visite", None, "plat", rappel=lambda: self.fin(False)))

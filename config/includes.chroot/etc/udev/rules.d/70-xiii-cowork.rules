@@ -1,0 +1,3 @@
+# OS XIII — Cowork (Claude Desktop) : la personne connectée peut utiliser la virtualisation
+KERNEL=="kvm", GROUP="kvm", MODE="0660", TAG+="uaccess"
+KERNEL=="vhost-vsock", GROUP="kvm", MODE="0660", TAG+="uaccess"

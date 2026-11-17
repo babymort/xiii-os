@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Claude Code
+Comment=Assistant de code d'Anthropic, ouvert dans le projet XIII actif
+Keywords=claude;code;ia;ai;agent;programmation;
+Exec=xiii-claude-code %f
+Icon=claude-desktop
+Terminal=false
+Categories=Development;
+StartupWMClass=fr.xiii.claudecode

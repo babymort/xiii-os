@@ -5,6 +5,7 @@ from gi.repository import Gio, GLib, Gdk
 
 CATEGORIES = [  # (clé, nom affiché, icône Lucide, catégories freedesktop)
     ("xiii", "Outils XIII", "zap", ["XIII"]),
+    ("ia", "Intelligence artificielle", "sparkles", ["X-XIII-IA"]),
     ("windows", "Applications Windows", "app-window", ["Wine", "X-XIII-Windows"]),
     ("internet", "Internet", "globe", ["Network", "WebBrowser", "Email", "Chat", "InstantMessaging", "FileTransfer"]),
     ("multimedia", "Multimédia", "clapperboard", ["AudioVideo", "Audio", "Video", "Player", "Recorder"]),
@@ -22,6 +23,8 @@ CACHES = {"lxpolkit.desktop", "blueman-adapters.desktop", "nm-applet.desktop", "
           "thunar-settings.desktop", "thunar-volman-settings.desktop", "xdg-desktop-portal-wlr.desktop", "lightdm-gtk-greeter-settings.desktop",
           "calamares.desktop", "calamares-install-debian.desktop", "wine.desktop", "wine-notepad.desktop", "wine-winecfg.desktop", "wine-uninstaller.desktop", "winetricks.desktop"}
 
+IA = {"com.anthropic.Claude.desktop", "xiii-claude-code.desktop"}
+
 def toutes():
     L = []
     for a in Gio.AppInfo.get_all():
@@ -38,6 +41,7 @@ def categorie(a):
         if "wine " in (a.get_commandline() or "") or "WINEPREFIX" in (a.get_commandline() or ""): return "windows"
     except Exception:
         pass
+    if a.get_id() in IA: return "ia"
     for cle, _, _, fd in CATEGORIES:
         if any(c in cats for c in fd):
             return cle
@@ -60,7 +64,7 @@ def pour_fenetre(app_id):
     """Trouve l'appli .desktop d'une fenêtre (app_id Wayland / classe X11)."""
     global _index_wm
     if not app_id: return None
-    alias = {"fr.xiii.parametres": "xiii-parametres.desktop", "fr.xiii.bilan": "xiii-bilan.desktop", "fr.xiii.demarrage": "xiii-demarrage.desktop", "fr.xiii.windows": "xiii-windows.desktop", "fr.xiii.somme": "xiii-somme.desktop", "steam": "steam.desktop", "fr.xiii.bienvenue": "xiii-installer.desktop",
+    alias = {"fr.xiii.parametres": "xiii-parametres.desktop", "fr.xiii.bilan": "xiii-bilan.desktop", "fr.xiii.demarrage": "xiii-demarrage.desktop", "fr.xiii.windows": "xiii-windows.desktop", "fr.xiii.somme": "xiii-somme.desktop", "steam": "steam.desktop", "fr.xiii.bienvenue": "xiii-installer.desktop", "fr.xiii.claudecode": "xiii-claude-code.desktop",
              "org.xfce.mousepad": "org.xfce.mousepad.desktop", "thunar": "thunar.desktop", "firefox-esr": "firefox-esr.desktop", "mpv": "mpv.desktop"}
     if app_id.lower() in alias:
         a = par_id(alias[app_id.lower()])

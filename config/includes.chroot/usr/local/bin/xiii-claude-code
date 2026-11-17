@@ -1,0 +1,14 @@
+#!/bin/sh
+# Claude Code dans une fenêtre dédiée : dossier donné, sinon projet XIII actif, sinon dossier personnel.
+dir="$1"
+if [ -z "$dir" ]; then
+  p=$(python3 -c 'import json,os; print(json.load(open(os.path.expanduser("~/.config/xiii/reglages.json"))).get("projet_actif",""))' 2>/dev/null)
+  [ -n "$p" ] && [ -d "$HOME/XIII/$p" ] && dir="$HOME/XIII/$p"
+fi
+[ -f "$dir" ] && dir=$(dirname "$dir")
+[ -d "$dir" ] || dir="$HOME"
+if ! command -v claude >/dev/null; then
+  notify-send -a "Claude Code" -i claude-desktop "Claude Code n'est pas installé" "Paramètres › Claude pour l'installer."; exit 1
+fi
+exec foot --app-id=fr.xiii.claudecode --title="Claude Code — $(basename "$dir")" -D "$dir" \
+  sh -c 'claude; echo; printf "Session terminée — Entrée pour fermer "; read x'

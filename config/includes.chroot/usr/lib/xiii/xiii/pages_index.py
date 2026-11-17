@@ -55,6 +55,7 @@ PAGES = [
     ("confidentialite", "Historique et localisation", "eye", "securite", "Fichiers récents, ville météo", "historique recents localisation"),
     ("jeux", "Jeux", "gamepad-2", None, "Steam, Proton, mode console, GameMode, MangoHud", "steam proton jeux gamemode mangohud console big picture"),
     ("sauvegarde", "Sauvegardes", "archive", "securite", "Sauvegarde des dossiers, instantanés du système", "sauvegarde backup time machine timeshift deja dup"),
+    ("claude", "Claude", "sparkles", None, "Claude Desktop, Claude Code, Cowork, lien avec OS XIII", "claude ia ai anthropic assistant code cowork mcp intelligence artificielle chat"),
     ("maj", "Mises à jour", "refresh-cw", None, "Mettre à jour OS XIII", "update mise a jour"),
     ("xiii", "Suite XIII", "zap", None, "Mode tournage, météo, réglages partagés", "tournage xiii suite"),
     ("projet", "Projet XIII actif", "folder-kanban", "xiii", "Dossiers du projet en cours, affiché dans la barre", "projet dossier rushes tournage"),

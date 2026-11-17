@@ -11,7 +11,7 @@ sleep 0.5
 notify-send -a "Capture" -i camera-photo "Capture enregistrée" "Copiée dans le presse-papiers · capture-2026-11-16.png" &
 mousepad >/dev/null 2>&1 &
 sleep 2
-for i in 1 2 3 4 5 6 7 8 9; do grim /out/v-$i.png; xiii-ctl visite-suivant; sleep 1; done
+for i in 1 2 3 4 5 6 7 8 9 10; do grim /out/v-$i.png; xiii-ctl visite-suivant; sleep 1; done
 sleep 1
 grim /out/01-bureau.png
 for p in demarrer son wifi bluetooth batterie centre alim volet widgets; do
@@ -28,7 +28,7 @@ xiii-somme /root/Bureau > /out/somme.log 2>&1 & sleep 4; grim /out/q-somme.png; 
 xiii-bilan --sante > /out/bilan.log 2>&1 & sleep 5; grim /out/q-sante.png; pkill -f xiii-bilan; sleep 0.5
 xiii-parametres --page accueil >> /out/param.log 2>&1 &
 sleep 6; grim /out/s-accueil.png
-for pg in profils historique bureau jeux projet outilsprod sauvegarde widgets xiii ecran son theme fond barre perso wifi bluetooth apropos alimentation stockage souris clavier xiii maj apps notifications heure; do
+for pg in claude accueil profils historique bureau jeux projet outilsprod sauvegarde widgets xiii ecran son theme fond barre perso wifi bluetooth apropos alimentation stockage souris clavier xiii maj apps notifications heure; do
   xiii-parametres --page $pg >> /out/param.log 2>&1
   sleep 2.5; grim /out/s-$pg.png
 done

@@ -31,6 +31,7 @@ jobs:
           fc-cache -f >/dev/null 2>&1 || true
           printf '[Desktop Entry]\nName=Firefox ESR\nExec=true\nIcon=firefox-esr\nType=Application\nCategories=Network;WebBrowser;\n' > /usr/share/applications/firefox-esr.desktop
           printf '[Desktop Entry]\nName=mpv\nExec=true\nIcon=mpv\nType=Application\nCategories=AudioVideo;Video;\n' > /usr/share/applications/mpv.desktop
+          printf '[Desktop Entry]\nName=Claude\nExec=true\nIcon=claude-desktop\nType=Application\nCategories=Utility;Development;\n' > /usr/share/applications/com.anthropic.Claude.desktop
           mkdir -p /out
       - name: Captures
         run: |

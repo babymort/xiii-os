@@ -58,6 +58,8 @@
     <keybind key="W-semicolon"><action name="Execute" command="xiii-ctl emoji" /></keybind>
     <keybind key="W-d"><action name="Execute" command="xiii-ctl bureau" /></keybind>
     <keybind key="W-w"><action name="Execute" command="xiii-ctl widgets" /></keybind>
+    <keybind key="W-c"><action name="Execute" command="claude-desktop" /></keybind>
+    <keybind key="W-S-c"><action name="Execute" command="xiii-claude-code" /></keybind>
     <keybind key="W-Return"><action name="Execute" command="foot" /></keybind>
     <keybind key="W-e"><action name="Execute" command="thunar" /></keybind>
     <keybind key="XF86AudioRaiseVolume"><action name="Execute" command="wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+" /></keybind>

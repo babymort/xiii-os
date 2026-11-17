@@ -7,7 +7,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Gtk4LayerShell", "1.0")
 from gi.repository import Gtk, Gdk, GLib, Gio
 from gi.repository import Gtk4LayerShell as LS
-from . import config, theme, systeme as S, apps, notifs, panneaux as P, widgets as W, profils, vues, tray
+from . import config, theme, systeme as S, apps, notifs, panneaux as P, widgets as W, profils, vues, tray, claude
 from .bureau import Bureau
 from .fenetres import Gestionnaire
 from .ui import *
@@ -823,7 +823,7 @@ class MenuDemarrer:
         self.res.append(label("Web et assistant", "section"))
         brut0 = self.recherche.get_text().strip()
         self.res.append(bouton("Demander à Claude : « %s »" % brut0, "sparkles", "ligne", "plat", taille=18,
-                               rappel=lambda: (self.shell.fermer(), S.detacher(["xdg-open", "https://claude.ai/new?q=" + GLib.uri_escape_string(brut0, None, False)]))))
+                               rappel=lambda: (self.shell.fermer(), claude.demander(brut0))))
         brut = self.recherche.get_text().strip()
         self.res.append(bouton("Rechercher « %s » sur le Web" % brut, "globe", "ligne", "plat", taille=18,
                                rappel=lambda: (self.shell.fermer(), S.detacher(["xdg-open", "https://duckduckgo.com/?q=" + GLib.uri_escape_string(brut, None, False)]))))

@@ -1,6 +1,9 @@
 # OS XIII — le bureau gère fond d'écran, veille, lumière nocturne, disques et notifications
 xiii-shell >"$HOME/.cache/xiii/shell.log" 2>&1 &
 lxpolkit >/dev/null 2>&1 &
+# Trousseau (connexion Claude mémorisée) et lien OS XIII ↔ Claude Desktop au premier démarrage
+gnome-keyring-daemon --start --components=secrets >/dev/null 2>&1 &
+python3 -c 'import sys; sys.path.insert(0, "/usr/lib/xiii"); from xiii import claude; claude.premier_lancement()' >/dev/null 2>&1 &
 blueman-applet >/dev/null 2>&1 &
 wl-paste --watch cliphist store >/dev/null 2>&1 &
 (sleep 8; xiii-verif-pilotes) >/dev/null 2>&1 &
