@@ -1,0 +1,12 @@
+/* OS XIII — aspect de l'installateur */
+QWidget { background-color: #1e1e1e; color: #eee9e3; font-family: "IBM Plex Sans"; }
+QPushButton { background-color: #2d2d2d; color: #eee9e3; border: 1px solid #3a3633; border-radius: 14px; padding: 6px 18px; }
+QPushButton:hover { border-color: #f0b378; }
+QPushButton:default, QPushButton#view-button-next { background-color: #f0b378; color: #1a1a1a; font-weight: bold; border: none; }
+QLineEdit, QComboBox, QSpinBox, QListView, QTreeView, QTextEdit, QPlainTextEdit { background-color: #252525; color: #eee9e3; border: 1px solid #3a3633; border-radius: 6px; padding: 4px; selection-background-color: #f0b378; selection-color: #1a1a1a; }
+QLineEdit:focus, QComboBox:focus { border-color: #f0b378; }
+QProgressBar { background-color: #2d2d2d; border: none; border-radius: 4px; height: 8px; text-align: center; color: #eee9e3; }
+QProgressBar::chunk { background-color: #f0b378; border-radius: 4px; }
+QCheckBox::indicator:checked, QRadioButton::indicator:checked { background-color: #f0b378; border: 1px solid #f0b378; }
+QLabel { background: transparent; }
+#sidebarApp, #sidebarMenuApp { background-color: #1a1a1a; }

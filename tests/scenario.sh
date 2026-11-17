@@ -23,6 +23,13 @@ for pg in widgets xiii ecran son theme fond barre perso wifi bluetooth apropos a
   sleep 2.5; grim /out/s-$pg.png
 done
 pkill -f xiii.parametres; sleep 1
+cp /bin/true "/tmp/VLC-3.0.21-win64-setup.exe"
+xiii-windows "/tmp/VLC-3.0.21-win64-setup.exe" > /out/windows.log 2>&1 &
+sleep 5; grim /out/w-preparer.png; pkill -f xiii.windows; sleep 1
+xiii-windows > /out/windows2.log 2>&1 &
+sleep 4; grim /out/w-accueil.png; pkill -f xiii.windows; sleep 1
+xiii-bienvenue > /out/bienvenue.log 2>&1 &
+sleep 4; grim /out/b-bienvenue.png; pkill -f xiii.bienvenue; sleep 1
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(theme="clair", accent="#3d8bfd")'
 sleep 3; xiii-ctl demarrer; sleep 2; grim /out/c-clair-menu.png; xiii-ctl fermer
 xiii-ctl centre; sleep 2; grim /out/c-clair-centre.png; xiii-ctl fermer

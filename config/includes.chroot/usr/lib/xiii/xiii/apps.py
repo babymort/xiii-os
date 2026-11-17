@@ -5,6 +5,7 @@ from gi.repository import Gio, GLib, Gdk
 
 CATEGORIES = [  # (clé, nom affiché, icône Lucide, catégories freedesktop)
     ("xiii", "Outils XIII", "zap", ["XIII"]),
+    ("windows", "Applications Windows", "app-window", ["Wine", "X-XIII-Windows"]),
     ("internet", "Internet", "globe", ["Network", "WebBrowser", "Email", "Chat", "InstantMessaging", "FileTransfer"]),
     ("multimedia", "Multimédia", "clapperboard", ["AudioVideo", "Audio", "Video", "Player", "Recorder"]),
     ("graphisme", "Graphisme", "palette", ["Graphics", "Photography", "2DGraphics", "3DGraphics"]),
@@ -18,7 +19,8 @@ CATEGORIES = [  # (clé, nom affiché, icône Lucide, catégories freedesktop)
 CACHES = {"lxpolkit.desktop", "blueman-adapters.desktop", "nm-applet.desktop", "org.freedesktop.IBus.Setup.desktop",
           "vim.desktop", "htop.desktop", "debian-uxterm.desktop", "debian-xterm.desktop", "mpv-dmenu.desktop",
           "display-im6.q16.desktop", "foot-server.desktop", "footclient.desktop", "thunar-bulk-rename.desktop",
-          "thunar-settings.desktop", "thunar-volman-settings.desktop", "xdg-desktop-portal-wlr.desktop", "lightdm-gtk-greeter-settings.desktop"}
+          "thunar-settings.desktop", "thunar-volman-settings.desktop", "xdg-desktop-portal-wlr.desktop", "lightdm-gtk-greeter-settings.desktop",
+          "calamares.desktop", "calamares-install-debian.desktop", "wine.desktop", "wine-notepad.desktop", "wine-winecfg.desktop", "wine-uninstaller.desktop", "winetricks.desktop"}
 
 def toutes():
     L = []
@@ -32,6 +34,10 @@ def toutes():
 
 def categorie(a):
     cats = (a.get_categories() or "").split(";") if hasattr(a, "get_categories") else []
+    try:
+        if "wine " in (a.get_commandline() or "") or "WINEPREFIX" in (a.get_commandline() or ""): return "windows"
+    except Exception:
+        pass
     for cle, _, _, fd in CATEGORIES:
         if any(c in cats for c in fd):
             return cle

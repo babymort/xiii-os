@@ -817,6 +817,20 @@ class Parametres(Gtk.Application):
 
     # ================================================================== APPLICATIONS
     def p_apps(self, c, cle):
+        from .windows import applis_windows, desinstaller as des_win
+        L = applis_windows()
+        c.append(groupe_titre("Applications Windows"))
+        c.append(reglage("app-window", "Installer un logiciel Windows", "Double-cliquez sur un .exe ou un .msi, ou choisissez-le ici", droite=bouton("Choisir…", None, "pilule", rappel=lambda: S.detacher("xiii-windows"))))
+        for a in L:
+            def suppr(a=a):
+                confirmer(self.win, "Désinstaller « %s » ?" % a["nom"], "Le logiciel, ses réglages et ses fichiers dans son disque C: seront supprimés.", "Désinstaller",
+                          lambda _: S.en_fond(des_win, lambda r: (self.toast("%s désinstallé" % a["nom"]), self.aller("apps", False)), a))
+            dr = boite(False, 6)
+            dr.append(bouton(None, "folder", "plat", taille=15, tip="Ouvrir son disque C:", rappel=lambda a=a: S.detacher(["xdg-open", os.path.join(a["prefixe"], "drive_c")])))
+            dr.append(bouton("Désinstaller", None, "fantome", rappel=suppr))
+            gi_ = Gio.FileIcon.new(Gio.File.new_for_path(a["icone"])) if a.get("icone") and os.path.exists(a["icone"]) else None
+            c.append(reglage("app-window" if not gi_ else None, a["nom"], "Application Windows · " + ("installée" if a.get("type") == "installeur" else "portable"), droite=dr, gicon=gi_))
+        c.append(groupe_titre("Applications Linux"))
         e = Gtk.SearchEntry(placeholder_text="Rechercher une application"); c.append(e)
         zone = boite(True, 3); c.append(zone)
         tous = apps.toutes()

@@ -1,0 +1,7 @@
+[Default Applications]
+application/x-ms-dos-executable=xiii-windows.desktop
+application/x-msdownload=xiii-windows.desktop
+application/x-msi=xiii-windows.desktop
+application/x-ms-installer=xiii-windows.desktop
+application/vnd.microsoft.portable-executable=xiii-windows.desktop
+application/x-dosexec=xiii-windows.desktop

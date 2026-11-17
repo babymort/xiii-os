@@ -1,0 +1,7 @@
+#!/bin/sh
+# Phase 06 — logiciels Windows : Wine 64 + 32 bits, winetricks, extraction d'icônes
+set -e
+dpkg --add-architecture i386
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wine wine64 wine32:i386 libwine:i386 fonts-wine winetricks cabextract icoutils unzip p7zip-full
+apt-get clean

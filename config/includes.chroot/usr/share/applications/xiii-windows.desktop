@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Applications Windows
+Comment=Installer ou lancer un logiciel Windows (.exe, .msi)
+Exec=xiii-windows %f
+Icon=xiii-windows
+Type=Application
+Categories=System;XIII;
+MimeType=application/x-ms-dos-executable;application/x-msdownload;application/x-msi;application/x-ms-installer;application/x-ole-storage;application/vnd.microsoft.portable-executable;application/x-dosexec;application/x-ms-ne-executable;
+Keywords=exe;msi;windows;wine;installer;

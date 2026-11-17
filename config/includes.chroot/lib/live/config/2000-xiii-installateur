@@ -1,0 +1,28 @@
+#!/bin/sh
+# OS XIII — en session live : ajoute « Installer OS XIII » au menu et à la barre des tâches
+cat > /usr/share/applications/xiii-installer.desktop <<D
+[Desktop Entry]
+Name=Installer OS XIII
+Comment=Installer OS XIII sur le disque de cet ordinateur
+Exec=xiii-installer
+Icon=xiii-installer
+Type=Application
+Categories=System;XIII;
+D
+for h in /home/*; do
+  u=$(basename "$h"); [ -d "$h" ] || continue
+  mkdir -p "$h/.config/xiii"
+  python3 - "$h/.config/xiii/reglages.json" <<'P'
+import json, sys
+p = sys.argv[1]
+try: c = json.load(open(p))
+except Exception: c = {}
+ep = c.get("epingles") or ["xiii-parametres.desktop", "firefox-esr.desktop", "thunar.desktop", "org.xfce.mousepad.desktop", "mpv.desktop", "xiii-bilan.desktop"]
+if "xiii-installer.desktop" not in ep: ep.insert(0, "xiii-installer.desktop")
+c["epingles"] = ep
+me = c.get("menu_epingles")
+if me is not None and "xiii-installer.desktop" not in me: me.insert(0, "xiii-installer.desktop")
+json.dump(c, open(p, "w"), ensure_ascii=False, indent=2)
+P
+  chown -R "$u:$u" "$h/.config/xiii" 2>/dev/null || true
+done

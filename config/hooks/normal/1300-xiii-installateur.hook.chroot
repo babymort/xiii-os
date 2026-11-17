@@ -1,0 +1,8 @@
+#!/bin/sh
+# Installateur Calamares aux couleurs XIII
+set -e
+sed -i 's/^branding:.*/branding: xiii/' /etc/calamares/settings.conf
+rm -f /etc/xdg/autostart/calamares-desktop-icon.desktop
+[ -f /usr/share/applications/calamares-install-debian.desktop ] && sed -i 's/^\[Desktop Entry\]/[Desktop Entry]\nNoDisplay=true/' /usr/share/applications/calamares-install-debian.desktop
+# l'installation retire aussi l'entrée live et l'accueil live
+if [ -f /etc/calamares/modules/packages.conf ]; then grep -n "remove" /etc/calamares/modules/packages.conf | head -3 || true; fi

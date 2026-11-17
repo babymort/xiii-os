@@ -1,0 +1,7 @@
+#!/bin/sh
+# OS XIII — lance l'installation sur disque (Calamares) depuis la session live
+export QT_QPA_PLATFORM="wayland;xcb" QT_WAYLAND_DISABLE_WINDOWDECORATION=0
+if [ "$(id -u)" -ne 0 ]; then
+  exec sudo -E QT_QPA_PLATFORM="$QT_QPA_PLATFORM" WAYLAND_DISPLAY="$WAYLAND_DISPLAY" XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" calamares -D 6 "$@"
+fi
+exec calamares "$@"

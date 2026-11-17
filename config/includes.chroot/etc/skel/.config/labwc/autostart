@@ -4,3 +4,5 @@ lxpolkit >/dev/null 2>&1 &
 blueman-applet >/dev/null 2>&1 &
 wl-paste --watch cliphist store >/dev/null 2>&1 &
 (sleep 8; xiii-verif-pilotes) >/dev/null 2>&1 &
+# Session live : écran d'accueil (Essayer / Installer)
+[ -d /run/live/medium ] && (sleep 3; xiii-bienvenue) >/dev/null 2>&1 &

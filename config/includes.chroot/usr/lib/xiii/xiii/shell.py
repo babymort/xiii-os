@@ -58,7 +58,7 @@ class Shell(Gtk.Application):
         GLib.timeout_add_seconds(6, self.maj_icones)
         GLib.timeout_add_seconds(1800, self.maj_meteo)
         self.maj_icones(); self.maj_meteo(); self.maj_taches(); self.tic()
-        if not self.cfg.get("visite_faite"):
+        if not self.cfg.get("visite_faite") and not os.path.isdir("/run/live/medium"):
             GLib.timeout_add_seconds(3, lambda: (self.visite(), False)[1])
 
     def visite(self):

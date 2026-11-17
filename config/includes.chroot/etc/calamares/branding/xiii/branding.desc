@@ -1,0 +1,37 @@
+---
+componentName:  xiii
+welcomeStyleCalamares: false
+welcomeExpandingLogo: true
+windowExpanding: normal
+windowSize: 1024px,660px
+windowPlacement: center
+sidebar: widget
+navigation: widget
+strings:
+    productName:         OS XIII
+    shortProductName:    OS XIII
+    version:             0.8 beta
+    shortVersion:        0.8
+    versionedName:       OS XIII 0.8
+    shortVersionedName:  OS XIII 0.8
+    bootloaderEntryName: OS XIII
+    productUrl:          https://suite-xiii.netlify.app/
+    supportUrl:          https://github.com/babymort/xiii-os
+    knownIssuesUrl:      https://github.com/babymort/xiii-os/issues
+    releaseNotesUrl:     https://github.com/babymort/xiii-os
+    donateUrl:           https://suite-xiii.netlify.app/
+images:
+    productLogo:         "logo.png"
+    productIcon:         "logo.png"
+    productWelcome:      "welcome.png"
+slideshow:               "show.qml"
+slideshowAPI: 2
+style:
+   SidebarBackground:        "#1a1a1a"
+   SidebarText:              "#eee9e3"
+   SidebarTextCurrent:       "#1a1a1a"
+   SidebarBackgroundCurrent: "#f0b378"
+uploadServer :
+    type :    "none"
+    url :     ""
+    sizeLimit: -1

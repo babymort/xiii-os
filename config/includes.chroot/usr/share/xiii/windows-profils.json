@@ -1,0 +1,10 @@
+[
+ {"motifs": ["*steam*"], "note": "Steam existe en version Linux native, préinstallée avec OS XIII : préférez-la (jeux Windows via Proton)."},
+ {"motifs": ["*epic*games*", "*gog*galaxy*", "*battle*net*", "*ubisoft*", "*ea app*", "*origin*"], "note": "Lanceur de jeux : fonctionne en général, mais les jeux protégés par certains anti-triche peuvent refuser de démarrer.", "composants": ["vcrun2022", "corefonts"]},
+ {"motifs": ["*photoshop*", "*illustrator*", "*premiere*", "*after*effects*", "*lightroom*", "*creative*cloud*"], "note": "Les logiciels Adobe récents fonctionnent mal sous Linux. Alternatives conseillées : GIMP, Krita, Inkscape, DaVinci Resolve, Kdenlive."},
+ {"motifs": ["*office*", "*word*", "*excel*", "*powerpoint*"], "note": "Microsoft Office récent fonctionne mal sous Wine : utilisez LibreOffice ou Office en ligne. Office 2010-2016 peut fonctionner.", "composants": ["corefonts"]},
+ {"motifs": ["*vmix*"], "note": "vMix nécessite l'accès direct à la carte graphique (DirectX 11) : fonctionnement non garanti. MELANGO XIII est l'alternative de la suite.", "composants": ["vcrun2022", "dotnet48", "d3dcompiler_47"]},
+ {"motifs": ["*resolume*", "*obs*"], "note": "Une version Linux native existe peut-être (OBS Studio l'est) : vérifiez avant d'installer la version Windows."},
+ {"motifs": ["*notepad++*", "*7z*", "*7-zip*", "*vlc*", "*irfanview*", "*winrar*", "*foobar*", "*audacity*"], "note": "Fonctionne très bien sous OS XIII."},
+ {"motifs": ["*companion*", "*bitfocus*"], "note": "Bitfocus Companion existe en version Linux : elle sera proposée dans le Centre de logiciels XIII."}
+]
