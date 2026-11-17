@@ -380,6 +380,7 @@ class Shell(Gtk.Application):
         if self.ouvert == "volet": self.panneaux["volet"][1].rafraichir()
         if (self.cfg["ne_pas_deranger"] and n.urgence < 2) or n.app in self.cfg["notif_bloquees"]: return
         if self.ouvert == "volet": return
+        if getattr(self, "_visite", None) and self._visite.win.get_visible(): return
         for c in list(self._enfants(self.pile)):
             if getattr(c, "nid", None) == n.id: self.pile.remove(c)
         c = P.carte_notif(n, self); c.nid = n.id
