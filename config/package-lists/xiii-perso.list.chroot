@@ -2,3 +2,5 @@
 plymouth
 plymouth-themes
 ffmpeg
+qt5-gtk-platformtheme
+qt6-gtk-platformtheme

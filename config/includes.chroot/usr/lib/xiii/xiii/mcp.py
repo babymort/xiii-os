@@ -12,7 +12,7 @@ VERSION = "1.0"
 PROTOCOLES = ("2025-06-18", "2025-03-26", "2024-11-05")
 SOUS = ["01_Rushes", "02_Son", "03_Documents", "04_Graphismes", "05_Montage", "06_Exports", "07_Livraison"]
 REGLABLES = {  # clé : (type, description)
-    "theme": (["sombre", "clair", "sobre"], "Thème du bureau"),
+    "theme": (["sombre", "clair", "auto", "sobre", "sobrec", "w2k", "xp", "mac9", "cyber", "term", "gb", "regie", "soleil", "rainbow", "sepia", "perso"], "Thème du bureau (thèmes de la Suite XIII)"),
     "accent": ("couleur", "Couleur d'accent, ex. #f0b378"),
     "ne_pas_deranger": (bool, "Ne pas déranger"),
     "lumiere_nocturne": (bool, "Lumière nocturne"),

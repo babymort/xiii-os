@@ -161,8 +161,20 @@ class Shell(Gtk.Application):
         self.ouvert = nom
         self.voile.present()
         obj.rafraichir()
-        w.present()
+        if self.cfg.get("animations", True):
+            w.set_opacity(0); w.present(); self.fondu(w)
+        else:
+            w.set_opacity(1); w.present()
         for b in self.boutons_panneaux.get(nom, []): b.add_css_class("ouvert")
+
+    def fondu(self, w, duree=140):
+        """Ouverture des panneaux en fondu (comme les panneaux de la suite) ; désactivée par « Animations »."""
+        t0 = GLib.get_monotonic_time()
+        def pas(*_):
+            k = min(1, (GLib.get_monotonic_time() - t0) / (duree * 1000))
+            w.set_opacity(1 - (1 - k) ** 3)
+            return k < 1
+        GLib.timeout_add(16, pas)
 
     def fermer(self, garder_voile=False):
         for v in ("vue_taches", "dispositions"):
@@ -333,7 +345,9 @@ class Shell(Gtk.Application):
     def construire_haut(self):
         for k in ("wifi", "bluetooth", "son", "batterie", "centre", "alim"): self.boutons_panneaux.pop(k, None)
         cb = Gtk.CenterBox(); cb.add_css_class("haut"); cb.set_size_request(-1, HH)
-        g = boite(False, 6, margin_start=8)
+        g = boite(False, 4, margin_start=6)
+        # secteur 1 : accueil · logo · projet (comme la barre du haut de la suite : 🏠 · logo · document)
+        g.append(self.bouton_survol("house", "Démarrer", lambda: self.basculer("demarrer")))
         lg = Gtk.Button(); lg.add_css_class("hb"); lg.set_child(label("XIII", "haut-logo")); lg.set_tooltip_text("À propos d'OS XIII")
         lg.connect("clicked", lambda *_: self.parametres("apropos"))
         g.append(lg)
@@ -343,7 +357,7 @@ class Shell(Gtk.Application):
             ("folder-open", "Ouvrir le dossier du projet", lambda: S.detacher(["thunar", os.path.join(os.path.expanduser("~/XIII"), self.cfg.get("projet_actif", ""))])),
             ("layout-dashboard", "Widgets du projet", lambda: self.basculer("widgets")), ("settings", "Changer de projet", lambda: self.parametres("projet"))]))
         self.b_projet.set_visible(bool(self.cfg.get("projet_actif"))); g.append(self.b_projet)
-        self.l_titre = label("", "haut-titre", ellipsize=True, largeur=60); g.append(self.l_titre)
+        self.l_titre = label("", "haut-titre", ellipsize=True, largeur=60, margin_start=6); g.append(self.l_titre)
         cb.set_start_widget(g)
         centre = boite(False, 10)
         pr = profils.courant(self.cfg)
@@ -354,17 +368,45 @@ class Shell(Gtk.Application):
         self.l_tc = label("", "timecode"); centre.append(self.l_tc)
         cb.set_center_widget(centre)
         d = boite(False, 2, margin_end=6)
+        # secteur 2 : rechercher · Suite XIII · fichiers · Claude (libellés au survol, comme dans la suite)
+        outils = boite(False, 2)
+        outils.append(self.bouton_survol("search", "Rechercher", lambda: self.basculer("demarrer-recherche")))
+        outils.append(self.bouton_survol("layout-grid", "Suite XIII", lambda: S.detacher(["xiii-suite"])))
+        outils.append(self.bouton_survol("folder-open", "Fichiers", lambda: S.detacher(["thunar", os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"]) if self.cfg.get("projet_actif") and os.path.isdir(os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"])) else os.path.expanduser("~")])))
+        outils.append(self.bouton_survol("sparkles", "Claude", lambda: S.detacher("claude-desktop")))
+        d.append(outils)
+        etat = boite(False, 2); etat.add_css_class("haut-secteur"); d.append(etat)
         def hb(nom, page, tip):
             b = Gtk.Button(); b.add_css_class("hb"); b.set_tooltip_text(tip + " — clic droit : paramètres")
             b.connect("clicked", lambda *_: self.basculer(nom)); clic_droit(b, lambda: self.parametres(page))
-            self.boutons_panneaux.setdefault(nom, []).append(b); d.append(b); return b
+            self.boutons_panneaux.setdefault(nom, []).append(b); etat.append(b); return b
+        self.h_dnd = ico("bell-off", 16, "d"); etat.append(self.h_dnd)
         self.h_wifi = hb("wifi", "reseau", "Réseau"); self.h_bt = hb("bluetooth", "bluetooth", "Bluetooth")
         self.h_son = hb("son", "son", "Son"); self.h_bat = hb("batterie", "alimentation", "Énergie")
-        self.h_dnd = ico("bell-off", 16, "d"); d.prepend(self.h_dnd)
         self.h_centre = hb("centre", "accueil", "Centre de contrôle"); self.h_centre.set_child(ico("sliders-horizontal", 16))
-        self.h_alim = hb("alim", "alimentation", "Session"); self.h_alim.set_child(ico("power", 16, "c"))
+        # secteur 3 : pastille du nom (comme la suite) et session
+        fin = boite(False, 4); fin.add_css_class("haut-secteur"); d.append(fin)
+        u = pwd.getpwuid(os.getuid()); nomu = (u.pw_gecos.split(",")[0] or u.pw_name).strip()
+        pn = Gtk.Button(); pn.add_css_class("hb"); pn.set_tooltip_text("Votre compte")
+        pb = boite(False, 0); pb.add_css_class("pastille-nom"); pb.append(label(nomu.split()[0][:14] if nomu else "Moi")); pn.set_child(pb)
+        pn.connect("clicked", lambda *_: popover_menu(pn, [("user", "Votre compte", lambda: self.parametres("compte")), ("palette", "Thème et couleurs", lambda: self.parametres("theme")),
+                                                          ("clapperboard", "Profil de travail", lambda: self.menu_profils(pn)), None, ("lock", "Verrouiller", lambda: S.detacher("swaylock -f"))]))
+        fin.append(pn)
+        self.h_alim = Gtk.Button(); self.h_alim.add_css_class("hb"); self.h_alim.set_tooltip_text("Session — clic droit : paramètres")
+        self.h_alim.connect("clicked", lambda *_: self.basculer("alim")); clic_droit(self.h_alim, lambda: self.parametres("alimentation"))
+        self.boutons_panneaux.setdefault("alim", []).append(self.h_alim); self.h_alim.set_child(ico("power", 16, "c")); fin.append(self.h_alim)
         cb.set_end_widget(d); self.zone_haut = d
         self.haut.set_child(cb)
+
+    def bouton_survol(self, icone, texte, rappel):
+        """Bouton icône dont le libellé glisse au survol (barre du haut de la suite)."""
+        b = Gtk.Button(); b.add_css_class("hb"); b.set_tooltip_text(texte)
+        bx = boite(False, 0); bx.append(ico(icone, 16))
+        rv = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_RIGHT, transition_duration=160 if self.cfg.get("animations", True) else 0)
+        rv.set_child(label(texte, "haut-survol")); bx.append(rv); b.set_child(bx)
+        mv = Gtk.EventControllerMotion(); mv.connect("enter", lambda *_: rv.set_reveal_child(True)); mv.connect("leave", lambda *_: rv.set_reveal_child(False)); b.add_controller(mv)
+        b.connect("clicked", lambda *_: rappel())
+        return b
 
     def maj_titre(self):
         f = self.fenetres.active() if self.fenetres and self.fenetres.ok else None
@@ -468,7 +510,7 @@ class Shell(Gtk.Application):
     # ============================================================== réglages & services
     def cfg_change(self, cfg):
         ancien = self.cfg
-        if ancien["theme"] != cfg["theme"]:
+        if ancien["theme"] != cfg["theme"] or ancien.get("theme_perso") != cfg.get("theme_perso") or (ancien["accent"] != cfg["accent"] and theme.fond_par_defaut(cfg["fond"])):
             f = theme.fond_assorti(cfg)
             if f != cfg["fond"]:
                 config.modifier(fond=f); return
@@ -541,6 +583,20 @@ class Shell(Gtk.Application):
             if c.get("reprise_session"): GLib.timeout_add_seconds(4, lambda: (self.reprendre_session(), False)[1])
             if c.get("jeu_console") and profils.courant(c)[0] == "jeu": S.detacher(["steam", "-gamepadui"])
         GLib.timeout_add_seconds(60, self.memoriser_session) if premier else None
+        if premier:
+            self._auto = theme.theme_effectif(c); GLib.timeout_add_seconds(300, self.theme_auto)
+
+    def theme_auto(self):
+        """Thème Auto : passe au clair au lever du soleil, au sombre au coucher."""
+        if self.cfg.get("theme") == "auto":
+            e = theme.theme_effectif(self.cfg)
+            if e != getattr(self, "_auto", e):
+                self._auto = e; c = self.cfg
+                f = theme.fond_assorti(c)
+                if f != c["fond"]: config.modifier(fond=f)
+                theme.appliquer_systeme(c); self.p = theme.palette(c); couleurs(c); self.css.load_from_string(theme.css_shell(c))
+            self._auto = e
+        return True
 
     # ============================================================== profils de travail
     def menu_profils(self, parent):

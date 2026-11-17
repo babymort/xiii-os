@@ -186,7 +186,7 @@ class Suite(Gtk.Application):
     def do_startup(self):
         Gtk.Application.do_startup(self)
         try:
-            Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", config.charger().get("theme") != "clair")
+            Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", not __import__("xiii.theme", fromlist=["x"]).palette(config.charger())["clair"])
         except Exception:
             pass
         self.port = demarrer_serveur()

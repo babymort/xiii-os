@@ -13,7 +13,7 @@ from .panneaux import METEO
 
 FONDS_PERSO = os.path.join(GLib.get_user_data_dir(), "xiii", "fonds")
 RC = os.path.join(GLib.get_user_config_dir(), "labwc", "rc.xml")
-CLES_THEME = {"theme", "accent", "transparence", "animations", "taille_texte", "curseur_taille", "police", "verrou_fond"}
+CLES_THEME = {"theme", "accent", "transparence", "animations", "taille_texte", "curseur_taille", "police", "verrou_fond", "theme_perso", "contraste", "densite"}
 
 # ------------------------------------------------------------------------------------------------ rc.xml de labwc
 def rc_lire():
@@ -118,7 +118,7 @@ class Parametres(Gtk.Application):
 
     def regler(self, **kw):
         """Enregistre des réglages ; propage le thème au système si besoin."""
-        if "theme" in kw and "fond" not in kw:
+        if {"theme", "accent", "theme_perso"} & set(kw) and "fond" not in kw and theme.fond_par_defaut(self.cfg.get("fond")):
             c2 = dict(self.cfg); c2.update(kw); kw["fond"] = theme.fond_assorti(c2)
         self.cfg = config.modifier(**kw)
         if CLES_THEME & set(kw):
@@ -226,7 +226,7 @@ class Parametres(Gtk.Application):
             return ("Connecté à " + e["nom"]) if e["type"] else "Non connecté"
         carte("globe", "Réseau et Internet", reseau, "reseau")
         carte("bluetooth", "Bluetooth", lambda: ("Activé · %d appareil(s)" % len([d for d in S.bt_appareils() if d["connecte"]])) if S.bt_actif() else "Désactivé", "bluetooth")
-        carte("palette", "Personnalisation", lambda: "Thème %s · accent %s" % (cfg["theme"], cfg["accent"]), "theme")
+        carte("palette", "Personnalisation", lambda: "Thème %s · accent %s" % (theme.NOMS_THEMES.get(cfg["theme"], cfg["theme"]), theme.palette(cfg)["accent"]), "theme")
         carte("battery-full", "Alimentation", lambda: (lambda b: ("%d %% · %s" % (b["pct"], b["etat"])) if b else "Sur secteur")(S.batterie()), "alimentation")
         carte("hard-drive", "Stockage", lambda: (lambda d: "%s libres sur %s" % (S.humain(d[0]["libre"]), S.humain(d[0]["total"])) if d else "—")(S.disques()), "stockage")
         carte("refresh-cw", "Mises à jour", lambda: "Rechercher des mises à jour", "maj")
@@ -868,24 +868,56 @@ class Parametres(Gtk.Application):
         f = Gtk.Frame(); f.set_child(pic); h.append(f)
         v = boite(True, 6, valign=Gtk.Align.CENTER)
         v.append(label("Choisissez un thème", "gras"))
-        r = boite(False, 8)
+        r = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=6, min_children_per_line=3, column_spacing=6, row_spacing=6)
         for k, n, _ in theme.THEMES:
             b = bouton(n, None, "pilule" if self.cfg["theme"] == k else "fantome", rappel=lambda k=k: self.regler(theme=k)); r.append(b)
         v.append(r); h.append(v); c.append(h)
         self.p_categorie(c, "perso")
 
     def p_theme(self, c, cle):
-        cfg = self.cfg
+        cfg = self.cfg; p = theme.palette(cfg)
         c.append(groupe_titre("Thème"))
-        g = boite(False, 12, homogeneous=True)
+        c.append(label("Les mêmes thèmes que la Suite XIII : un choix s'applique aux applications, aux fenêtres, au terminal, au fond d'écran et au verrouillage.", "attenue", wrap=True))
+        g = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=4, min_children_per_line=2, column_spacing=10, row_spacing=10, homogeneous=True)
         for k, n, d in theme.THEMES:
-            b = Gtk.Button(); b.add_css_class("vignette")
+            b = Gtk.Button(); b.add_css_class("vignette"); b.set_tooltip_text(d)
             if cfg["theme"] == k: b.add_css_class("sel")
-            v = boite(True, 6)
-            v.append(apercu_theme(k, cfg["accent"]))
-            v.append(label(n, "gras", xalign=0.5)); v.append(label(d, "attenue", "petit", wrap=True, xalign=0.5, justify=Gtk.Justification.CENTER))
+            v = boite(True, 4)
+            v.append(apercu_theme(k, cfg["accent"], cfg))
+            v.append(label(n, "gras", xalign=0.5))
             b.set_child(v); b.connect("clicked", lambda _b, k=k: self.regler(theme=k)); g.append(b)
         c.append(g)
+        c.append(info(dict((k, d) for k, _, d in theme.THEMES).get(cfg["theme"], "") + ("" if not theme.SKINS.get(cfg["theme"], {}).get("acc") else " — ce thème impose sa couleur d'accent.")))
+        # ---- thème perso
+        c.append(groupe_titre("Thème perso"))
+        tp = dict(cfg.get("theme_perso") or theme.DEPARTS[0])
+        def maj(**kw):
+            n = dict(tp); n.update(kw); self.regler(theme_perso=n, theme="perso")
+        dep = boite(False, 6, "reglage"); dep.append(label("Départs", "reglage-titre", hexpand=True))
+        for d_ in theme.DEPARTS:
+            dep.append(bouton(d_["name"], None, "fantome", taille=12, rappel=lambda d_=d_: self.regler(theme_perso=dict(d_), theme="perso")))
+        c.append(dep)
+        def btn_couleur(cle_, titre, sous):
+            dlg = Gtk.ColorDialog(with_alpha=False); cb = Gtk.ColorDialogButton(dialog=dlg)
+            rg = Gdk.RGBA(); rg.parse(tp.get(cle_, "#888888")); cb.set_rgba(rg)
+            def chg(btn, _p):
+                x = btn.get_rgba(); hx = "#%02x%02x%02x" % (int(x.red * 255), int(x.green * 255), int(x.blue * 255))
+                if hx != tp.get(cle_): maj(**{cle_: hx})
+            cb.connect("notify::rgba", chg)
+            c.append(reglage("palette", titre, sous, droite=cb))
+        btn_couleur("bg", "Fond", "Fond des fenêtres et du bureau")
+        btn_couleur("panel", "Panneaux", "Barres, menus, cartes (les teintes secondaires se déduisent)")
+        btn_couleur("text", "Texte", "Le texte atténué et les bordures se déduisent")
+        btn_couleur("accent", "Accent", "Actions principales, sélection, repères")
+        c.append(reglage("square", "Arrondis", "", droite=deroulant([("s", "Petits"), ("m", "Moyens"), ("l", "Grands")], tp.get("radius", "m"), lambda v: maj(radius=v), 160)))
+        c.append(reglage("layers", "Ombres", "", droite=deroulant([("s", "Discrètes"), ("m", "Normales"), ("l", "Profondes")], tp.get("shadow", "m"), lambda v: maj(shadow=v), 160)))
+        sc = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 0.6, 0.02); sc.set_value(float(tp.get("glass", 0) or 0)); sc.set_size_request(220, -1)
+        sc.connect("value-changed", lambda s: GLib.timeout_add(350, lambda v=s.get_value(): (maj(glass=round(v, 2)) if abs(v - sc.get_value()) < 1e-6 else None, False)[1]))
+        c.append(reglage("droplet", "Transparence", "0 = opaque ; au-delà : verre (glassglow)", droite=sc))
+        ie = boite(False, 8, "reglage"); ie.append(label("Fichier .xiii-theme.json (compatible avec la Suite XIII)", "reglage-titre", hexpand=True))
+        ie.append(bouton("Importer…", None, "fantome", rappel=self.importer_theme)); ie.append(bouton("Exporter…", None, "fantome", rappel=lambda: self.exporter_theme(tp)))
+        c.append(ie)
+        # ---- accent
         c.append(groupe_titre("Couleur d'accent"))
         r = boite(False, 8, "reglage")
         fl = Gtk.FlowBox(max_children_per_line=14, selection_mode=Gtk.SelectionMode.NONE, column_spacing=6, row_spacing=6, hexpand=True)
@@ -903,11 +935,42 @@ class Parametres(Gtk.Application):
             if hx != self.cfg["accent"]: self.regler(accent=hx)
         cb.connect("notify::rgba", couleur)
         c.append(reglage("palette", "Couleur personnalisée", "Choisissez n'importe quelle couleur", droite=cb))
-        c.append(groupe_titre("Effets"))
-        c.append(reglage("sparkles", "Effets de transparence (glassglow)", "Verre et lueur autour des panneaux",
+        # ---- effets, typographie
+        c.append(groupe_titre("Effets et typographie"))
+        c.append(reglage("sparkles", "Effets de transparence (glassglow)", "Verre teinté, lueur ambre, action principale en pilule lumineuse",
                          droite=interrupteur(cfg["transparence"], lambda on: self.regler(transparence=on))))
-        c.append(reglage("wand-sparkles", "Animations", "Transitions des menus et fenêtres", droite=interrupteur(cfg["animations"], lambda on: self.regler(animations=on))))
-        c.append(info("D'autres thèmes de la Suite XIII (Cyberpunk, Terminal, Mac OS 9, Game Boy…) arrivent avec la phase Design XIII."))
+        c.append(reglage("wand-sparkles", "Animations", "Ouverture des menus et panneaux, indicateur glissant de la barre des tâches", droite=interrupteur(cfg["animations"], lambda on: self.regler(animations=on))))
+        c.append(reglage("rows-3" if os.path.exists(theme.LUCIDE + "/rows-3.svg") else "list", "Densité", "Espacement des listes et réglages",
+                         droite=deroulant([("compact", "Compacte"), ("normal", "Normale"), ("aere", "Aérée")], cfg.get("densite", "normal"), lambda v: self.regler(densite=v), 160)))
+        c.append(reglage("type", "Taille et police du texte", "Astoria pour les titres, IBM Plex pour le texte", clic=lambda: self.aller("texte")))
+        c.append(groupe_titre("Partout"))
+        c.append(reglage("log-in", "Écran de connexion et démarrage", "Appliquer aussi ce thème à l'écran de connexion et à l'animation de démarrage (mot de passe administrateur)",
+                         droite=bouton("Appliquer", None, "pilule", rappel=lambda: S.en_fond(theme.appliquer_connexion, lambda ok: self.toast("Écran de connexion et démarrage mis à jour" if ok is True else "Annulé"), dict(self.cfg)))))
+
+    def importer_theme(self):
+        d = Gtk.FileDialog(title="Importer un thème (.xiii-theme.json)")
+        def fini(dlg, res):
+            try:
+                o = json.load(open(dlg.open_finish(res).get_path(), encoding="utf-8"))
+                th = o.get("theme") if isinstance(o, dict) and o.get("format") == "xiii-theme" else o
+                if not all(k in th for k in ("bg", "panel", "text", "accent")): raise ValueError
+                self.regler(theme_perso={k: th[k] for k in ("name", "bg", "panel", "text", "accent", "radius", "shadow", "glass") if k in th}, theme="perso")
+                self.toast("Thème « %s » importé" % th.get("name", "perso"))
+            except GLib.Error:
+                pass
+            except Exception:
+                self.toast("Ce fichier n'est pas un thème XIII")
+        d.open(self.win, None, fini)
+
+    def exporter_theme(self, tp):
+        nom = re.sub(r"[^\w\- ]+", "", tp.get("name") or "theme") or "theme"
+        d = Gtk.FileDialog(title="Exporter le thème", initial_name=nom + ".xiii-theme.json")
+        def fini(dlg, res):
+            try: f = dlg.save_finish(res)
+            except GLib.Error: return
+            json.dump({"format": "xiii-theme", "version": 1, "theme": tp}, open(f.get_path(), "w"), ensure_ascii=False, indent=2)
+            self.toast("Thème exporté — importable dans la Suite XIII (⚙️ › Affichage › Thème perso)")
+        d.save(self.win, None, fini)
 
     def p_fond(self, c, cle):
         cfg = self.cfg
@@ -923,6 +986,8 @@ class Parametres(Gtk.Application):
             b.set_child(im); b.set_tooltip_text(os.path.basename(p)); b.connect("clicked", lambda _b, p=p: self.regler(fond=p)); fl.append(b)
         c.append(fl)
         c.append(reglage("image", "Choisir une photo", "JPG, PNG, WebP…", droite=bouton("Parcourir les photos", None, "pilule", rappel=lambda: self.choisir_image("fond"))))
+        c.append(reglage("sparkles", "Fond assorti au thème", "Fond du thème « %s », lueur de l'accent, logo XIII en filigrane — suit les changements de thème" % theme.NOMS_THEMES.get(cfg["theme"], cfg["theme"]),
+                         droite=bouton("Utiliser", None, "fantome", rappel=lambda: S.en_fond(theme.fond_theme, lambda f: self.regler(fond=f) if isinstance(f, str) else None, dict(self.cfg)))))
         c.append(reglage("move-horizontal", "Ajustement", "", droite=deroulant([("fill", "Remplir"), ("fit", "Ajuster"), ("stretch", "Étirer"), ("center", "Centrer"), ("tile", "Mosaïque")],
                                                                                 cfg["fond_mode"], lambda v: self.regler(fond_mode=v))))
 
@@ -1470,10 +1535,11 @@ class Parametres(Gtk.Application):
         cfg = self.cfg
         c.append(reglage("sparkles", "Effets de transparence", "", droite=interrupteur(cfg["transparence"], lambda on: self.regler(transparence=on))))
         c.append(reglage("wand-sparkles", "Effets d'animation", "", droite=interrupteur(cfg["animations"], lambda on: self.regler(animations=on))))
-        hc = cfg["theme"] == "sobre" and cfg["accent"].lower() == "#ffd54f"
-        c.append(reglage("contrast", "Contraste élevé", "Thème Sobre, accent jaune vif, texte agrandi",
-                         droite=interrupteur(hc, lambda on: self.regler(theme="sobre", accent="#ffd54f", taille_texte=1.15, transparence=False) if on
-                                             else self.regler(theme="sombre", accent="#f0b378", taille_texte=1.0, transparence=True))))
+        c.append(reglage("contrast", "Contraste renforcé", "Texte atténué et bordures plus marqués, texte en demi-gras — avec n'importe quel thème",
+                         droite=interrupteur(cfg.get("contraste", False), lambda on: self.regler(contraste=on))))
+        c.append(reglage("sun", "Thème Plein soleil", "Contraste maximal pour l'extérieur ou une vue fatiguée", clic=lambda: self.regler(theme="soleil")))
+        c.append(reglage("rows-3" if os.path.exists(theme.LUCIDE + "/rows-3.svg") else "list", "Densité", "Aérée : cibles plus grandes, plus faciles à toucher",
+                         droite=deroulant([("compact", "Compacte"), ("normal", "Normale"), ("aere", "Aérée")], cfg.get("densite", "normal"), lambda v: self.regler(densite=v), 160)))
         c.append(reglage("mouse-pointer-2", "Taille du pointeur", "", clic=lambda: self.aller("curseur")))
 
     # ================================================================== SÉCURITÉ
@@ -1661,11 +1727,13 @@ def avatar(taille, nom):
     ov.set_halign(Gtk.Align.START); ov.set_valign(Gtk.Align.CENTER)
     return ov
 
-def apercu_theme(cle, accent):
-    p = theme.palette({"theme": cle, "accent": accent, "transparence": True})
-    da = Gtk.DrawingArea(); da.set_size_request(200, 112); da.add_css_class("apercu-theme")
+def apercu_theme(cle, accent, cfg=None):
+    c = dict(cfg or {}); c.update(theme=cle, accent=accent, transparence=True)
+    if cle == "auto": c["theme"] = "clair" if theme.jour() else "sombre"
+    p = theme.palette(c); accent = p["accent"]
+    da = Gtk.DrawingArea(); da.set_size_request(168, 94); da.add_css_class("apercu-theme")
     def dessin(area, cr, w, h):
-        def rgb(hx): return tuple(int(hx.lstrip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4))
+        def rgb(hx): hx = theme.couleur_pleine(hx, p["panneau_plein"]); return tuple(int(hx.lstrip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4))
         cr.set_source_rgb(*rgb(p["fond"])); cr.rectangle(0, 0, w, h); cr.fill()
         cr.set_source_rgb(*rgb(p["panneau_plein"])); cr.rectangle(0, h - 16, w, 16); cr.fill()
         cr.rectangle(0, 0, w, 9); cr.fill()

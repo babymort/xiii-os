@@ -1,0 +1,26 @@
+#!/usr/bin/python3
+# OS XIII — applique le thème à l'écran de connexion (LightDM) et à l'animation de démarrage (Plymouth). Lancé par pkexec.
+# xiii-theme-systeme fichier.json  ({"css": "...", "fond": "/chemin.png", "rgb": [r, g, b], "police": "..."})
+import json, os, re, shutil, subprocess, sys
+d = json.load(open(sys.argv[1]))
+T = "/usr/share/themes/XIII-connexion/gtk-3.0"; os.makedirs(T, exist_ok=True)
+open(os.path.join(T, "gtk.css"), "w").write(d["css"])
+fond = "/usr/share/xiii/wallpapers/xiii-connexion-theme.png"
+if d.get("fond") and os.path.exists(d["fond"]): shutil.copy(d["fond"], fond)
+else: fond = "/usr/share/xiii/wallpapers/xiii-connexion.png"
+c = "/etc/lightdm/lightdm-gtk-greeter.conf"
+t = open(c).read()
+t = re.sub(r"(?m)^theme-name=.*$", "theme-name=XIII-connexion", t)
+t = re.sub(r"(?m)^background=.*$", "background=" + fond, t)
+t = re.sub(r"(?m)^font-name=.*$", "font-name=%s 11" % d.get("police", "IBM Plex Sans"), t)
+open(c, "w").write(t)
+s = "/usr/share/plymouth/themes/xiii/xiii.script"
+if os.path.exists(s):
+    r, g, b = d.get("rgb", [0.1, 0.1, 0.1])
+    x = open(s).read()
+    x = re.sub(r"Window\.SetBackgroundTopColor\([^)]*\);", "Window.SetBackgroundTopColor(%.3f, %.3f, %.3f);" % (r, g, b), x)
+    x = re.sub(r"Window\.SetBackgroundBottomColor\([^)]*\);", "Window.SetBackgroundBottomColor(%.3f, %.3f, %.3f);" % (r * .7, g * .7, b * .7), x)
+    open(s, "w").write(x)
+    subprocess.run(["update-initramfs", "-u"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+os.unlink(sys.argv[1]) if os.access(sys.argv[1], os.W_OK) else None
+print("ok")

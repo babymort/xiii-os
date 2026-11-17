@@ -4,7 +4,7 @@
 # Application développée par Matthieu Lamotte.
 import time, datetime, json, urllib.request, urllib.parse, os
 from gi.repository import Gtk, GLib, Gio, Gdk, Pango
-from . import systeme as S, config, apps, profils
+from . import systeme as S, config, apps, profils, theme
 from .ui import *
 
 def entete(icone, titre, shell, page, droite=None):
@@ -335,8 +335,8 @@ class Centre(Panneau):
                        lambda: config.modifier(lumiere_nocturne=not c["lumiere_nocturne"]), "ecran"),
             self.tuile("leaf", "Économie", None, prof == "power-saver",
                        lambda: S.en_fond(S.regler_profil, maj, "balanced" if prof == "power-saver" else "power-saver"), "alimentation"),
-            self.tuile("sun-moon", "Thème clair" if c["theme"] != "clair" else "Thème sombre", "Clic : basculer", c["theme"] == "clair",
-                       lambda: config.modifier(theme="sombre" if c["theme"] == "clair" else "clair"), "theme"),
+            self.tuile("sun-moon", "Thème clair" if not theme.palette(c)["clair"] else "Thème sombre", "Clic : basculer", theme.palette(c)["clair"],
+                       lambda: config.modifier(theme={"sobre": "sobrec", "sobrec": "sobre"}.get(c["theme"], "sombre" if theme.palette(c)["clair"] else "clair")), "theme"),
             self.tuile(profils.courant(c)[2], "Profil", profils.courant(c)[1], profils.courant(c)[0] != "normal",
                        lambda: self.shell.menu_profils(self._t_profil), "profils"),
             self.tuile("scan-line", "Capture", "Zone de l'écran", False, lambda: (sh.fermer(), S.detacher("sleep 0.4; xiii-capture zone"))),

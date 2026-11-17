@@ -65,6 +65,14 @@ a.connect("activate", act); a.run(None)' > /out/tel.log 2>&1 & sleep 9; grim /ou
 curl -s http://127.0.0.1:8790/api/etat > /out/tally-etat.json; curl -s http://127.0.0.1:8790/api/cam/1 >> /out/tally-etat.json
 pkill -f fr.xiii.testtel; pkill -f "xiii.tally"; sleep 0.5
 xiii-retour > /out/retour.log 2>&1 & sleep 4; grim /out/x-retour.png; pkill -f "xiii.retour"; sleep 0.5
+# Phase 11 — thèmes de la suite
+for th in cyber term w2k xp mac9 gb regie soleil rainbow sepia sobrec perso; do
+  python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config, theme; c=config.charger(); c['theme']='$th'; config.modifier(theme='$th', fond=theme.fond_assorti(c))"
+  sleep 2.5; xiii-ctl demarrer; sleep 1.8; grim /out/t-$th.png; xiii-ctl fermer; sleep 0.4
+done
+xiii-parametres --page theme >> /out/param.log 2>&1 & sleep 5; grim /out/t-parametres-perso.png; pkill -f xiii.parametres; sleep 0.5
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(theme="sombre", fond="/usr/share/xiii/wallpapers/xiii-sombre.png")'
+sleep 2; grim /out/t-sombre-barre.png
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(theme="clair", accent="#3d8bfd")'
 sleep 3; xiii-ctl demarrer; sleep 2; grim /out/c-clair-menu.png; xiii-ctl fermer
 xiii-ctl centre; sleep 2; grim /out/c-clair-centre.png; xiii-ctl fermer

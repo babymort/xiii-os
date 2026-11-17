@@ -8,7 +8,10 @@ FICHIER = os.path.join(DOSSIER, "reglages.json")
 FONDS = "/usr/share/xiii/wallpapers"
 
 DEFAUTS = {
-    "theme": "sombre",              # sombre | clair | sobre
+    "theme": "sombre",              # thèmes de la Suite XIII : sombre | clair | auto | sobre | sobrec | w2k | xp | mac9 | cyber | term | gb | regie | soleil | rainbow | sepia | perso
+    "theme_perso": {"name": "Minuit bleu", "bg": "#0d1320", "panel": "#16203a", "text": "#e6ecf7", "accent": "#4fc3f7", "radius": "m", "shadow": "m", "glass": 0},
+    "contraste": False,
+    "densite": "normal",
     "accent": "#f0b378",
     "transparence": True,
     "animations": True,
