@@ -60,7 +60,7 @@ def pour_fenetre(app_id):
     """Trouve l'appli .desktop d'une fenêtre (app_id Wayland / classe X11)."""
     global _index_wm
     if not app_id: return None
-    alias = {"fr.xiii.parametres": "xiii-parametres.desktop", "fr.xiii.bilan": "xiii-bilan.desktop", "fr.xiii.demarrage": "xiii-demarrage.desktop",
+    alias = {"fr.xiii.parametres": "xiii-parametres.desktop", "fr.xiii.bilan": "xiii-bilan.desktop", "fr.xiii.demarrage": "xiii-demarrage.desktop", "fr.xiii.windows": "xiii-windows.desktop", "fr.xiii.bienvenue": "xiii-installer.desktop",
              "org.xfce.mousepad": "org.xfce.mousepad.desktop", "thunar": "thunar.desktop", "firefox-esr": "firefox-esr.desktop", "mpv": "mpv.desktop"}
     if app_id.lower() in alias:
         a = par_id(alias[app_id.lower()])
