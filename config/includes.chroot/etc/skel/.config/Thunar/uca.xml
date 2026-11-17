@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+<action>
+	<icon>xiii-somme</icon>
+	<name>Vérifier (somme de contrôle)</name>
+	<unique-id>xiii-somme-1</unique-id>
+	<command>xiii-somme %f</command>
+	<description>Calculer les empreintes et créer un rapport MHL</description>
+	<patterns>*</patterns>
+	<directories/>
+	<other-files/>
+</action>
+<action>
+	<icon>xiii-somme</icon>
+	<name>Comparer la copie avec la source…</name>
+	<unique-id>xiii-somme-2</unique-id>
+	<command>xiii-somme %F</command>
+	<description>Sélectionnez la source puis la copie (Ctrl+clic)</description>
+	<patterns>*</patterns>
+	<directories/>
+</action>
+<action>
+	<icon>xiii-windows</icon>
+	<name>Installer / lancer avec Applications Windows</name>
+	<unique-id>xiii-windows-1</unique-id>
+	<command>xiii-windows %f</command>
+	<description>Logiciel Windows (.exe, .msi)</description>
+	<patterns>*.exe;*.EXE;*.msi;*.MSI</patterns>
+	<other-files/>
+</action>
+</actions>

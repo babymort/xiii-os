@@ -156,6 +156,16 @@ button.tuile.on label {{ color: {p['sur_accent']}; }}
 .niveau {{ font-family: "IBM Plex Mono", monospace; font-size: 12px; color: {p['attenue']}; min-width: 38px; }}
 .grand {{ font-size: 34px; font-weight: 700; }}
 .meteo-grand {{ font-size: 40px; font-weight: 300; }}
+.timecode {{ font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 600; color: {p['accent_texte']}; background: alpha({p['accent']},0.10); border-radius: 5px; padding: 1px 8px; }}
+.voile-vue {{ background: rgba(0,0,0,0.55); }}
+.vue-active {{ border-color: {p['accent']}; }}
+.dispo-cadre {{ background: {p['carte2']}; border: 1px solid {p['bord']}; border-radius: 6px; }}
+button.dispo-zone {{ background: alpha({p['accent']},0.22); border: 1px solid alpha({p['accent']},0.45); border-radius: 4px; padding: 0; min-height: 0; min-width: 0; box-shadow: none; }}
+button.dispo-zone:hover {{ background: {p['accent']}; }}
+.icone-bureau {{ border-radius: {p['rayon_petit']}; padding: 6px 2px; }}
+.icone-bureau:hover {{ background: rgba(255,255,255,0.10); }}
+.icone-bureau label {{ color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }}
+button.emoji {{ font-size: 22px; padding: 2px; min-width: 36px; min-height: 36px; }}
 """
 
 # --------------------------------------------------------------------------------------------- CSS Paramètres

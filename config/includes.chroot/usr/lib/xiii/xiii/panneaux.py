@@ -4,7 +4,7 @@
 # Application développée par Matthieu Lamotte.
 import time, datetime, json, urllib.request, urllib.parse, os
 from gi.repository import Gtk, GLib, Gio, Gdk, Pango
-from . import systeme as S, config, apps
+from . import systeme as S, config, apps, profils
 from .ui import *
 
 def entete(icone, titre, shell, page, droite=None):
@@ -337,10 +337,11 @@ class Centre(Panneau):
                        lambda: S.en_fond(S.regler_profil, maj, "balanced" if prof == "power-saver" else "power-saver"), "alimentation"),
             self.tuile("sun-moon", "Thème clair" if c["theme"] != "clair" else "Thème sombre", "Clic : basculer", c["theme"] == "clair",
                        lambda: config.modifier(theme="sombre" if c["theme"] == "clair" else "clair"), "theme"),
-            self.tuile("clapperboard", "Mode tournage", "Perf · silence · éveil", c["mode_tournage"],
-                       lambda: config.modifier(mode_tournage=not c["mode_tournage"]), "xiii"),
+            self.tuile(profils.courant(c)[2], "Profil", profils.courant(c)[1], profils.courant(c)[0] != "normal",
+                       lambda: self.shell.menu_profils(self._t_profil), "profils"),
             self.tuile("scan-line", "Capture", "Zone de l'écran", False, lambda: (sh.fermer(), S.detacher("sleep 0.4; xiii-capture zone"))),
         ]
+        self._t_profil = T[7]
         for t in T: self.grille.append(t)
         self.r_lum.set_visible(lum is not None)
         if lum is not None: self.s_lum.poser(lum)
@@ -373,16 +374,17 @@ JOURS = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."]
 
 def meteo(lat, lon):
     if S.DEMO:
-        return dict(t=14, code=2, vent=12, jours=[(JOURS[(i) % 7], [2, 61, 3, 0, 80][i], 15 - i, 8 + i % 3) for i in range(5)])
+        return dict(t=14, code=2, vent=12, jours=[(JOURS[(i) % 7], [2, 61, 3, 0, 80][i], 15 - i, 8 + i % 3) for i in range(5)], lever="08:01", coucher="17:03")
     q = urllib.parse.urlencode(dict(latitude=lat, longitude=lon, current="temperature_2m,weather_code,wind_speed_10m",
-                                    daily="weather_code,temperature_2m_max,temperature_2m_min", timezone="auto", forecast_days=5))
+                                    daily="weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset", timezone="auto", forecast_days=5))
     d = json.load(urllib.request.urlopen("https://api.open-meteo.com/v1/forecast?" + q, timeout=10))
     c = d["current"]; dl = d["daily"]
     jours = []
     for i, iso in enumerate(dl["time"]):
         j = datetime.date.fromisoformat(iso)
         jours.append(("Aujourd'hui" if i == 0 else JOURS[j.weekday()], dl["weather_code"][i], round(dl["temperature_2m_max"][i]), round(dl["temperature_2m_min"][i])))
-    return dict(t=round(c["temperature_2m"]), code=c["weather_code"], vent=round(c["wind_speed_10m"]), jours=jours)
+    return dict(t=round(c["temperature_2m"]), code=c["weather_code"], vent=round(c["wind_speed_10m"]), jours=jours,
+                lever=(dl.get("sunrise") or [""])[0][11:16], coucher=(dl.get("sunset") or [""])[0][11:16])
 
 class Meteo(Panneau):
     largeur = 340

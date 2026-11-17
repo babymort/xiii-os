@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Vérification d'offload
+Comment=Sommes de contrôle et comparaison source / copie (MHL), comme BACKUPO XIII
+Exec=xiii-somme %F
+Icon=xiii-somme
+Type=Application
+Categories=Utility;XIII;
+Keywords=checksum;md5;xxhash;mhl;backup;offload;

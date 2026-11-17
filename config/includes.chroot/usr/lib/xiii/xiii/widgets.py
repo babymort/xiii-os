@@ -183,6 +183,14 @@ class Tableau:
                 c = boite(True, 2); c.append(label(j[:4], "petit", xalign=0.5)); c.append(ico(METEO.get(code, ("cloud",))[0], 18, "c")); c.append(label("%d°/%d°" % (mx, mn), "petit", xalign=0.5))
                 g.append(c)
             v.append(g)
+            if m.get("lever") and m.get("coucher"):
+                def plus(hm, mn):
+                    h, x = map(int, hm.split(":")); t = h * 60 + x + mn; return "%02d:%02d" % (t // 60 % 24, t % 60)
+                r = boite(False, 10, margin_top=2)
+                r.append(ico("sunrise", 14, "c")); r.append(label(m["lever"], "petit"))
+                r.append(ico("sunset", 14, "c")); r.append(label(m["coucher"], "petit"))
+                r.append(label("· heure dorée %s–%s · heure bleue %s–%s" % (plus(m["coucher"], -60), m["coucher"], m["coucher"], plus(m["coucher"], 30)), "attenue", "petit", ellipsize=True))
+                v.append(r)
         return self.carte("meteo", "Météo", "cloud-sun", v, lambda: self.shell.parametres("meteo"))
 
     def w_systeme(self):

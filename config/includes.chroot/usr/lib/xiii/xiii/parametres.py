@@ -392,9 +392,43 @@ class Parametres(Gtk.Application):
             rc_ecrire(m)
         c.append(reglage("layout-dashboard", "Bureaux virtuels", "Nombre de bureaux (Super + Ctrl + ←/→ pour changer)",
                          droite=deroulant([(str(i), str(i)) for i in range(1, 7)], str(n or "1"), bureaux)))
+        c.append(reglage("layout-panel-left", "Dispositions des fenêtres", "Moitiés, tiers, quarts… (Super + Z ou clic droit sur la vue des tâches)",
+                         droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher(["xiii-ctl", "dispositions"]))))
+        c.append(reglage("layout-dashboard", "Vue des tâches", "Toutes les fenêtres en un coup d'œil (Super + Tab)", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher(["xiii-ctl", "vue"]))))
+        c.append(reglage("history", "Rouvrir mes applications au démarrage", "Reprend les applications ouvertes lors de la dernière session",
+                         droite=interrupteur(self.cfg.get("reprise_session", False), lambda on: self.regler(reprise_session=on))))
         c.append(reglage("layout-template", "Aperçu Alt + Tab", "Afficher la liste des fenêtres en changeant avec Alt + Tab",
                          droite=interrupteur(rc_lire().getroot().find("windowSwitcher") is None or rc_lire().getroot().find("windowSwitcher").get("show", "yes") == "yes",
                                              lambda on: rc_ecrire(lambda r: rc_noeud(r, "windowSwitcher").set("show", "yes" if on else "no")))))
+
+    def p_profils(self, c, cle):
+        from . import profils
+        cur = profils.courant(self.cfg)[0]
+        c.append(info("Un profil règle en un clic le silence des notifications, les performances et la mise en veille. Aussi dans le centre de contrôle et en haut de l'écran."))
+        for k, nom, ic, desc, r in profils.PROFILS:
+            det = ", ".join(x for x in (("silence" if r.get("dnd") else ""), {"performance": "performances max", "power-saver": "économie", "balanced": ""}.get(r.get("perf"), ""),
+                                         ("jamais de veille" if r.get("eveil") else ""), ("lumière nocturne" if r.get("nuit") else "")) if x)
+            b = bouton("Actif" if k == cur else "Activer", None, "pilule" if k == cur else "fantome",
+                       rappel=lambda k=k: (self.regler(profil=k, mode_tournage=(k == "tournage")), self.aller("profils", False)))
+            c.append(reglage(ic, nom, desc + (" — " + det if det else ""), droite=b))
+        c.append(reglage("gamepad-2", "Profil Jeu : lancer Steam en mode console", "Big Picture plein écran, à la manette", droite=interrupteur(self.cfg.get("jeu_console", False), lambda on: self.regler(jeu_console=on))))
+
+    def p_historique(self, c, cle):
+        h = config.historique()
+        if not h: c.append(info("Aucun changement enregistré pour l'instant.")); return
+        c.append(info("Chaque changement de réglage peut être annulé ici, même plusieurs jours après."))
+        noms = {"theme": "Thème", "accent": "Couleur d'accent", "fond": "Fond d'écran", "barre_alignement": "Alignement de la barre", "transparence": "Transparence",
+                "animations": "Animations", "profil": "Profil", "ne_pas_deranger": "Ne pas déranger", "lumiere_nocturne": "Lumière nocturne", "taille_texte": "Taille du texte",
+                "police": "Police", "widgets": "Widgets", "coins": "Coins actifs", "timecode": "Timecode", "projet_actif": "Projet actif"}
+        def fmt(v):
+            if isinstance(v, bool): return "activé" if v else "désactivé"
+            if isinstance(v, str) and v.startswith("/"): return os.path.basename(v)
+            if isinstance(v, (list, dict)): return "…"
+            return str(v)
+        for i, e in enumerate(h[:40]):
+            t = ", ".join("%s : %s → %s" % (noms.get(k, k.replace("_", " ")), fmt(v), fmt(e["apres"].get(k))) for k, v in e["avant"].items())
+            quand = datetime.datetime.fromtimestamp(e["t"]).strftime("%d/%m %H:%M")
+            c.append(reglage("undo-2", t, quand, droite=bouton("Annuler", None, "fantome", rappel=lambda e=e: (self.regler(**e["avant"]), self.toast("Réglage rétabli"), self.aller("historique", False)))))
 
     def p_apropos(self, c, cle):
         i = S.infos_systeme()
@@ -523,7 +557,8 @@ class Parametres(Gtk.Application):
         c.append(groupe_titre("Raccourcis clavier d'OS XIII"))
         for k, d in (("Super", "Menu Démarrer"), ("Super + A", "Centre de contrôle"), ("Super + N", "Volet de notifications"), ("Super + I", "Paramètres"),
                      ("Super + E", "Explorateur de fichiers"), ("Super + L", "Verrouiller"), ("Super + Maj + S", "Capture d'une zone"), ("Impr. écran", "Capture de l'écran entier"),
-                     ("Super + V", "Historique du presse-papiers"), ("Super + ← / →", "Ancrer la fenêtre à gauche / droite"), ("Super + ↑", "Agrandir"),
+                     ("Super + V", "Historique du presse-papiers"), ("Super + .", "Émojis"), ("Super + Tab", "Vue des tâches"), ("Super + Z", "Dispositions des fenêtres"),
+                     ("Super + D", "Afficher le bureau"), ("Super + W", "Widgets"), ("Super + ← / →", "Ancrer la fenêtre à gauche / droite"), ("Super + ↑", "Agrandir"),
                      ("Alt + Tab", "Changer de fenêtre"), ("Alt + F4", "Fermer la fenêtre"), ("Super + Entrée", "Terminal")):
             c.append(reglage(None, d, None, droite=label(k, "mono", "accent")))
 
@@ -730,6 +765,7 @@ class Parametres(Gtk.Application):
         c.append(reglage("search", "Recherche", "Bouton de recherche à côté de Démarrer", droite=interrupteur(cfg["barre_recherche"], lambda on: self.regler(barre_recherche=on))))
         c.append(reglage("cloud-sun", "Météo", "Température et ciel à gauche de la barre", droite=interrupteur(cfg["barre_meteo"], lambda on: self.regler(barre_meteo=on))))
         c.append(reglage("bell-dot", "Pastille de notifications", "", droite=interrupteur(cfg["barre_badge"], lambda on: self.regler(barre_badge=on))))
+        c.append(reglage("app-window", "Aperçu des fenêtres au survol", "Liste des fenêtres d'une application en passant la souris", droite=interrupteur(cfg.get("apercu_survol", True), lambda on: self.regler(apercu_survol=on))))
         c.append(groupe_titre("Comportement"))
         c.append(reglage("panel-bottom", "Alignement", "Position du bouton Démarrer et des applications",
                          droite=deroulant([("centre", "Centré"), ("gauche", "À gauche")], cfg["barre_alignement"], lambda v: self.regler(barre_alignement=v))))
@@ -784,12 +820,121 @@ class Parametres(Gtk.Application):
                 c.append(reglage(ic, nom, desc, droite=interrupteur(False, lambda on, k=k: (self.regler(widgets=self.cfg["widgets"] + [k]), self.aller("widgets", False)))))
         c.append(reglage("cloud-sun", "Ville de la météo", self.cfg["meteo_ville"], clic=lambda: self.aller("meteo")))
 
+    def p_bureau(self, c, cle):
+        from .vues import ACTIONS_COINS
+        cfg = self.cfg
+        c.append(groupe_titre("Bureau"))
+        c.append(reglage("monitor", "Icônes sur le bureau", "Contenu du dossier Bureau, glisser-déposer, clic droit", droite=interrupteur(cfg.get("icones_bureau", True), lambda on: self.regler(icones_bureau=on))))
+        c.append(groupe_titre("Coins actifs"))
+        coins = dict(cfg.get("coins", {}))
+        for k, n in (("hg", "Coin supérieur gauche"), ("hd", "Coin supérieur droit"), ("bg", "Coin inférieur gauche"), ("bd", "Coin inférieur droit")):
+            c.append(reglage("mouse-pointer-click", n, None, droite=deroulant(ACTIONS_COINS, coins.get(k, "rien"),
+                                                                                lambda v, k=k: self.regler(coins=dict(self.cfg.get("coins", {}), **{k: v})), 220)))
+        c.append(groupe_titre("Écran de veille"))
+        c.append(reglage("timer", "Écran de veille", "Affiché après inactivité, avant le verrouillage",
+                         droite=deroulant([("aucun", "Aucun"), ("horloge", "Horloge plateau"), ("mire", "Mire de barres"), ("conducteur", "Conducteur CONDUCO")],
+                                          cfg.get("veille_mode", "horloge"), lambda v: self.regler(veille_mode=v), 220)))
+        c.append(reglage("timer", "Délai", None, droite=deroulant([(str(s), t) for s, t in ((60, "1 minute"), (180, "3 minutes"), (300, "5 minutes"), (600, "10 minutes"))],
+                                                                  str(cfg.get("veille_delai", 300)), lambda v: self.regler(veille_delai=int(v)))))
+        c.append(reglage("eye", "Aperçu", None, droite=bouton("Voir", None, "fantome", rappel=lambda: S.detacher(["xiii-veille", self.cfg.get("veille_mode", "horloge")]))))
+
+    def p_jeux(self, c, cle):
+        from . import jeux
+        vp, ram, vk = jeux.vieux_pc()
+        h = boite(False, 16, "hero"); h.append(ico("gamepad-2", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER)
+        v.append(label("Steam + Proton", "hero-grand"))
+        v.append(label(("Steam installé" + (" · Proton activé pour tous les jeux" if jeux.proton_actif() else " · Proton pas encore activé")) if jeux.steam_installe() else "Steam non installé", "attenue"))
+        h.append(v)
+        h.append(bouton("Lancer Steam", None, "pilule", rappel=lambda: S.detacher("steam"))); c.append(h)
+        c.append(groupe_titre("Proton (jeux Windows)"))
+        def proton():
+            ok, m = jeux.activer_proton(); self.toast(m); self.aller("jeux", False)
+        c.append(reglage("zap", "Proton pour tous les jeux Windows", "Proton Experimental par défaut (Steam doit être fermé ; à faire après la première connexion)",
+                         droite=label("Activé ✓", "accent") if jeux.proton_actif() else bouton("Activer", None, "pilule", rappel=proton)))
+        c.append(groupe_titre("Mode console"))
+        c.append(reglage("monitor-play" if os.path.exists(theme.LUCIDE + "/monitor-play.svg") else "monitor", "Steam en plein écran (Big Picture)", "Pour jouer à la manette sur la télé",
+                         droite=bouton("Lancer", None, "fantome", rappel=lambda: S.detacher(["steam", "-gamepadui"]))))
+        c.append(reglage("gamepad-2", "Lancer le mode console avec le profil Jeu", "", droite=interrupteur(self.cfg.get("jeu_console", False), lambda on: self.regler(jeu_console=on))))
+        c.append(reglage("clapperboard", "Profil Jeu", "Performances max, silence, pas de veille", clic=lambda: self.aller("profils")))
+        c.append(groupe_titre("Performances"))
+        c.append(reglage("gauge", "GameMode", "Optimise le processeur pendant le jeu (automatique avec Steam : gamemoderun %command%)",
+                         droite=label("Installé ✓" if jeux.gamemode_ok() else "Absent", "accent" if jeux.gamemode_ok() else "attenue")))
+        c.append(reglage("activity", "Compteur d'images (MangoHud)", "IPS, températures, mémoire — appliqué à la prochaine connexion",
+                         droite=interrupteur(self.cfg.get("mangohud", False), lambda on: (self.regler(mangohud=on), jeux.mangohud(on, self.cfg.get("jeu_30ips"))))))
+        c.append(reglage("timer", "Limiter à 30 images/s", "Plus stable et plus frais sur un vieux PC",
+                         droite=interrupteur(self.cfg.get("jeu_30ips", False), lambda on: (self.regler(jeu_30ips=on, mangohud=True if on else self.cfg.get("mangohud")), jeux.mangohud(True if on else self.cfg.get("mangohud"), on)))))
+        if vp:
+            c.append(info("Profil vieux PC : %.1f Go de mémoire%s. Conseils : limiter à 30 i/s, jouer en 720p, préférer Proton 8 si un jeu plante au lancement (Propriétés du jeu › Compatibilité)."
+                          % (ram, "" if vk else ", pas de Vulkan (jeux Windows en mode compatibilité, plus lent)")))
+        c.append(info("Les jeux protégés par certains anti-triche (Valorant, Fortnite…) ne fonctionnent pas sous Linux. Vérifiez la compatibilité d'un jeu sur protondb.com."))
+
+    def p_sauvegarde(self, c, cle):
+        c.append(info("Deux protections complémentaires : vos dossiers (photos, documents, projets) sur un disque externe ou en ligne, et des instantanés du système pour revenir en arrière après une mauvaise mise à jour."))
+        c.append(reglage("archive", "Sauvegarde de mes dossiers", "Automatique, chiffrée, sur disque externe ou en ligne (Déjà Dup)", droite=bouton("Configurer", None, "pilule", rappel=lambda: S.detacher("deja-dup"))))
+        c.append(reglage("history", "Instantanés du système", "Façon Time Machine : restaurer le système à une date précédente (Timeshift)", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher("pkexec timeshift-launcher"))))
+        c.append(reglage("rotate-ccw", "Restaurer un fichier", "Retrouver une version précédente d'un fichier ou d'un dossier", droite=bouton("Restaurer", None, "fantome", rappel=lambda: S.detacher(["deja-dup", "--restore"]))))
+
+    def p_projet(self, c, cle):
+        base = os.path.expanduser("~/XIII"); cur = self.cfg.get("projet_actif", "")
+        SOUS = ["01_Rushes", "02_Son", "03_Documents", "04_Graphismes", "05_Montage", "06_Exports", "07_Livraison"]
+        def activer(nom):
+            nom = re.sub(r'[\\/:*?"<>|]', "-", nom).strip()
+            if not nom: return
+            d = os.path.join(base, nom)
+            for x in SOUS: os.makedirs(os.path.join(d, x), exist_ok=True)
+            bm = os.path.join(GLib.get_user_config_dir(), "gtk-3.0", "bookmarks"); os.makedirs(os.path.dirname(bm), exist_ok=True)
+            try: L = [l for l in open(bm).read().splitlines() if "/XIII/" not in l]
+            except OSError: L = []
+            L.insert(0, "file://%s Projet %s" % (GLib.uri_escape_string(d, "/", False), nom)); open(bm, "w").write("\n".join(L) + "\n")
+            self.regler(projet_actif=nom); self.aller("projet", False)
+        h = boite(False, 16, "hero"); h.append(ico("folder-kanban", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label(cur or "Aucun projet actif", "hero-grand"))
+        v.append(label(os.path.join(base, cur).replace(os.path.expanduser("~"), "~") if cur else "Le projet actif s'affiche en haut de l'écran, avec ses dossiers prêts.", "attenue")); h.append(v)
+        if cur:
+            h.append(bouton("Ouvrir", "folder-open", "pilule", taille=14, rappel=lambda: S.detacher(["thunar", os.path.join(base, cur)])))
+            h.append(bouton("Désactiver", None, "plat", rappel=lambda: (self.regler(projet_actif=""), self.aller("projet", False))))
+        c.append(h)
+        c.append(groupe_titre("Nouveau projet"))
+        e = Gtk.Entry(placeholder_text="Nom du projet (ex. Concert Dôme de Paris)", hexpand=True)
+        r = boite(False, 8, "reglage"); r.append(e); r.append(bouton("Créer et activer", None, "pilule", rappel=lambda: activer(e.get_text()))); c.append(r)
+        e.connect("activate", lambda *_: activer(e.get_text()))
+        c.append(label("Dossiers créés : " + ", ".join(SOUS), "attenue", "petit", wrap=True))
+        try:
+            from .widgets import dernier_lien
+            o = dernier_lien("project")
+            if o:
+                n = (o.get("fiche") or {}).get("title") or (o.get("project") or {}).get("name")
+                if n: c.append(reglage("download", "Depuis la Suite XIII : « %s »" % n, "Dernière fiche projet exportée (.xiii.json)", droite=bouton("Activer", None, "fantome", rappel=lambda n=n: activer(n))))
+        except Exception:
+            pass
+        exist = sorted(d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d))) if os.path.isdir(base) else []
+        if exist:
+            c.append(groupe_titre("Projets existants"))
+            for d in exist:
+                c.append(reglage("folder", d, None, droite=bouton("Actif" if d == cur else "Activer", None, "pilule" if d == cur else "fantome", rappel=lambda d=d: activer(d))))
+
+    def p_outilsprod(self, c, cle):
+        cfg = self.cfg
+        c.append(groupe_titre("Horloge timecode"))
+        c.append(reglage("clock", "Afficher le timecode en haut de l'écran", "HH:MM:SS:II calé sur l'heure système (synchronisée par Internet)",
+                         droite=interrupteur(cfg.get("timecode", False), lambda on: self.regler(timecode=on))))
+        c.append(reglage("film", "Images par seconde", None, droite=deroulant([(str(f), "%s i/s" % f) for f in (24, 25, 30, 50, 60)], str(cfg.get("timecode_fps", 25)),
+                                                                              lambda v: self.regler(timecode_fps=int(v)))))
+        c.append(info("Pour caler plusieurs PC d'un plateau : activez « Régler l'heure automatiquement » (Heure et langue) sur chacun. Entrée LTC : à venir."))
+        c.append(groupe_titre("Vérification d'offload"))
+        c.append(reglage("hash", "Vérifier une copie de cartes", "xxHash64 / MD5 / SHA-256, rapport texte + MHL, comme BACKUPO XIII. Aussi au clic droit sur un dossier dans Fichiers.",
+                         droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("xiii-somme"))))
+        c.append(groupe_titre("Santé du PC"))
+        c.append(reglage("heart-pulse", "Note de forme et conseils", "Mémoire, disque, température, batterie…", droite=bouton("Voir", None, "fantome", rappel=lambda: S.detacher(["xiii-bilan", "--sante"]))))
+
     def p_haut(self, c, cle):
         cfg = self.cfg
         c.append(reglage("app-window", "Titre de la fenêtre active", "Affiché à gauche de la barre du haut", droite=interrupteur(cfg["haut_titre"], lambda on: self.regler(haut_titre=on))))
         c.append(reglage("clock", "Afficher les secondes", "", droite=interrupteur(cfg["haut_secondes"], lambda on: self.regler(haut_secondes=on))))
         c.append(reglage("clock", "Format 24 heures", "", droite=interrupteur(cfg["horloge_24h"], lambda on: self.regler(horloge_24h=on))))
         c.append(reglage("battery-full", "Pourcentage de batterie", "", droite=interrupteur(cfg["haut_pourcentage"], lambda on: self.regler(haut_pourcentage=on))))
+        c.append(reglage("film", "Horloge timecode", "HH:MM:SS:II au centre de la barre", droite=interrupteur(cfg.get("timecode", False), lambda on: self.regler(timecode=on))))
         c.append(info("Clic gauche sur une icône de la barre du haut : réglage rapide. Clic droit : la page complète des paramètres."))
 
     def p_polices(self, c, cle):

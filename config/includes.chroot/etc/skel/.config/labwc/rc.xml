@@ -11,6 +11,20 @@
     <font place="ActiveWindow"><name>IBM Plex Sans</name><size>10</size><weight>bold</weight></font>
     <font place="MenuItem"><name>IBM Plex Sans</name><size>10</size></font>
   </theme>
+  <regions>
+    <region name="gauche" x="0%" y="0%" width="50%" height="100%" />
+    <region name="droite" x="50%" y="0%" width="50%" height="100%" />
+    <region name="haut-gauche" x="0%" y="0%" width="50%" height="50%" />
+    <region name="haut-droite" x="50%" y="0%" width="50%" height="50%" />
+    <region name="bas-gauche" x="0%" y="50%" width="50%" height="50%" />
+    <region name="bas-droite" x="50%" y="50%" width="50%" height="50%" />
+    <region name="tiers-gauche" x="0%" y="0%" width="33%" height="100%" />
+    <region name="tiers-centre" x="33%" y="0%" width="34%" height="100%" />
+    <region name="tiers-droite" x="67%" y="0%" width="33%" height="100%" />
+    <region name="deux-tiers-gauche" x="0%" y="0%" width="67%" height="100%" />
+    <region name="deux-tiers-droite" x="33%" y="0%" width="67%" height="100%" />
+    <region name="centre" x="15%" y="10%" width="70%" height="80%" />
+  </regions>
   <keyboard>
     <default />
     <keybind key="Super_L" onRelease="yes"><action name="Execute" command="xiii-ctl demarrer" /></keybind>
@@ -20,12 +34,30 @@
     <keybind key="W-i"><action name="Execute" command="xiii-parametres" /></keybind>
     <keybind key="W-S-s"><action name="Execute" command="xiii-capture zone" /></keybind>
     <keybind key="Print"><action name="Execute" command="xiii-capture ecran" /></keybind>
-    <keybind key="W-v"><action name="Execute" command="xiii-presse-papiers" /></keybind>
     <keybind key="W-Left"><action name="SnapToEdge" direction="left" /></keybind>
     <keybind key="W-Right"><action name="SnapToEdge" direction="right" /></keybind>
     <keybind key="W-Down"><action name="Iconify" /></keybind>
     <keybind key="C-W-Left"><action name="GoToDesktop" to="left" wrap="yes" /></keybind>
     <keybind key="C-W-Right"><action name="GoToDesktop" to="right" wrap="yes" /></keybind>
+    <keybind key="W-A-F1"><action name="SnapToRegion" region="gauche" /></keybind>
+    <keybind key="W-A-F2"><action name="SnapToRegion" region="droite" /></keybind>
+    <keybind key="W-A-F3"><action name="SnapToRegion" region="haut-gauche" /></keybind>
+    <keybind key="W-A-F4"><action name="SnapToRegion" region="haut-droite" /></keybind>
+    <keybind key="W-A-F5"><action name="SnapToRegion" region="bas-gauche" /></keybind>
+    <keybind key="W-A-F6"><action name="SnapToRegion" region="bas-droite" /></keybind>
+    <keybind key="W-A-F7"><action name="SnapToRegion" region="tiers-gauche" /></keybind>
+    <keybind key="W-A-F8"><action name="SnapToRegion" region="tiers-centre" /></keybind>
+    <keybind key="W-A-F9"><action name="SnapToRegion" region="tiers-droite" /></keybind>
+    <keybind key="W-A-F10"><action name="SnapToRegion" region="deux-tiers-gauche" /></keybind>
+    <keybind key="W-A-F11"><action name="SnapToRegion" region="deux-tiers-droite" /></keybind>
+    <keybind key="W-A-F12"><action name="SnapToRegion" region="centre" /></keybind>
+    <keybind key="W-Tab"><action name="Execute" command="xiii-ctl vue" /></keybind>
+    <keybind key="W-z"><action name="Execute" command="xiii-ctl dispositions" /></keybind>
+    <keybind key="W-v"><action name="Execute" command="xiii-ctl presse" /></keybind>
+    <keybind key="W-period"><action name="Execute" command="xiii-ctl emoji" /></keybind>
+    <keybind key="W-semicolon"><action name="Execute" command="xiii-ctl emoji" /></keybind>
+    <keybind key="W-d"><action name="Execute" command="xiii-ctl bureau" /></keybind>
+    <keybind key="W-w"><action name="Execute" command="xiii-ctl widgets" /></keybind>
     <keybind key="W-Return"><action name="Execute" command="foot" /></keybind>
     <keybind key="W-e"><action name="Execute" command="thunar" /></keybind>
     <keybind key="XF86AudioRaiseVolume"><action name="Execute" command="wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+" /></keybind>

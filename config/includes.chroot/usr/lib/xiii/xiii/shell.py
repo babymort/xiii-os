@@ -7,7 +7,8 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Gtk4LayerShell", "1.0")
 from gi.repository import Gtk, Gdk, GLib, Gio
 from gi.repository import Gtk4LayerShell as LS
-from . import config, theme, systeme as S, apps, notifs, panneaux as P, widgets as W
+from . import config, theme, systeme as S, apps, notifs, panneaux as P, widgets as W, profils, vues, tray
+from .bureau import Bureau
 from .fenetres import Gestionnaire
 from .ui import *
 
@@ -49,6 +50,7 @@ class Shell(Gtk.Application):
         self.creer_fenetres()
         self.serveur = notifs.Serveur(self.notif_nouvelle, self.notif_fermee)
         self.fenetres = Gestionnaire(self.maj_taches)
+        self.zone = tray.Zone(self.maj_zone)
         self.mon = config.surveiller(self.cfg_change)
         self.services(premier=True)
         theme.appliquer_systeme(self.cfg) if not os.path.exists(os.path.join(config.DOSSIER, ".applique")) else None
@@ -57,7 +59,7 @@ class Shell(Gtk.Application):
         GLib.timeout_add_seconds(1, self.tic)
         GLib.timeout_add_seconds(6, self.maj_icones)
         GLib.timeout_add_seconds(1800, self.maj_meteo)
-        self.maj_icones(); self.maj_meteo(); self.maj_taches(); self.tic()
+        self.maj_icones(); self.maj_meteo(); self.maj_taches(); self.tic(); self.demarrer_timecode()
         if not self.cfg.get("visite_faite") and not os.path.isdir("/run/live/medium"):
             GLib.timeout_add_seconds(3, lambda: (self.visite(), False)[1])
 
@@ -100,10 +102,11 @@ class Shell(Gtk.Application):
             "bluetooth": (P.Bluetooth, {T: HH + 8, R: 8}, (T, R)), "batterie": (P.Batterie, {T: HH + 8, R: 8}, (T, R)),
             "centre": (P.Centre, {T: HH + 8, R: 8}, (T, R)), "alim": (P.Alimentation, {T: HH + 8, R: 8}, (T, R)),
             "volet": (P.Volet, {T: HH + 8, B: HB + 10, R: 8}, (T, B, R)), "widgets": (W.Tableau, {T: HH + 8, B: HB + 10, Lf: 8}, (T, B, Lf)),
+            "presse": (vues.PressePapiers, {B: HB + 10}, (B,)), "emoji": (vues.Emojis, {B: HB + 10}, (B,)),
         }
         for nom, (cls, marges, ancres) in defs.items():
             w = Gtk.Window(application=self)
-            couche(w, LS.Layer.OVERLAY, ancres, marges, LS.KeyboardMode.EXCLUSIVE if nom in ("demarrer", "wifi") else LS.KeyboardMode.ON_DEMAND, ns="xiii-" + nom)
+            couche(w, LS.Layer.OVERLAY, ancres, marges, LS.KeyboardMode.EXCLUSIVE if nom in ("demarrer", "wifi", "presse", "emoji") else LS.KeyboardMode.ON_DEMAND, ns="xiii-" + nom)
             k = Gtk.EventControllerKey(); k.connect("key-pressed", self._touche); w.add_controller(k)
             if nom == "demarrer":
                 self.menu = MenuDemarrer(self); w.set_child(self.menu.widget); obj = self.menu
@@ -115,6 +118,8 @@ class Shell(Gtk.Application):
         couche(self.bulles, LS.Layer.OVERLAY, (B, R), {B: HB + 10, R: 10}, ns="xiii-bulles")
         self.pile = boite(True, 8); self.bulles.set_child(self.pile)
         self.aligner_menu()
+        self.vue_taches = vues.VueTaches(self); self.dispositions = vues.Dispositions(self); self.coins = vues.Coins(self)
+        self.bureau = Bureau(self)
 
     def aligner_menu(self):
         w = self.panneaux["demarrer"][0]
@@ -132,6 +137,12 @@ class Shell(Gtk.Application):
             if self.ouvert != "demarrer": self.ouvrir("demarrer")
             self.menu.recherche.grab_focus(); return
         if nom == "meteo": nom = "widgets"
+        if nom == "vue":
+            self.fermer(); self.vue_taches.ouvrir(); return
+        if nom == "dispositions":
+            self.fermer(); self.dispositions.ouvrir(); return
+        if nom == "bureau":
+            self.fermer(); self.afficher_bureau(); return
         if nom == "visite":
             self.fermer(); self.visite(); return
         if nom == "visite-suivant":
@@ -190,8 +201,11 @@ class Shell(Gtk.Application):
         self.boutons_panneaux["demarrer"] = [self.b_start]
         self.b_cherche = Gtk.Button(); self.b_cherche.add_css_class("tb"); self.b_cherche.set_tooltip_text("Rechercher")
         self.b_cherche.set_child(ico("search", 20)); self.b_cherche.connect("clicked", lambda *_: self.basculer("demarrer-recherche"))
+        self.b_vue = Gtk.Button(); self.b_vue.add_css_class("tb"); self.b_vue.set_tooltip_text("Vue des tâches (Super + Tab)")
+        self.b_vue.set_child(ico("layout-dashboard", 19)); self.b_vue.connect("clicked", lambda *_: self.basculer("vue"))
+        clic_droit(self.b_vue, lambda: self.basculer("dispositions"))
         self.taches = boite(False, 2)
-        for x in (self.b_start, self.b_cherche, self.taches): self.groupe.append(x)
+        for x in (self.b_start, self.b_cherche, self.b_vue, self.taches): self.groupe.append(x)
         # droite : horloge + notifications
         droite = boite(False, 2, margin_end=6)
         self.b_heure = Gtk.Button(); self.b_heure.add_css_class("tb")
@@ -207,6 +221,7 @@ class Shell(Gtk.Application):
         self.b_cloche.connect("clicked", lambda *_: self.basculer("volet"))
         clic_droit(self.b_cloche, lambda: self.parametres("notifications"))
         self.boutons_panneaux["volet"] = [self.b_heure, self.b_cloche]
+        self.zone_notif = boite(False, 0); droite.append(self.zone_notif)
         droite.append(self.b_heure); droite.append(self.b_cloche)
         self.cb = cb; self.droite = droite
         self.placer_barre()
@@ -275,7 +290,35 @@ class Shell(Gtk.Application):
                 items.append(("x", "Fermer la fenêtre" if len(fs) == 1 else "Fermer toutes les fenêtres", lambda: [self.fenetres.fermer(f) for f in fs]))
             if items: popover_menu(b, items)
         clic_droit(b, menu)
+        if fs and self.cfg.get("apercu_survol", True):
+            m = Gtk.EventControllerMotion(); etat = {"src": 0, "pop": None}
+            def entre(*_):
+                def montre():
+                    etat["src"] = 0
+                    if etat["pop"] or self.ouvert: return False
+                    pop = Gtk.Popover(has_arrow=False, autohide=False); pop.set_parent(b); pop.set_position(Gtk.PositionType.TOP)
+                    v = boite(True, 6, margin_top=6, margin_bottom=6, margin_start=6, margin_end=6)
+                    for f in fs:
+                        c = boite(True, 6, "carte"); c.set_size_request(220, -1)
+                        h = boite(False, 8); h.append(gicon_image(a.get_icon(), 16) if a else ico("app-window", 16)); h.append(label(f.titre or nom, "petit", "gras", hexpand=True, ellipsize=True, largeur=28))
+                        h.append(bouton(None, "x", "plat", taille=12, role="d", rappel=lambda f=f: (self.fenetres.fermer(f), pop.popdown()))); c.append(h)
+                        g = Gtk.GestureClick(); g.connect("released", lambda *_x, f=f: (pop.popdown(), self.fenetres.activer(f))); c.add_controller(g)
+                        v.append(c)
+                    pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); etat["pop"] = pop; pop.popup()
+                    return False
+                etat["src"] = GLib.timeout_add(650, montre)
+            def sort(*_):
+                if etat["src"]: GLib.source_remove(etat["src"]); etat["src"] = 0
+                if etat["pop"]:
+                    p = etat["pop"]; etat["pop"] = None
+                    GLib.timeout_add(350, lambda: (p.popdown(), False)[1])
+            m.connect("enter", entre); m.connect("leave", sort); b.add_controller(m)
         return b
+
+    def maj_zone(self):
+        vider(self.zone_notif)
+        for cle, it in list(self.zone.items.items()):
+            if it.get("statut") != "Passive": self.zone_notif.append(self.zone.bouton(cle))
 
     def epingler(self, cle, on, liste="epingles"):
         L = list(self.cfg[liste])
@@ -292,11 +335,22 @@ class Shell(Gtk.Application):
         lg = Gtk.Button(); lg.add_css_class("hb"); lg.set_child(label("XIII", "haut-logo")); lg.set_tooltip_text("À propos d'OS XIII")
         lg.connect("clicked", lambda *_: self.parametres("apropos"))
         g.append(lg)
+        self.b_projet = Gtk.Button(); self.b_projet.add_css_class("hb"); self.b_projet.set_tooltip_text("Projet XIII actif")
+        pj = boite(False, 6); pj.append(ico("folder-kanban", 14, "c")); pj.append(label(self.cfg.get("projet_actif") or "", "accent", "petit", "gras")); self.b_projet.set_child(pj)
+        self.b_projet.connect("clicked", lambda *_: popover_menu(self.b_projet, [
+            ("folder-open", "Ouvrir le dossier du projet", lambda: S.detacher(["thunar", os.path.join(os.path.expanduser("~/XIII"), self.cfg.get("projet_actif", ""))])),
+            ("layout-dashboard", "Widgets du projet", lambda: self.basculer("widgets")), ("settings", "Changer de projet", lambda: self.parametres("projet"))]))
+        self.b_projet.set_visible(bool(self.cfg.get("projet_actif"))); g.append(self.b_projet)
         self.l_titre = label("", "haut-titre", ellipsize=True, largeur=60); g.append(self.l_titre)
         cb.set_start_widget(g)
-        self.l_tournage = boite(False, 6, "carte", margin_top=3, margin_bottom=3)
-        self.l_tournage.append(ico("clapperboard", 14, "c")); self.l_tournage.append(label("Mode tournage", "accent", "petit", "gras"))
-        cb.set_center_widget(self.l_tournage)
+        centre = boite(False, 10)
+        pr = profils.courant(self.cfg)
+        self.l_tournage = Gtk.Button(); self.l_tournage.add_css_class("hb"); self.l_tournage.set_tooltip_text("Profil de travail — clic : changer")
+        lt = boite(False, 6); lt.append(ico(pr[2], 14, "c")); lt.append(label("Profil " + pr[1], "accent", "petit", "gras")); self.l_tournage.set_child(lt)
+        self.l_tournage.connect("clicked", lambda *_: self.menu_profils(self.l_tournage))
+        centre.append(self.l_tournage)
+        self.l_tc = label("", "timecode"); centre.append(self.l_tc)
+        cb.set_center_widget(centre)
         d = boite(False, 2, margin_end=6)
         def hb(nom, page, tip):
             b = Gtk.Button(); b.add_css_class("hb"); b.set_tooltip_text(tip + " — clic droit : paramètres")
@@ -343,7 +397,7 @@ class Shell(Gtk.Application):
         met(self.h_bat, icone_batterie(bat), ("%d%%" % bat["pct"]) if (bat and self.cfg["haut_pourcentage"]) else None,
             role="c" if bat and bat["pct"] < 15 and not bat["charge"] else "t")
         self.h_dnd.set_visible(self.cfg["ne_pas_deranger"])
-        self.l_tournage.set_visible(self.cfg["mode_tournage"])
+        self.l_tournage.set_visible(profils.courant(self.cfg)[0] != "normal")
 
     # ============================================================== horloge & météo
     def tic(self):
@@ -426,9 +480,11 @@ class Shell(Gtk.Application):
         if ancien["barre_alignement"] != cfg["barre_alignement"] or ancien["barre_meteo"] != cfg["barre_meteo"] or ancien["barre_recherche"] != cfg["barre_recherche"]:
             self.placer_barre(); self.aligner_menu()
         if (ancien["meteo_lat"], ancien["meteo_lon"]) != (cfg["meteo_lat"], cfg["meteo_lon"]): self.maj_meteo()
-        if ancien["mode_tournage"] != cfg["mode_tournage"]: self.mode_tournage(cfg["mode_tournage"])
+        if profils.courant(ancien)[0] != profils.courant(cfg)[0]: self.appliquer_profil(profils.courant(cfg)[0])
+        if hasattr(self, "coins"): self.coins.maj()
+        if hasattr(self, "bureau"): self.bureau.maj()
         # icônes teintées : reconstruire
-        self.construire_haut(); self.b_cherche.set_child(ico("search", 20))
+        self.construire_haut(); self.demarrer_timecode(); self.b_cherche.set_child(ico("search", 20)); self.b_vue.set_child(ico("layout-dashboard", 19))
         ov = self.b_cloche.get_child(); ov.set_child(ico("bell", 19))
         self.maj_taches(); self.maj_icones(); self.maj_badge(); self.tic()
         if self._meteo: self._rendu_meteo(self._meteo)
@@ -465,25 +521,87 @@ class Shell(Gtk.Application):
             t = int(c["nocturne_temp"]); self.processus("nuit", ["wlsunset", "-t", str(t), "-T", str(t + 1), "-S", "00:00", "-s", "23:59", "-d", "60"])
         else:
             self.arreter("nuit")
-        if c["mode_tournage"] or not c["verrou_actif"] or int(c["veille_ecran"]) <= 0:
+        if profils.eveil(c):
             self.arreter("veille")
         else:
-            self.processus("veille", ["swayidle", "-w", "timeout", str(int(c["veille_ecran"])), "swaylock -f", "before-sleep", "swaylock -f"])
+            cmd = ["swayidle", "-w"]
+            if c.get("veille_mode", "aucun") != "aucun" and int(c.get("veille_delai", 0)) > 0:
+                cmd += ["timeout", str(int(c["veille_delai"])), "xiii-veille", "resume", "pkill -f xiii.veille"]
+            if c["verrou_actif"] and int(c["veille_ecran"]) > 0:
+                cmd += ["timeout", str(int(c["veille_ecran"])), "pkill -f xiii.veille; swaylock -f"]
+            cmd += ["before-sleep", "swaylock -f"]
+            self.processus("veille", cmd)
         self.processus("disques", ["udiskie", "--no-tray", "--notify"] + ([] if c["montage_auto"] else ["--no-automount"]))
         if premier:
             for nom, e in (c.get("ecrans") or {}).items():
                 S.en_fond(S.regler_ecran, None, nom, e.get("w"), e.get("h"), e.get("hz"), e.get("echelle"), e.get("rotation"))
-            if c["mode_tournage"]: self.mode_tournage(True)
+            if profils.courant(c)[0] != "normal": self.appliquer_profil(profils.courant(c)[0], silencieux=True)
+            if c.get("reprise_session"): GLib.timeout_add_seconds(4, lambda: (self.reprendre_session(), False)[1])
+            if c.get("jeu_console") and profils.courant(c)[0] == "jeu": S.detacher(["steam", "-gamepadui"])
+        GLib.timeout_add_seconds(60, self.memoriser_session) if premier else None
+
+    # ============================================================== profils de travail
+    def menu_profils(self, parent):
+        items = [(ic, ("● " if self.cfg.get("profil", "normal") == k else "") + nom + " — " + desc, (lambda k=k: config.modifier(profil=k, mode_tournage=(k == "tournage"))))
+                 for k, nom, ic, desc, _ in profils.PROFILS]
+        popover_menu(parent, items + [None, ("settings", "Régler les profils", lambda: self.parametres("profils"))])
+
+    def appliquer_profil(self, k, silencieux=False):
+        _, nom, ic, desc, r = profils.PAR_CLE.get(k, profils.PROFILS[0])
+        S.en_fond(S.regler_profil, None, r.get("perf", "balanced"))
+        kw = dict(ne_pas_deranger=r.get("dnd", False))
+        if r.get("nuit") is not None: kw["lumiere_nocturne"] = r["nuit"]
+        if any(self.cfg.get(x) != v for x, v in kw.items()): config.modifier(_histo=False, **kw)
+        if r.get("jeu") and self.cfg.get("jeu_console") and not silencieux: S.detacher(["steam", "-gamepadui"])
+        if not silencieux:
+            S.detacher(["notify-send", "-a", "OS XIII", "-i", "preferences-system", "Profil " + nom, desc])
 
     def mode_tournage(self, on):
-        if on:
-            S.en_fond(S.regler_profil, None, "performance")
-            config.modifier(ne_pas_deranger=True)
-            S.detacher(["notify-send", "-a", "OS XIII", "-i", "camera-video", "Mode tournage activé",
-                        "Performances maximales, notifications en silence, pas de mise en veille."])
+        config.modifier(profil="tournage" if on else "normal", mode_tournage=on)
+
+    # ============================================================== timecode
+    def demarrer_timecode(self):
+        if getattr(self, "_tc_src", 0): GLib.source_remove(self._tc_src); self._tc_src = 0
+        on = bool(self.cfg.get("timecode")); self.l_tc.set_visible(on)
+        if not on: return
+        fps = int(self.cfg.get("timecode_fps", 25)) or 25
+        def tic():
+            t = time.time(); lt = time.localtime(t)
+            self.l_tc.set_text("%02d:%02d:%02d:%02d" % (lt.tm_hour, lt.tm_min, lt.tm_sec, int((t % 1) * fps)))
+            return True
+        self._tc_src = GLib.timeout_add(int(1000 / fps), tic); tic()
+
+    # ============================================================== reprise de session
+    def memoriser_session(self):
+        try:
+            ids = []
+            for f in (self.fenetres.liste() if self.fenetres and self.fenetres.ok else []):
+                a = apps.pour_fenetre(f.app_id)
+                if a and a.get_id() not in ids and not a.get_id().startswith(("xiii-", "fr.xiii")): ids.append(a.get_id())
+            d = os.path.join(GLib.get_user_cache_dir(), "xiii"); os.makedirs(d, exist_ok=True)
+            import json; json.dump(ids, open(os.path.join(d, "session.json"), "w"))
+        except Exception:
+            pass
+        return True
+
+    def reprendre_session(self):
+        import json
+        try: ids = json.load(open(os.path.join(GLib.get_user_cache_dir(), "xiii", "session.json")))
+        except Exception: return
+        ouverts = {apps.pour_fenetre(f.app_id).get_id() for f in (self.fenetres.liste() if self.fenetres and self.fenetres.ok else []) if apps.pour_fenetre(f.app_id)}
+        for i in ids:
+            a = apps.par_id(i)
+            if a and i not in ouverts: apps.lancer(a)
+
+    # ============================================================== bureau
+    def afficher_bureau(self):
+        fen = self.fenetres.liste() if self.fenetres and self.fenetres.ok else []
+        if all(f.reduite for f in fen) and getattr(self, "_reduites", None):
+            for f in self._reduites: self.fenetres.activer(f)
+            self._reduites = None
         else:
-            S.en_fond(S.regler_profil, None, "balanced")
-            config.modifier(ne_pas_deranger=False)
+            self._reduites = [f for f in fen if not f.reduite]
+            for f in self._reduites: self.fenetres.reduire(f)
 
     def do_shutdown(self):
         for n in list(self.procs): self.arreter(n)
@@ -689,7 +807,21 @@ class MenuDemarrer:
                 bx = boite(False, 12); bx.append(gicon_image(apps.icone_fichier(f), 24))
                 v = boite(True, 0); v.append(label(os.path.basename(f))); v.append(label(os.path.dirname(f).replace(os.path.expanduser("~"), "~"), "attenue", "petit", ellipsize=True)); bx.append(v)
                 b.set_child(bx); b.connect("clicked", lambda _b, f=f: (self.shell.fermer(), apps.ouvrir_fichier(f))); self.res.append(b)
-        self.res.append(label("Web", "section"))
+        if len(q) >= 3 and not S.DEMO:
+            maison = os.path.expanduser("~")
+            trouves_f = [l for l in S.out(["plocate", "-i", "-l", "40", "--", self.recherche.get_text().strip()], 2).splitlines()
+                         if l.startswith(maison + "/") and "/." not in l[len(maison):] and l not in fic][:6]
+            if trouves_f:
+                self.res.append(label("Fichiers", "section"))
+                for f in trouves_f:
+                    b = Gtk.Button(); b.add_css_class("ligne"); b.add_css_class("plat")
+                    bx = boite(False, 12); bx.append(gicon_image(apps.icone_fichier(f), 24))
+                    v = boite(True, 0); v.append(label(os.path.basename(f))); v.append(label(os.path.dirname(f).replace(maison, "~"), "attenue", "petit", ellipsize=True)); bx.append(v)
+                    b.set_child(bx); b.connect("clicked", lambda _b, f=f: (self.shell.fermer(), apps.ouvrir_fichier(f))); self.res.append(b)
+        self.res.append(label("Web et assistant", "section"))
+        brut0 = self.recherche.get_text().strip()
+        self.res.append(bouton("Demander à Claude : « %s »" % brut0, "sparkles", "ligne", "plat", taille=18,
+                               rappel=lambda: (self.shell.fermer(), S.detacher(["xdg-open", "https://claude.ai/new?q=" + GLib.uri_escape_string(brut0, None, False)]))))
         brut = self.recherche.get_text().strip()
         self.res.append(bouton("Rechercher « %s » sur le Web" % brut, "globe", "ligne", "plat", taille=18,
                                rappel=lambda: (self.shell.fermer(), S.detacher(["xdg-open", "https://duckduckgo.com/?q=" + GLib.uri_escape_string(brut, None, False)]))))

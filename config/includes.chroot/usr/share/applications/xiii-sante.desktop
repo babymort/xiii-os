@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Santé du PC
+Comment=Note de forme et conseils pour redonner vie à cet ordinateur
+Exec=xiii-bilan --sante
+Icon=xiii-sante
+Type=Application
+Categories=System;XIII;

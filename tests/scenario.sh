@@ -2,6 +2,8 @@
 # Scénario de captures du bureau XIII (exécuté par labwc -s sur écran virtuel)
 sleep 1
 wlr-randr --output HEADLESS-1 --custom-mode 1600x900 >/out/randr.log 2>&1
+mkdir -p /root/Bureau /root/XIII/Concert-Dome/01_Rushes; touch "/root/Bureau/Conducteur.pdf" "/root/Bureau/Plan de feu.png" "/root/Bureau/Notes.txt"; mkdir -p "/root/Bureau/Rushes jour 1"
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(timecode=True, projet_actif="Concert-Dome", profil="tournage")'
 xiii-shell > /out/shell.log 2>&1 &
 sleep 6
 notify-send -a "Pilotes XIII" -i preferences-system --action=ouvrir="Ouvrir Pilotes XIII" "Pilotes à installer" "Carte NVIDIA détectée : le pilote nvidia-driver améliorera les performances." >/dev/null &
@@ -16,9 +18,17 @@ for p in demarrer son wifi bluetooth batterie centre alim volet widgets; do
   xiii-ctl $p; sleep 2; grim /out/p-$p.png; xiii-ctl fermer; sleep 0.6
 done
 xiii-ctl demarrer-toutes; sleep 2; grim /out/p-toutes.png; xiii-ctl fermer; sleep 0.5
+for p in vue dispositions presse emoji; do xiii-ctl $p; sleep 2; grim /out/q-$p.png; xiii-ctl fermer; sleep 0.3; done
+pkill -f "xiii.shell" ; sleep 0.2
+xiii-shell >> /out/shell.log 2>&1 &
+sleep 5
+xiii-veille horloge > /out/veille.log 2>&1 & sleep 3; grim /out/q-veille-horloge.png; pkill -f xiii.veille; sleep 0.5
+xiii-veille mire >> /out/veille.log 2>&1 & sleep 3; grim /out/q-veille-mire.png; pkill -f xiii.veille; sleep 0.5
+xiii-somme /root/Bureau > /out/somme.log 2>&1 & sleep 4; grim /out/q-somme.png; pkill -f xiii.somme; sleep 0.5
+xiii-bilan --sante > /out/bilan.log 2>&1 & sleep 5; grim /out/q-sante.png; pkill -f xiii-bilan; sleep 0.5
 xiii-parametres --page accueil >> /out/param.log 2>&1 &
 sleep 6; grim /out/s-accueil.png
-for pg in widgets xiii ecran son theme fond barre perso wifi bluetooth apropos alimentation stockage souris clavier xiii maj apps notifications heure; do
+for pg in profils historique bureau jeux projet outilsprod sauvegarde widgets xiii ecran son theme fond barre perso wifi bluetooth apropos alimentation stockage souris clavier xiii maj apps notifications heure; do
   xiii-parametres --page $pg >> /out/param.log 2>&1
   sleep 2.5; grim /out/s-$pg.png
 done

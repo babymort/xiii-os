@@ -16,3 +16,10 @@ xdg-utils
 libglib2.0-bin
 python3-gi-cairo
 playerctl
+wtype
+# Phase 05b
+python3-xxhash
+xxhash
+plocate
+deja-dup
+timeshift

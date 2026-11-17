@@ -22,7 +22,7 @@ DEFAUTS = {
     "epingles": ["xiii-parametres.desktop", "firefox-esr.desktop", "thunar.desktop",
                  "org.xfce.mousepad.desktop", "mpv.desktop", "xiii-bilan.desktop"],
     "menu_epingles": ["xiii-parametres.desktop", "firefox-esr.desktop", "thunar.desktop", "org.xfce.mousepad.desktop",
-                      "mpv.desktop", "imv.desktop", "xiii-bilan.desktop", "xiii-pilotes.desktop", "xiii-demarrage.desktop",
+                      "mpv.desktop", "steam.desktop", "xiii-bilan.desktop", "xiii-pilotes.desktop", "xiii-demarrage.desktop",
                       "org.gnome.DiskUtility.desktop", "pavucontrol.desktop", "xiii-webcam.desktop"],
     "menu_recommandes": True,
     "menu_vue": "epingles",          # epingles | categories
@@ -42,6 +42,19 @@ DEFAUTS = {
     "veille_ecran": 600,
     "verrou_actif": True,
     "mode_tournage": False,
+    "profil": "normal",
+    "timecode": False,
+    "timecode_fps": 25,
+    "projet_actif": "",
+    "coins": {"hg": "rien", "hd": "rien", "bg": "rien", "bd": "bureau"},
+    "icones_bureau": True,
+    "reprise_session": False,
+    "veille_mode": "horloge",
+    "veille_delai": 300,
+    "apercu_survol": True,
+    "jeu_console": False,
+    "mangohud": False,
+    "jeu_30ips": False,
     "taille_texte": 1.0,
     "curseur_taille": 24,
     "police": "IBM Plex Sans",
@@ -69,8 +82,29 @@ def enregistrer(c):
         json.dump(c, f, ensure_ascii=False, indent=2)
     os.replace(tmp, FICHIER)
 
-def modifier(**kw):
-    c = charger(); c.update(kw); enregistrer(c); return c
+HISTO = os.path.join(DOSSIER, "historique.json")
+SANS_HISTO = {"epingles", "menu_epingles", "ecrans", "visite_faite", "meteo_lat", "meteo_lon"}
+
+def historique():
+    try:
+        return json.load(open(HISTO))
+    except Exception:
+        return []
+
+def modifier(_histo=True, **kw):
+    """Enregistre des réglages ; garde l'ancienne valeur pour pouvoir annuler (Paramètres › Historique)."""
+    c = charger()
+    avant = {k: c.get(k) for k in kw if c.get(k) != kw[k]}
+    c.update(kw); enregistrer(c)
+    if _histo and avant and not (set(avant) <= SANS_HISTO):
+        import time
+        h = historique()
+        h.insert(0, {"t": time.time(), "avant": avant, "apres": {k: kw[k] for k in avant}})
+        try:
+            json.dump(h[:60], open(HISTO, "w"), ensure_ascii=False)
+        except Exception:
+            pass
+    return c
 
 def surveiller(rappel):
     """Appelle rappel(config) quand le fichier change. Garder la référence retournée."""

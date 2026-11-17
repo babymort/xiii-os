@@ -101,6 +101,53 @@ def pilotes():
     inst = set(sh("dpkg-query -W -f='${Package}\\n'").split())
     return L, sorted(p for p in P if p not in inst)
 
+def sante():
+    """Note de forme du vieux PC + conseils concrets."""
+    note, L, C = 100, [], []
+    try:
+        ram = int(re.search(r"MemTotal:\s+(\d+)", open("/proc/meminfo").read()).group(1)) / 1048576
+    except Exception:
+        ram = 0
+    if ram < 2.5: note -= 30; C.append("Mémoire faible (%.1f Go) : passer à 4 Go ou plus changera tout (barrettes d'occasion peu chères)." % ram)
+    elif ram < 4.5: note -= 12; C.append("4 Go de mémoire : correct ; 8 Go rendront le navigateur et les jeux bien plus fluides.")
+    L.append(("Mémoire", "%.1f Go" % ram, ram >= 4))
+    rot = []
+    for b in glob.glob("/sys/block/*/queue/rotational"):
+        dev = b.split("/")[3]
+        if dev.startswith(("loop", "zram", "sr", "ram")): continue
+        try:
+            if open(b).read().strip() == "1": rot.append(dev)
+        except OSError: pass
+    if rot: note -= 22; C.append("Disque dur mécanique détecté (%s) : un SSD (dès 25 €) est l'amélioration la plus spectaculaire pour un vieux PC." % ", ".join(rot))
+    L.append(("Stockage", "disque dur mécanique" if rot else "SSD / mémoire flash", not rot))
+    try:
+        u = shutil.disk_usage("/"); pl = 100 * u.free / u.total
+        if pl < 10: note -= 12; C.append("Moins de 10 % d'espace libre : videz la corbeille et les téléchargements (Paramètres › Stockage).")
+        L.append(("Espace libre", "%d %%" % pl, pl >= 10))
+    except Exception: pass
+    coeurs = os.cpu_count() or 1
+    if coeurs <= 2: note -= 10; C.append("Processeur à %d cœur(s) : préférez le profil « Économie » et évitez trop d'onglets ouverts." % coeurs)
+    L.append(("Processeur", "%d cœur(s)" % coeurs, coeurs > 2))
+    temps = []
+    for z in glob.glob("/sys/class/thermal/thermal_zone*/temp"):
+        try: temps.append(int(open(z).read()) / 1000)
+        except Exception: pass
+    t = max([x for x in temps if 5 < x < 120] or [0])
+    if t >= 80: note -= 15; C.append("Température élevée (%d °C) : dépoussiérez les ventilateurs, changez la pâte thermique si le PC a plus de 5 ans." % t)
+    if t: L.append(("Température", "%d °C" % t, t < 80))
+    for b in glob.glob("/sys/class/power_supply/BAT*"):
+        try:
+            plein = int(open(b + "/energy_full").read()); neuf = int(open(b + "/energy_full_design").read())
+            usure = 100 * plein / neuf
+            if usure < 60: note -= 10; C.append("Batterie usée (%d %% de sa capacité d'origine) : une batterie neuve redonnera de l'autonomie." % usure)
+            L.append(("Batterie", "%d %% de la capacité d'origine" % usure, usure >= 60))
+        except Exception: pass
+    vk = sh("vulkaninfo --summary 2>/dev/null | grep -c deviceName") not in ("", "0")
+    if not vk: note -= 5; C.append("Pas de Vulkan : les jeux Windows tourneront en mode compatibilité, plus lent.")
+    L.append(("Vulkan (jeux)", "disponible" if vk else "absent", vk))
+    if not C: C.append("Cet ordinateur est en pleine forme pour OS XIII.")
+    return max(0, note), L, C
+
 # ---------- interface ----------
 class App(Gtk.Application):
     def __init__(self, page):
@@ -118,11 +165,12 @@ class App(Gtk.Application):
         sw = Gtk.StackSwitcher(stack=self.stack, halign=Gtk.Align.START); root.append(sw)
         self.p_bilan = self.page_vide("bilan", "Bilan matériel", "Ce qui fonctionne sur cet ordinateur.", self.charge_bilan)
         self.p_pil = self.page_vide("pilotes", "Pilotes", "Scan des pilotes et firmwares manquants.", self.charge_pilotes)
+        self.p_san = self.page_vide("sante", "Santé du PC", "Note de forme et conseils pour redonner vie à cet ordinateur.", self.charge_sante)
         root.append(self.stack)
         root.append(Gtk.Label(label="Application développée par Matthieu Lamotte", css_classes=["credit"], xalign=1))
         self.stack.set_visible_child_name(self.page)
         self.win.present()
-        self.charge_bilan(); self.charge_pilotes()
+        self.charge_bilan(); self.charge_pilotes(); self.charge_sante()
 
     def page_vide(self, nom, titre, sous, recharge):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -185,5 +233,22 @@ class App(Gtk.Application):
                 self.p_pil.append(self.carte("Résultat", "Aucun pilote à installer.", True))
         self.async_(self.p_pil, pilotes, rendu)
 
+    def charge_sante(self):
+        def rendu(r):
+            note, L, C = r
+            self.vider(self.p_san, ""); self.p_san.remove(self.p_san.get_first_child())
+            h = Gtk.Box(spacing=16, css_classes=["carte"])
+            couleur = "ok" if note >= 70 else "neutre" if note >= 45 else "ko"
+            h.append(Gtk.Label(label="%d" % note, css_classes=["titre", couleur])); v = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            v.append(Gtk.Label(label="Note de forme sur 100", css_classes=["nom"], xalign=0))
+            v.append(Gtk.Label(label="Excellent" if note >= 85 else "Bon" if note >= 70 else "Correct" if note >= 45 else "À améliorer", css_classes=["val"], xalign=0))
+            h.append(v); self.p_san.append(h)
+            for n, val, ok in L: self.p_san.append(self.carte(n, val, ok))
+            c = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, css_classes=["carte"])
+            c.append(Gtk.Label(label="Conseils", css_classes=["nom"], xalign=0))
+            for t in C: c.append(Gtk.Label(label="• " + t, css_classes=["conseil"], xalign=0, wrap=True))
+            self.p_san.append(c)
+        self.async_(self.p_san, sante, rendu)
+
 if __name__ == "__main__":
-    App("pilotes" if "--pilotes" in sys.argv else "bilan").run([sys.argv[0]])
+    App("pilotes" if "--pilotes" in sys.argv else "sante" if "--sante" in sys.argv else "bilan").run([sys.argv[0]])
