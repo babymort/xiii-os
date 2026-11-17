@@ -232,7 +232,7 @@ class AppWindows(Gtk.Application):
             buf = self.journal.get_buffer(); buf.insert(buf.get_end_iter(), t.rstrip() + "\n"); return False
         GLib.idle_add(f)
 
-    def run(self, cmd, env, timeout=3600):
+    def executer(self, cmd, env, timeout=3600):
         self.log("$ " + " ".join(cmd))
         if S.DEMO:
             time.sleep(0.8); return 0
@@ -249,21 +249,21 @@ class AppWindows(Gtk.Application):
         avant = set(glob.glob(APPS_DIR + "/**/*.desktop", recursive=True))
         # 1. environnement
         self.etat("env", "cours")
-        rc = self.run(["wineboot", "-u"], dict(env, WINEDLLOVERRIDES="mscoree,mshtml="), 600)
-        self.run(["wineserver", "-w"], env, 300)
+        rc = self.executer(["wineboot", "-u"], dict(env, WINEDLLOVERRIDES="mscoree,mshtml="), 600)
+        self.executer(["wineserver", "-w"], env, 300)
         self.etat("env", "ok" if rc == 0 else "ko")
         # 2. composants
         self.etat("comp", "cours")
         ok = True
         if comps:
-            ok = self.run(["winetricks", "-q", "--unattended"] + comps, env, 3600) == 0
+            ok = self.executer(["winetricks", "-q", "--unattended"] + comps, env, 3600) == 0
         self.etat("comp", "ok" if ok else "ko")
         # 3. installation / copie
         self.etat("inst", "cours")
         raccourcis = []; icone = None
         if self.installeur:
             cmd = ["wine", "msiexec", "/i", self.fichier] if self.fichier.lower().endswith(".msi") else ["wine", self.fichier]
-            rc = self.run(cmd, env, 7200); self.run(["wineserver", "-w"], env, 7200)
+            rc = self.executer(cmd, env, 7200); self.executer(["wineserver", "-w"], env, 7200)
             cible = None
         else:
             dest = os.path.join(pref, "drive_c", "Program Files", self.nom); os.makedirs(dest, exist_ok=True)
