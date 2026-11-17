@@ -70,7 +70,7 @@ class Tally(Gtk.Application):
         g = boite(True, 4, hexpand=True, valign=Gtk.Align.CENTER)
         g.append(label("Tally XIII", "hero-grand"))
         g.append(label("Les cadreurs scannent le QR code avec leur téléphone, choisissent leur caméra : l'écran passe au rouge à l'antenne, au vert en preview.", "attenue", wrap=True))
-        self.l_url = label("", "accent", "gras", selectable=True); g.append(self.l_url)
+        self.l_url = label("", "accent", "gras"); g.append(self.l_url)
         rb = boite(False, 8, margin_top=6)
         rb.append(bouton("Copier l'adresse", "copy", "fantome", taille=14, rappel=lambda: Gdk.Display.get_default().get_clipboard().set_text(self.moteur.url())))
         rb.append(bouton("Ouvrir ici", "external-link", "fantome", taille=14, rappel=lambda: Gio.AppInfo.launch_default_for_uri(self.moteur.url(), None)))
