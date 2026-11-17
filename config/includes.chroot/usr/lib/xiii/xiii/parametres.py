@@ -935,6 +935,97 @@ class Parametres(Gtk.Application):
         try: return fin(res)
         except GLib.Error: return None
 
+    def p_suite(self, c, cle):
+        from . import suite as SU
+        rac = SU.racine(); L = SU.outils()
+        try: ver = open(os.path.join(rac, "version-os.txt")).read().strip()
+        except OSError: ver = "—"
+        maj = rac == SU.UTIL
+        h = boite(False, 16, "hero"); h.append(gicon_image(Gio.ThemedIcon.new("xiii-suite"), 56))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label("Suite XIII", "hero-grand"))
+        v.append(label("%d outils hors ligne · version %s%s" % (len(L), ver, " (mise à jour)" if maj else " (livrée avec OS XIII)"), "attenue")); h.append(v)
+        h.append(bouton("Ouvrir la Suite", None, "pilule", rappel=lambda: S.detacher(["xiii-suite"]))); c.append(h)
+        c.append(info("Chaque outil s'ouvre dans sa propre fenêtre, sans navigateur ni connexion. Les outils partagent leurs données entre eux (projets, annuaire, échanges) "
+                      "mais pas avec le site en ligne : utilisez les fichiers .xiii.json pour passer de l'un à l'autre."))
+        c.append(groupe_titre("Fichiers"))
+        c.append(reglage("file-json" if os.path.exists(theme.LUCIDE + "/file-json.svg") else "file", "Double-clic sur un fichier .xiii.json", "Ouvre le bon outil et importe le fichier ; une fiche projet peut aussi devenir le projet XIII de l'ordinateur"))
+        c.append(reglage("folder-kanban", "Exports rangés dans le projet actif", ("Projet « %s » : 03_Documents et 06_Exports" % self.cfg["projet_actif"]) if self.cfg.get("projet_actif") else "Sans projet actif : dossier Téléchargements", clic=lambda: self.aller("projet")))
+        c.append(reglage("send", "Envoyer à DOSSIER XIII", "Clic droit sur un document dans Fichiers : il rejoint le dossier en cours"))
+        c.append(reglage("refresh-cw", "Convertir avec ENCODO XIII", "Clic droit sur une vidéo, un son, une image ou un PDF"))
+        c.append(groupe_titre("Mise à jour"))
+        def mettre_a_jour():
+            self.toast("Téléchargement de la Suite XIII…")
+            def fond():
+                from . import suite_prep
+                try:
+                    tmp = SU.UTIL + ".prep"
+                    suite_prep.preparer(tmp, journal=lambda *_: None)
+                    import shutil
+                    if os.path.exists(SU.UTIL): shutil.rmtree(SU.UTIL)
+                    os.rename(tmp, SU.UTIL); return True
+                except Exception as e:
+                    return str(e)
+            S.en_fond(fond, lambda r: (self.toast("Suite XIII à jour — rouvrez les outils" if r is True else "Mise à jour impossible : %s" % r), self.aller("suite", False)))
+        c.append(reglage("download", "Mettre à jour la Suite XIII", "Dernière version publiée sur suite-xiii.netlify.app (environ 30 Mo)", droite=bouton("Mettre à jour", None, "pilule", rappel=mettre_a_jour)))
+        if maj:
+            c.append(reglage("rotate-ccw", "Revenir à la version livrée avec OS XIII", "", droite=bouton("Revenir", None, "plat", rappel=lambda: (__import__("shutil").rmtree(SU.UTIL, ignore_errors=True), self.aller("suite", False)))))
+        c.append(groupe_titre("Outils"))
+        for o in L:
+            c.append(reglage(None, o["nom"], o["role"], gicon=Gio.ThemedIcon.new("xiii-suite-" + o["id"]), clic=lambda o=o: S.detacher(["xiii-suite", o["id"]])))
+
+    def p_ndi(self, c, cle):
+        from . import ndi
+        ok = ndi.disponible() or S.DEMO
+        v_ndi = (ndi.version() if ndi.disponible() else ("NDI SDK 6.2 (démo)" if S.DEMO else None))
+        h = boite(False, 16, "hero"); h.append(ico("radio-tower", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label("NDI", "hero-grand"))
+        v.append(label(("Runtime installé · " + (v_ndi or "")) if ok else "Runtime NDI non installé", "attenue")); h.append(v); c.append(h)
+        c.append(groupe_titre("Runtime NDI"))
+        if not ok:
+            c.append(info("Le runtime NDI est gratuit, mais sa licence ne permet pas de le livrer dans OS XIII. Il se télécharge depuis le site officiel de NDI, "
+                          "puis s'installe après acceptation de son contrat de licence."))
+            etat = {"dossier": None}
+            zone = boite(True, 8); c.append(zone)
+            def etape1():
+                self.toast("Téléchargement du kit NDI…")
+                S.en_fond(lambda: subprocess.run(["xiii-ndi-runtime", "telecharger"], capture_output=True, text=True),
+                          lambda r: afficher_licence(r.stdout.strip()) if r.returncode == 0 else self.toast("Téléchargement impossible (connexion Internet ?)"))
+            def afficher_licence(d):
+                etat["dossier"] = d; vider(zone)
+                txt = subprocess.run(["xiii-ndi-runtime", "licence"], capture_output=True, text=True).stdout.strip() or "Contrat de licence du NDI SDK : voir ndi.video."
+                tv = Gtk.TextView(editable=False, wrap_mode=Gtk.WrapMode.WORD, monospace=False); tv.get_buffer().set_text(txt)
+                sc = Gtk.ScrolledWindow(min_content_height=260, max_content_height=360, propagate_natural_height=True); sc.set_child(tv); sc.add_css_class("reglage"); zone.append(sc)
+                cb = Gtk.CheckButton(label="J'ai lu et j'accepte le contrat de licence NDI"); zone.append(cb)
+                bi = bouton("Installer le runtime NDI", None, "pilule", rappel=lambda: installer() if cb.get_active() else self.toast("Acceptez d'abord la licence")); zone.append(bi)
+            def installer():
+                S.en_fond(lambda: subprocess.run(["pkexec", "xiii-ndi-runtime", "installer", etat["dossier"]], capture_output=True, text=True).returncode,
+                          lambda r: (self.toast("Runtime NDI installé" if r == 0 else "Installation annulée ou impossible"), self.aller("ndi", False)))
+            zone.append(reglage("download", "Installer le runtime NDI", "Téléchargement depuis downloads.ndi.tv, puis lecture du contrat de licence", droite=bouton("Commencer", None, "pilule", rappel=etape1)))
+        else:
+            c.append(reglage("check", "Runtime NDI", v_ndi or "", droite=label("Installé ✓", "accent")))
+            c.append(reglage("trash-2", "Désinstaller le runtime NDI", "", droite=bouton("Désinstaller", None, "plat", "danger",
+                             rappel=lambda: S.en_fond(lambda: subprocess.run(["pkexec", "xiii-ndi-runtime", "retirer"]).returncode, lambda r: self.aller("ndi", False)))))
+        c.append(groupe_titre("Module NDI XIII"))
+        mod = os.path.exists("/opt/ndi-xiii/node_modules/electron/dist/electron") or S.DEMO
+        c.append(reglage("radio-tower", "NDI XIII", "Sorties GRAPHICO (avec transparence), programme MELANGO, entrées son, diffusion RTMP / SRT — trouvé automatiquement par les outils",
+                         droite=bouton("Lancer", None, "pilule", rappel=lambda: S.detacher("xiii-ndi")) if mod else label("Absent", "attenue")))
+        auto = os.path.join(GLib.get_user_config_dir(), "autostart", "xiii-ndi.desktop")
+        def auto_ndi(on):
+            os.makedirs(os.path.dirname(auto), exist_ok=True)
+            if on: open(auto, "w").write("[Desktop Entry]\nType=Application\nName=NDI XIII\nExec=xiii-ndi\nIcon=xiii-ndi\n")
+            elif os.path.exists(auto): os.unlink(auto)
+        c.append(reglage("rocket", "Lancer NDI XIII à l'ouverture de session", "", droite=interrupteur(os.path.exists(auto), auto_ndi)))
+        c.append(groupe_titre("Retour plateau"))
+        c.append(reglage("monitor-play", "Retour plateau", "Une source NDI en plein écran : ce PC devient un écran de retour", droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("xiii-retour"))))
+        rr = os.path.join(GLib.get_user_config_dir(), "autostart", "xiii-retour.desktop")
+        def auto_retour(on):
+            os.makedirs(os.path.dirname(rr), exist_ok=True)
+            if on: open(rr, "w").write("[Desktop Entry]\nType=Application\nName=Retour plateau\nExec=sh -c 'sleep 6; xiii-retour --dernier'\nIcon=xiii-retour\n")
+            elif os.path.exists(rr): os.unlink(rr)
+        c.append(reglage("tv", "Retour plateau au démarrage", "Dernière source en plein écran dès l'ouverture de session (PC dédié)", droite=interrupteur(os.path.exists(rr), auto_retour)))
+        c.append(info("NDI passe par le réseau local : le PC et le mélangeur doivent être sur le même réseau (ou indiquez l'IP du mélangeur dans le retour plateau). "
+                      "NDI® est une marque déposée de Vizrt NDI AB."))
+
     def p_sauvegarde(self, c, cle):
         c.append(info("Deux protections complémentaires : vos dossiers (photos, documents, projets) sur un disque externe ou en ligne, et des instantanés du système pour revenir en arrière après une mauvaise mise à jour."))
         c.append(reglage("archive", "Sauvegarde de mes dossiers", "Automatique, chiffrée, sur disque externe ou en ligne (Déjà Dup)", droite=bouton("Configurer", None, "pilule", rappel=lambda: S.detacher("deja-dup"))))
@@ -1244,6 +1335,9 @@ class Parametres(Gtk.Application):
         h = boite(False, 16, "hero")
         h.append(vignette("/usr/share/xiii/logos/suite-xiii-a.png", 150, 94, couvrir=False))
         v = boite(True, 4, valign=Gtk.Align.CENTER); v.append(label("OS XIII × Suite XIII", "hero-grand")); v.append(label("Outils de production audiovisuelle intégrés au système", "attenue")); h.append(v); c.append(h)
+        c.append(groupe_titre("Suite XIII sur ce PC"))
+        c.append(reglage("layout-grid", "Outils de la Suite XIII", "Hors ligne, chacun dans sa fenêtre — fichiers .xiii.json, envoi à DOSSIER, mises à jour", clic=lambda: self.aller("suite")))
+        c.append(reglage("radio-tower", "NDI", "Runtime NDI, module NDI XIII, retour plateau", clic=lambda: self.aller("ndi")))
         c.append(groupe_titre("Mode tournage"))
         c.append(reglage("clapperboard", "Mode tournage", "Performances maximales, notifications en silence, jamais de mise en veille — pour le plateau",
                          droite=interrupteur(cfg["mode_tournage"], lambda on: self.regler(mode_tournage=on))))

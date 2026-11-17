@@ -1,0 +1,33 @@
+#!/bin/sh
+# Phase 09 — Suite XIII hors ligne (copie du site public + bibliothèques en local), NDI XIII, retour plateau
+set -e
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+  gir1.2-webkit-6.0 gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-pipewire gstreamer1.0-gl \
+  avahi-daemon libavahi-client3 libavahi-common3 xwayland unzip curl ca-certificates nodejs npm
+
+# --- Suite XIII : site public (branche main), outils, icônes, lanceurs
+python3 /usr/lib/xiii/xiii/suite_prep.py /usr/share/xiii/suite /usr/share/applications /usr/share/icons/hicolor/scalable/apps --ndi /opt/ndi-tmp
+du -sh /usr/share/xiii/suite
+ls /usr/share/applications/xiii-suite-*.desktop | wc -l
+
+# --- NDI XIII : module de la suite, Electron installé une fois pour toutes
+rm -rf /opt/ndi-xiii && mv /opt/ndi-tmp/NDI_XIII /opt/ndi-xiii && rm -rf /opt/ndi-tmp
+cd /opt/ndi-xiii
+export npm_config_cache=/tmp/npm-cache
+npm install --no-audit --no-fund --ignore-scripts
+node node_modules/electron/install.js
+rm -rf node_modules/ffmpeg-static/ffmpeg* bin/mac bin/win-x64 runtime/mac runtime/win-x64 ./*.bat ./*.command /tmp/npm-cache
+mkdir -p ffmpeg && ln -sf /usr/bin/ffmpeg ffmpeg/ffmpeg
+chmod 0755 bin/linux-x64/ndi-send
+chown root:root node_modules/electron/dist/chrome-sandbox && chmod 4755 node_modules/electron/dist/chrome-sandbox
+du -sh /opt/ndi-xiii
+cd /
+DEBIAN_FRONTEND=noninteractive apt-get purge -y npm nodejs
+DEBIAN_FRONTEND=noninteractive apt-get autoremove -y --purge
+apt-get clean
+
+# --- fichiers .xiii.json, lanceurs, icônes
+update-mime-database /usr/share/mime
+update-desktop-database /usr/share/applications || true
+gtk-update-icon-cache -f /usr/share/icons/hicolor || true
+gtk-update-icon-cache -f /usr/share/icons/XIII || true

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Suite XIII
+Comment=Ouvrir un fichier Suite XIII dans le bon outil
+Exec=xiii-suite --ouvrir %F
+Icon=xiii-suite
+NoDisplay=true
+Terminal=false
+MimeType=application/x-xiii-link;
+Categories=X-XIII-Suite;

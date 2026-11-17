@@ -37,4 +37,37 @@
 	<patterns>*</patterns>
 	<directories/>
 </action>
+<action>
+	<icon>xiii-suite-dossier</icon>
+	<name>Envoyer à DOSSIER XIII</name>
+	<unique-id>xiii-suite-dossier-1</unique-id>
+	<command>xiii-suite --dossier %F</command>
+	<description>Ajouter au dossier de production ou technique en cours</description>
+	<patterns>*</patterns>
+	<other-files/>
+	<text-files/>
+	<image-files/>
+</action>
+<action>
+	<icon>xiii-suite-encodo</icon>
+	<name>Convertir avec ENCODO XIII</name>
+	<unique-id>xiii-suite-encodo-1</unique-id>
+	<command>xiii-suite --encodo %F</command>
+	<description>Vidéo, son, image, PDF : changer de format, de codec ou de taille</description>
+	<patterns>*</patterns>
+	<audio-files/>
+	<image-files/>
+	<video-files/>
+	<other-files/>
+</action>
+<action>
+	<icon>xiii-suite</icon>
+	<name>Ouvrir dans la Suite XIII</name>
+	<unique-id>xiii-suite-ouvrir-1</unique-id>
+	<command>xiii-suite --ouvrir %f</command>
+	<description>Ouvrir ce fichier dans le bon outil de la suite</description>
+	<patterns>*.json</patterns>
+	<other-files/>
+	<text-files/>
+</action>
 </actions>

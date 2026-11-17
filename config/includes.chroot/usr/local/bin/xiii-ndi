@@ -1,0 +1,5 @@
+#!/bin/sh
+# NDI XIII — le module NDI de la Suite XIII (sorties GRAPHICO, programme MELANGO, entrées son, diffusion RTMP/SRT)
+M=/opt/ndi-xiii
+[ -x "$M/node_modules/electron/dist/electron" ] || { notify-send -a "NDI XIII" "NDI XIII n'est pas installé"; exit 1; }
+cd "$M" && exec "$M/node_modules/electron/dist/electron" . --ozone-platform-hint=auto --enable-features=WaylandWindowDecorations "$@"

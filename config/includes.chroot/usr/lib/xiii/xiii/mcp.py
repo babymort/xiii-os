@@ -212,6 +212,23 @@ def ouvrir_parametres(a):
     return "Paramètres ouverts" + (" sur la page " + page if page else "")
 
 
+def outils_suite(_):
+    try:
+        L = json.load(open(next(p for p in (os.path.expanduser("~/.local/share/xiii/suite/outils-os.json"), "/usr/share/xiii/suite/outils-os.json") if os.path.exists(p)), encoding="utf-8"))
+    except Exception:
+        return []
+    return [{"id": o["id"], "nom": o["nom"], "role": o["role"]} for o in L]
+
+
+def ouvrir_outil(a):
+    oid = re.sub(r"[^a-z0-9_-]", "", str(a.get("id", "")).lower())
+    if not oid: raise ValueError("id d'outil attendu (voir outils_suite_xiii)")
+    f = a.get("fichier")
+    cmd = ["xiii-suite", "--ouvrir", os.path.expanduser(f)] if f else ["xiii-suite", oid]
+    subprocess.Popen(cmd, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return "Ouvert : " + (f or oid)
+
+
 O = lambda **p: {"type": "object", "properties": p, "additionalProperties": False}
 OUTILS = [
     ("etat_systeme", "État du PC sous OS XIII : processeur, charge, mémoire, disque, température, batterie, carte graphique, réseau et adresses IP.", O(), etat_systeme, True),
@@ -223,6 +240,9 @@ OUTILS = [
     ("projet_actif", "Projet XIII actif : dossiers 01_Rushes → 07_Livraison, nombre de fichiers, tailles, fichiers récents.", O(), projet, True),
     ("suite_xiii", "Lit le dernier fichier exporté par la Suite XIII : fiche projet (project), conducteur CONDUCO (rundown) ou plan de travail DECOUP (workplan).",
      O(type={"type": "string", "enum": ["project", "rundown", "workplan"]}), suite_xiii, True),
+    ("outils_suite_xiii", "Liste des outils de la Suite XIII installés hors ligne (CONDUCO, SYNO, PLANO, CALL SHEETO, DOSSIER, ENCODO, MELANGO…).", O(), outils_suite, True),
+    ("ouvrir_outil_xiii", "Ouvre un outil de la Suite XIII dans sa fenêtre, ou un fichier .xiii.json dans le bon outil.",
+     O(id={"type": "string"}, fichier={"type": "string"}), ouvrir_outil, False),
     ("capture_ecran", "Prend une capture de l'écran pour voir ce qui est affiché (réduite de moitié par défaut).", O(reduite={"type": "boolean"}), capture, True),
     ("notifier", "Affiche une notification sur le bureau.", dict(O(titre={"type": "string"}, message={"type": "string"}), required=["message"]), notifier, False),
     ("ouvrir", "Ouvre un fichier, un dossier ou une adresse web avec l'application par défaut.", dict(O(cible={"type": "string"}), required=["cible"]), ouvrir, False),

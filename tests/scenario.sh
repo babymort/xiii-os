@@ -28,7 +28,7 @@ xiii-somme /root/Bureau > /out/somme.log 2>&1 & sleep 4; grim /out/q-somme.png; 
 xiii-bilan --sante > /out/bilan.log 2>&1 & sleep 5; grim /out/q-sante.png; pkill -f xiii-bilan; sleep 0.5
 xiii-parametres --page accueil >> /out/param.log 2>&1 &
 sleep 6; grim /out/s-accueil.png
-for pg in claude accueil profils historique bureau jeux projet outilsprod sauvegarde widgets xiii ecran son theme fond barre perso wifi bluetooth apropos alimentation stockage souris clavier xiii maj apps notifications heure; do
+for pg in suite ndi xiii claude accueil profils historique bureau jeux projet outilsprod sauvegarde widgets xiii ecran son theme fond barre perso wifi bluetooth apropos alimentation stockage souris clavier xiii maj apps notifications heure; do
   xiii-parametres --page $pg >> /out/param.log 2>&1
   sleep 2.5; grim /out/s-$pg.png
 done
@@ -40,6 +40,17 @@ xiii-windows > /out/windows2.log 2>&1 &
 sleep 4; grim /out/w-accueil.png; pkill -f xiii.windows; sleep 1
 xiii-bienvenue > /out/bienvenue.log 2>&1 &
 sleep 4; grim /out/b-bienvenue.png; pkill -f xiii.bienvenue; sleep 1
+# Phase 09 — Suite XIII native, .xiii.json, DOSSIER, retour plateau
+xiii-suite conduco > /out/suite.log 2>&1 & sleep 15; grim /out/x-conduco.png
+xiii-suite index >> /out/suite.log 2>&1 & sleep 10; grim /out/x-index.png
+xiii-ctl demarrer-toutes; sleep 2; grim /out/x-menu-suite.png; xiii-ctl fermer; sleep 0.5
+printf '{"format":"xiii-link","version":1,"kind":"project","project":{"name":"Concert Dôme"},"fiche":{"title":"Concert Dôme de Paris"}}' > /root/XIII/Concert-Dome/fiche.xiii.json
+xiii-suite --ouvrir /root/XIII/Concert-Dome/fiche.xiii.json >> /out/suite.log 2>&1 & sleep 4; grim /out/x-choix.png
+printf '{"format":"xiii-link","version":1,"kind":"rundown","project":{"name":"Concert"},"conducteur":{"name":"Conducteur test","date":"2026-11-28"},"items":[{"title":"Ouverture"}]}' > /root/Bureau/conducteur.xiii.json
+xiii-suite --ouvrir /root/Bureau/conducteur.xiii.json >> /out/suite.log 2>&1 & sleep 14; grim /out/x-rundown.png
+xiii-suite --dossier "/root/Bureau/Notes.txt" >> /out/suite.log 2>&1 & sleep 14; grim /out/x-dossier.png
+pkill -f "xiii.suite"; sleep 1
+xiii-retour > /out/retour.log 2>&1 & sleep 4; grim /out/x-retour.png; pkill -f "xiii.retour"; sleep 0.5
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(theme="clair", accent="#3d8bfd")'
 sleep 3; xiii-ctl demarrer; sleep 2; grim /out/c-clair-menu.png; xiii-ctl fermer
 xiii-ctl centre; sleep 2; grim /out/c-clair-centre.png; xiii-ctl fermer

@@ -4,6 +4,7 @@ import os, re, urllib.parse
 from gi.repository import Gio, GLib, Gdk
 
 CATEGORIES = [  # (clé, nom affiché, icône Lucide, catégories freedesktop)
+    ("suite", "Suite XIII", "clapperboard", ["X-XIII-Suite"]),
     ("xiii", "Outils XIII", "zap", ["XIII"]),
     ("ia", "Intelligence artificielle", "sparkles", ["X-XIII-IA"]),
     ("windows", "Applications Windows", "app-window", ["Wine", "X-XIII-Windows"]),
@@ -64,8 +65,14 @@ def pour_fenetre(app_id):
     """Trouve l'appli .desktop d'une fenêtre (app_id Wayland / classe X11)."""
     global _index_wm
     if not app_id: return None
-    alias = {"fr.xiii.parametres": "xiii-parametres.desktop", "fr.xiii.bilan": "xiii-bilan.desktop", "fr.xiii.demarrage": "xiii-demarrage.desktop", "fr.xiii.windows": "xiii-windows.desktop", "fr.xiii.somme": "xiii-somme.desktop", "steam": "steam.desktop", "fr.xiii.bienvenue": "xiii-installer.desktop", "fr.xiii.claudecode": "xiii-claude-code.desktop",
+    alias = {"fr.xiii.parametres": "xiii-parametres.desktop", "fr.xiii.bilan": "xiii-bilan.desktop", "fr.xiii.demarrage": "xiii-demarrage.desktop", "fr.xiii.windows": "xiii-windows.desktop", "fr.xiii.somme": "xiii-somme.desktop", "steam": "steam.desktop", "fr.xiii.bienvenue": "xiii-installer.desktop", "fr.xiii.claudecode": "xiii-claude-code.desktop", "fr.xiii.retour": "xiii-retour.desktop", "ndi-xiii": "xiii-ndi.desktop", "ndi xiii": "xiii-ndi.desktop",
              "org.xfce.mousepad": "org.xfce.mousepad.desktop", "thunar": "thunar.desktop", "firefox-esr": "firefox-esr.desktop", "mpv": "mpv.desktop"}
+    if app_id.startswith("fr.xiii.suite."):
+        a = par_id("xiii-suite-%s.desktop" % ("accueil" if app_id[14:] == "index" else app_id[14:]))
+        if a: return a
+    if app_id in ("fr.xiii.Suite", "fr.xiii.suite"):
+        a = par_id("xiii-suite-accueil.desktop")
+        if a: return a
     if app_id.lower() in alias:
         a = par_id(alias[app_id.lower()])
         if a: return a

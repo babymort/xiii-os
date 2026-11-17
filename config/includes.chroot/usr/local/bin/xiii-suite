@@ -1,0 +1,3 @@
+#!/bin/sh
+# Suite XIII en applications natives : xiii-suite [outil] | --ouvrir F.xiii.json | --dossier FICHIERS | --encodo FICHIERS
+exec python3 -c 'import sys; sys.path.insert(0, "/usr/lib/xiii"); from xiii.suite import main; main()' "$@"

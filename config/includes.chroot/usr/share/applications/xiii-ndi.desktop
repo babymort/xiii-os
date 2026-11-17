@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=NDI XIII
+Comment=Le module NDI de la Suite XIII : GRAPHICO, MELANGO et son en sources NDI, diffusion RTMP / SRT
+Keywords=ndi;graphico;melango;stream;rtmp;srt;
+Exec=xiii-ndi
+Icon=xiii-ndi
+Terminal=false
+Categories=X-XIII-Suite;
+StartupWMClass=ndi-xiii

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Retour plateau
+Comment=Une source NDI en plein écran : le PC devient un écran de retour
+Keywords=ndi;retour;moniteur;ecran;plateau;source;video;
+Exec=xiii-retour
+Icon=xiii-retour
+Terminal=false
+Categories=X-XIII-Suite;
+StartupWMClass=fr.xiii.retour

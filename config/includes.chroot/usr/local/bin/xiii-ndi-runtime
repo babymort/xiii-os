@@ -1,0 +1,39 @@
+#!/bin/sh
+# OS XIII — runtime NDI (licence NDI : non redistribuable, installé à la demande depuis le site officiel)
+#   xiii-ndi-runtime telecharger   (utilisateur) : télécharge le kit NDI pour Linux
+#   xiii-ndi-runtime licence       (utilisateur) : affiche le contrat de licence NDI
+#   pkexec xiii-ndi-runtime installer DOSSIER   : après acceptation, installe libndi dans /usr/local/lib
+#   pkexec xiii-ndi-runtime retirer
+URL="https://downloads.ndi.tv/SDK/NDI_SDK_Linux/Install_NDI_SDK_v6_Linux.tar.gz"
+D="${XDG_CACHE_HOME:-$HOME/.cache}/xiii/ndi"
+case "$1" in
+  telecharger)
+    mkdir -p "$D" && cd "$D" || exit 1
+    curl -fL --retry 3 -o sdk.tar.gz "$URL" || exit 2
+    rm -f Install_NDI_SDK_*_Linux.sh && tar -xzf sdk.tar.gz || exit 3
+    ls Install_NDI_SDK_*_Linux.sh >/dev/null 2>&1 || exit 3
+    echo "$D" ;;
+  licence)
+    cd "$D" 2>/dev/null || exit 1
+    s=$(ls Install_NDI_SDK_*_Linux.sh | head -1)
+    echo n | PAGER=cat MORE= sh "$s" 2>/dev/null | sed -e 's/\x1b\[[0-9;]*m//g' | sed -n '1,/[Dd]o you accept/p' ;;
+  installer)
+    [ "$(id -u)" = 0 ] || { echo "droits administrateur requis" >&2; exit 1; }
+    src="$2"; [ -d "$src" ] || exit 1
+    t=$(mktemp -d) && cp "$src"/Install_NDI_SDK_*_Linux.sh "$t"/ && cd "$t" || exit 1
+    yes | PAGER=cat sh Install_NDI_SDK_*_Linux.sh >/dev/null 2>&1
+    lib=$(find "$t" -path '*x86_64-linux-gnu*' -name 'libndi.so*' | head -1)
+    [ -n "$lib" ] || { rm -rf "$t"; exit 4; }
+    cp -P "$(dirname "$lib")"/libndi.so* /usr/local/lib/ && ldconfig
+    mkdir -p /usr/local/share/doc/ndi && find "$t" -iname '*licen*' -exec cp {} /usr/local/share/doc/ndi/ \; 2>/dev/null
+    rm -rf "$t"
+    systemctl enable --now avahi-daemon >/dev/null 2>&1
+    if command -v ufw >/dev/null && ufw status | grep -q "Status: active\|État : actif"; then
+      ufw allow 5353/udp >/dev/null; ufw allow 5959:5999/tcp >/dev/null; ufw allow 6960:7100/tcp >/dev/null; ufw allow 6960:7100/udp >/dev/null; ufw allow 7960:8100/udp >/dev/null
+    fi
+    echo ok ;;
+  retirer)
+    [ "$(id -u)" = 0 ] || exit 1
+    rm -f /usr/local/lib/libndi.so* && ldconfig && echo ok ;;
+  *) echo "usage : xiii-ndi-runtime telecharger|licence|installer DOSSIER|retirer"; exit 1 ;;
+esac
