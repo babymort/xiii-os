@@ -1,0 +1,45 @@
+name: Firmware boîtier Tally XIII
+# Compile le programme des boîtiers ESP32 / M5Stack ATOM et l'ajoute à l'OS (usr/share/xiii/tally/firmware).
+on:
+  push:
+    branches: [beta]
+    paths: ['firmware/**', '.github/workflows/firmware.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - name: arduino-cli
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=$HOME/bin sh
+          echo "$HOME/bin" >> $GITHUB_PATH
+      - name: Cœur ESP32 et bibliothèques
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+          arduino-cli lib install "Adafruit NeoPixel" "ArduinoJson"
+          arduino-cli board listall esp32 | grep -iE "atom|pico32|esp32 dev" | head
+      - name: Compilation
+        run: |
+          set -e
+          D=config/includes.chroot/usr/share/xiii/tally/firmware; mkdir -p $D
+          ATOM=$(arduino-cli board listall esp32 | grep -oE "esp32:esp32:m5stack_atom\b" | head -1); ATOM=${ATOM:-esp32:esp32:pico32}
+          for c in "esp32:esp32:esp32 esp32" "$ATOM atom"; do
+            set -- $c
+            arduino-cli compile --fqbn $1 --output-dir build-$2 firmware/tally-xiii
+            ls build-$2
+            cp build-$2/tally-xiii.ino.merged.bin $D/tally-xiii-$2.bin
+          done
+          printf '{"version":"1.0","esp32":"tally-xiii-esp32.bin","atom":"tally-xiii-atom.bin","fqbn_atom":"%s","date":"%s"}\n' "$ATOM" "$(date -I)" > $D/firmware.json
+          ls -la $D
+      - name: Ajouter à l'OS
+        run: |
+          git config user.name "CI XIII"; git config user.email "ci@xiii.local"
+          git add config/includes.chroot/usr/share/xiii/tally/firmware
+          git diff --cached --quiet || (git commit -m "Firmware Tally XIII compilé (ESP32 + M5Stack ATOM)" && git push origin HEAD:beta)

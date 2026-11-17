@@ -219,9 +219,152 @@ class Simulateur(Source):
             pgm, pvw = pvw, random.choice([k for k in range(1, n + 1) if k != pvw] or [1])
 
 
-TYPES = {"atem": ATEM, "vmix": VMix, "tricaster": TriCaster, "simulateur": Simulateur}
-NOMS_TYPES = {"atem": "Blackmagic ATEM", "vmix": "vMix", "tricaster": "TriCaster", "simulateur": "Simulateur"}
-PORTS = {"atem": 9910, "vmix": 8099, "tricaster": 80}
+class Melango(Source):
+    """MELANGO XIII : le mélangeur de la suite envoie son tally au module NDI XIII (relais WebSocket, salle « melango-tally »)."""
+    TYPE = "melango"
+
+    def boucle(self):
+        ip, port = self.cfg.get("ip") or "127.0.0.1", int(self.cfg.get("port") or 8787)
+        s = socket.create_connection((ip, port), timeout=3)
+        try:
+            cle = base64.b64encode(os.urandom(16)).decode()
+            s.sendall(("GET /?room=melango-tally&role=out HTTP/1.1\r\nHost: %s:%d\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+                       "Sec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n" % (ip, port, cle)).encode())
+            h = b""
+            while b"\r\n\r\n" not in h:
+                c = s.recv(1)
+                if not c: raise ConnectionError("NDI XIII ne répond pas")
+                h += c
+            if b" 101 " not in h.split(b"\r\n")[0]: raise ConnectionError("NDI XIII : réponse inattendue")
+            self.etat_connexion(True, "Connecté — en attente de MELANGO (Sorties › Tally sur téléphone)")
+            ws = WS(s, client=True); s.settimeout(10); vu = time.time()
+            while self.actif:
+                try:
+                    op, d = ws.lire()
+                except socket.timeout:
+                    if time.time() - vu > 20: raise ConnectionError("plus de nouvelles de MELANGO")
+                    ws.envoyer(b"", 9); continue
+                if op == 8: raise ConnectionError("NDI XIII a fermé la connexion")
+                if op == 9: ws.envoyer(d, 10); continue
+                if op != 1: continue
+                try: m = json.loads(d)
+                except ValueError: continue
+                if m.get("k") != "state" or not m.get("tally"): continue
+                vu = time.time()
+                num = lambda x: int(x[2:]) if isinstance(x, str) and x.startswith("in") and x[2:].isdigit() else None
+                etats = {}
+                for x in m.get("pvw") or []:
+                    if num(x): etats[num(x)] = PREVIEW
+                for x in m.get("pgm") or []:
+                    if num(x): etats[num(x)] = PROGRAMME
+                noms = {num(k): v for k, v in (m.get("names") or {}).items() if num(k) and v}
+                n = max(list(noms) + list(etats) + [0])
+                self.etat_connexion(True, "Connecté — " + (m.get("prog") or "MELANGO") + (" · ⏺ REC" if m.get("rec") else ""))
+                self.publier({k: etats.get(k, REPOS) for k in range(1, n + 1)}, noms)
+        finally:
+            s.close()
+
+
+TYPES = {"atem": ATEM, "vmix": VMix, "tricaster": TriCaster, "melango": Melango, "simulateur": Simulateur}
+NOMS_TYPES = {"atem": "Blackmagic ATEM", "vmix": "vMix", "tricaster": "TriCaster", "melango": "MELANGO XIII", "simulateur": "Simulateur"}
+PORTS = {"atem": 9910, "vmix": 8099, "tricaster": 80, "melango": 8787}
+
+
+# ===================================================================== noms des caméras depuis la Suite XIII
+CAMERA = re.compile(r"\b(cam(era|éra)?s?|camescope|steadi(cam)?|grue|jib|ptz|drone|pupitre cam|ronin|epaule|épaule|cadreur|hf cam|bodycam|gopro)\b", re.I)
+NUM = re.compile(r"\b(?:cam(?:[ée]ra)?|c)\s*[-#nN°]*\s*0*(\d{1,2})\b", re.I)
+
+
+def noms_depuis_xiii(o):
+    """Noms de caméras d'un export SYNO (kind « sources ») ou PLANO (kind « layout » / « equipment ») : {numéro: nom}."""
+    if not isinstance(o, dict) or o.get("format") != "xiii-link": raise ValueError("ce n'est pas un fichier Suite XIII")
+    k = o.get("kind"); noms = []
+    if k == "sources":
+        noms = [s.get("name", "") for s in o.get("sources", []) if s.get("kind") in ("cam", "live")]
+    elif k == "layout":
+        noms = [e.get("name", "") for e in (o.get("raw") or {}).get("equipments", []) if CAMERA.search(e.get("name", "") + " " + (e.get("comment") or ""))]
+    elif k == "equipment":
+        for i in o.get("items", []):
+            if CAMERA.search(i.get("name", "")) and not i.get("off"):
+                q = int(i.get("qty") or 1); noms += [i["name"] if q == 1 else "%s %d" % (i["name"], j + 1) for j in range(q)]
+    else:
+        raise ValueError("exportez la liste des sources de SYNO ou le plan de PLANO")
+    noms = [re.sub(r"\s+", " ", n).strip() for n in noms if n and n.strip()]
+    res, libres = {}, []
+    for n in noms:
+        m = NUM.search(n)
+        if m and 1 <= int(m.group(1)) <= 40 and int(m.group(1)) not in res: res[int(m.group(1))] = n
+        else: libres.append(n)
+    i = 1
+    for n in libres:
+        while i in res: i += 1
+        res[i] = n; i += 1
+    return dict(sorted(res.items()))
+
+
+def dernier_export_cameras():
+    """Dernier export SYNO / PLANO trouvé dans ~/XIII, Téléchargements, Documents, Bureau."""
+    import glob
+    L = []
+    for d in ("~/XIII", "~/Téléchargements", "~/Downloads", "~/Documents", "~/Bureau", "~/Desktop"):
+        d = os.path.expanduser(d)
+        if os.path.isdir(d): L += glob.glob(os.path.join(d, "**", "*.json"), recursive=True)[:400]
+    for f in sorted(L, key=lambda f: os.path.getmtime(f), reverse=True):
+        try:
+            o = json.load(open(f, encoding="utf-8"))
+            if isinstance(o, dict) and o.get("format") == "xiii-link" and o.get("kind") in ("sources", "layout") and noms_depuis_xiii(o):
+                return f, o
+        except Exception:
+            continue
+    return None, None
+
+
+# ===================================================================== lampes USB blink(1)
+class Lampes(threading.Thread):
+    """Lampes USB blink(1) (ThingM, 27b8:01ed) : une lampe par caméra, rouge à l'antenne, verte en preview, éteinte au repos."""
+    VID, PID = "000027B8", "000001ED"
+
+    def __init__(self, moteur):
+        super().__init__(daemon=True); self.moteur = moteur; self.evt = threading.Event(); self.couleurs = {}
+
+    @classmethod
+    def detecter(cls):
+        """[(numéro de série, /dev/hidrawN)]"""
+        L = []
+        base = "/sys/class/hidraw"
+        for h in sorted(os.listdir(base)) if os.path.isdir(base) else []:
+            try:
+                ue = open(os.path.join(base, h, "device", "uevent")).read()
+            except OSError:
+                continue
+            if cls.VID in ue.upper() and cls.PID in ue.upper():
+                serie = re.search(r"HID_UNIQ=(\S*)", ue); L.append(((serie.group(1) if serie else "") or h, "/dev/" + h))
+        return L
+
+    @staticmethod
+    def couleur(dev, r, g, b):
+        import fcntl
+        rapport = bytes([1, ord("n"), r, g, b, 0, 0, 0, 0])
+        HIDIOCSFEATURE = (3 << 30) | (len(rapport) << 16) | (ord("H") << 8) | 0x06
+        with open(dev, "wb", buffering=0) as f:
+            fcntl.ioctl(f, HIDIOCSFEATURE, rapport)
+
+    def run(self):
+        while True:
+            self.evt.wait(2); self.evt.clear()
+            r = self.moteur.r; affect = r.get("lampes", {}); lum = int(r.get("lampes_lum", 255))
+            if not affect: continue
+            e = self.moteur.etats()
+            for serie, dev in self.detecter():
+                cam = affect.get(serie)
+                if not cam: continue
+                v = e.get(int(cam), REPOS)
+                c = (lum, 0, 0) if v == PROGRAMME else (0, lum // 2, 0) if v == PREVIEW else (0, 0, 0)
+                if self.couleurs.get(serie) == c: continue
+                try:
+                    self.couleur(dev, *c); self.couleurs[serie] = c
+                except OSError:
+                    self.couleurs.pop(serie, None)
 
 
 # ===================================================================== moteur
@@ -229,7 +372,7 @@ class Moteur:
     def __init__(self, ecouteur=None):
         self.r = charger(); self.sources = []; self.forces = {}; self.clients = {}  # ws → caméra
         self.verrou = threading.Lock(); self.ecouteurs = [ecouteur] if ecouteur else []; self.version = 0
-        self.serveur = None
+        self.serveur = None; self.lampes = Lampes(self)
 
     # --- sources
     def demarrer(self):
@@ -237,6 +380,7 @@ class Moteur:
         self.serveur = Serveur(("0.0.0.0", int(self.r.get("port", 8790))), Gestion); self.serveur.moteur = self
         threading.Thread(target=self.serveur.serve_forever, daemon=True).start()
         threading.Thread(target=self._battement, daemon=True).start()
+        self.lampes.start()
 
     def recharger_sources(self):
         for s in self.sources: s.arreter()
@@ -285,6 +429,7 @@ class Moteur:
         msg = json.dumps(self.instantane(), ensure_ascii=False).encode()
         with self.verrou: cl = list(self.clients)
         for ws in cl: ws.envoyer(msg)
+        self.lampes.evt.set()
         for f in self.ecouteurs:
             try: f()
             except Exception: pass
@@ -307,13 +452,15 @@ class Moteur:
 
 # ===================================================================== serveur HTTP + WebSocket
 class WS:
-    def __init__(self, sock):
-        self.sock = sock; self.verrou = threading.Lock(); self.ouvert = True
+    def __init__(self, sock, client=False):
+        self.sock = sock; self.verrou = threading.Lock(); self.ouvert = True; self.client = client
 
     def envoyer(self, data, op=1):
         if not self.ouvert: return
-        n = len(data)
-        h = bytes([0x80 | op]) + (bytes([n]) if n < 126 else bytes([126]) + struct.pack(">H", n) if n < 65536 else bytes([127]) + struct.pack(">Q", n))
+        n = len(data); m = 0x80 if self.client else 0
+        h = bytes([0x80 | op]) + (bytes([m | n]) if n < 126 else bytes([m | 126]) + struct.pack(">H", n) if n < 65536 else bytes([m | 127]) + struct.pack(">Q", n))
+        if self.client:
+            masque = os.urandom(4); h += masque; data = bytes(x ^ masque[i % 4] for i, x in enumerate(data))
         try:
             with self.verrou: self.sock.sendall(h + data)
         except OSError:
