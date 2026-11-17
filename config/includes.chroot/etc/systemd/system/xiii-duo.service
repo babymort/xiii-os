@@ -1,0 +1,12 @@
+[Unit]
+Description=XIII Duo — plusieurs liens Internet ensemble (secours, répartition)
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+ExecStart=/usr/local/bin/xiii-duo service
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

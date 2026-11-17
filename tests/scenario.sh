@@ -28,7 +28,7 @@ xiii-somme /root/Bureau > /out/somme.log 2>&1 & sleep 4; grim /out/q-somme.png; 
 xiii-bilan --sante > /out/bilan.log 2>&1 & sleep 5; grim /out/q-sante.png; pkill -f xiii-bilan; sleep 0.5
 xiii-parametres --page accueil >> /out/param.log 2>&1 &
 sleep 6; grim /out/s-accueil.png
-for pg in suite ndi xiii claude accueil profils historique bureau jeux projet outilsprod sauvegarde widgets xiii ecran son theme fond barre perso wifi bluetooth apropos alimentation stockage souris clavier xiii maj apps notifications heure; do
+for pg in interfaces iface profilsreseau duo ethernet suite ndi xiii claude accueil profils historique bureau jeux projet outilsprod sauvegarde widgets xiii ecran son theme fond barre perso wifi bluetooth apropos alimentation stockage souris clavier xiii maj apps notifications heure; do
   xiii-parametres --page $pg >> /out/param.log 2>&1
   sleep 2.5; grim /out/s-$pg.png
 done
@@ -51,6 +51,9 @@ xiii-suite --ouvrir /root/Bureau/conducteur.xiii.json >> /out/suite.log 2>&1 & s
 xiii-suite --dossier "/root/Bureau/Notes.txt" >> /out/suite.log 2>&1 & sleep 14; grim /out/x-dossier.png
 pkill -f "xiii.suite"; sleep 1
 xiii-tally > /out/tally.log 2>&1 & sleep 6; grim /out/x-tally.png
+wtype -k Page_Down 2>/dev/null; sleep 0.3; wtype -k Page_Down 2>/dev/null; sleep 0.3; wtype -k Page_Down 2>/dev/null; sleep 1; grim /out/x-tally-bas.png
+pkill -f "xiii.tally"; sleep 0.5; xiii-tally --boitier >> /out/tally.log 2>&1 & sleep 5; grim /out/x-boitier.png; pkill -f "xiii.tally"; sleep 0.5
+xiii-tally >> /out/tally.log 2>&1 & sleep 5
 python3 -c '
 import gi; gi.require_version("Gtk","4.0"); gi.require_version("WebKit","6.0")
 from gi.repository import Gtk, WebKit, GLib

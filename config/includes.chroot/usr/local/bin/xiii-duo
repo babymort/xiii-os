@@ -1,0 +1,84 @@
+#!/usr/bin/python3
+# OS XIII — XIII Duo (service système) : plusieurs liens Internet ensemble.
+#   secours     : un lien préféré, bascule automatique sur l'autre s'il tombe (vérifié toutes les 3 s)
+#   repartition : route par défaut multi-chemins (une connexion par lien, débits cumulés quand plusieurs transferts tournent)
+#   arret       : NetworkManager décide seul
+# xiii-duo service | xiii-duo regler '{"mode":"repartition","prefere":"enp3s0","poids":{"wlan0":1,"enp3s0":2}}' | xiii-duo etat
+# Les interfaces sans passerelle ou réglées « pas d'Internet » (réseau régie) ne sont jamais utilisées.
+# Application développée par Matthieu Lamotte.
+import json, os, re, subprocess, sys, time
+
+CONF, ETAT, METRIQUE = "/etc/xiii/duo.json", "/run/xiii-duo.json", "5"
+CIBLES = ["1.1.1.1", "9.9.9.9", "8.8.8.8"]
+
+def sh(*a, t=10):
+    try: return subprocess.run(a, capture_output=True, text=True, timeout=t).stdout.strip()
+    except Exception: return ""
+
+def conf():
+    try: c = json.load(open(CONF))
+    except Exception: c = {}
+    c.setdefault("mode", "arret"); c.setdefault("prefere", ""); c.setdefault("poids", {}); return c
+
+def liens():
+    L = []
+    for l in sh("nmcli", "-t", "-f", "DEVICE,TYPE,STATE,CON-UUID", "device").splitlines():
+        f = l.split(":")
+        if len(f) < 4 or not f[2].startswith("connected") or f[1] not in ("wifi", "ethernet", "gsm", "cdma", "modem"): continue
+        dev, uuid = f[0], f[3]
+        if sh("nmcli", "-g", "ipv4.never-default", "connection", "show", uuid) == "yes": continue
+        gw = sh("nmcli", "-g", "IP4.GATEWAY", "device", "show", dev)
+        if not gw or gw == "--": continue
+        L.append({"dev": dev, "gw": gw, "type": f[1]})
+    return L
+
+def sante(l):
+    for c in CIBLES:
+        o = sh("ping", "-n", "-c", "1", "-W", "1", "-I", l["dev"], c, t=3)
+        m = re.search(r"time=([\d.]+)", o)
+        if m: return True, float(m.group(1))
+    return False, None
+
+def route(cmd):
+    return subprocess.run(["ip", "route"] + cmd, capture_output=True, text=True).returncode == 0
+
+def service():
+    sh("sysctl", "-w", "net.ipv4.fib_multipath_hash_policy=1")
+    dernier = None
+    while True:
+        c = conf(); L = liens(); actifs = []
+        for l in L: l["ok"], l["latence"] = sante(l)
+        bons = [l for l in L if l["ok"]]
+        if c["mode"] == "arret" or not bons:
+            cle = "arret"
+            if cle != dernier: route(["del", "default", "metric", METRIQUE])
+        elif c["mode"] == "repartition" and len(bons) >= 2:
+            cmd = ["replace", "default", "proto", "static", "metric", METRIQUE]
+            for l in bons: cmd += ["nexthop", "via", l["gw"], "dev", l["dev"], "weight", str(max(1, min(256, int(c["poids"].get(l["dev"], 1)))))]
+            cle = "rep:" + ",".join(l["dev"] + l["gw"] for l in bons)
+            if cle != dernier: route(cmd)
+            actifs = [l["dev"] for l in bons]
+        else:
+            choix = next((l for l in bons if l["dev"] == c["prefere"]), None) or sorted(bons, key=lambda l: {"ethernet": 0, "wifi": 1}.get(l["type"], 2))[0]
+            cle = "sec:" + choix["dev"] + choix["gw"]
+            if cle != dernier: route(["replace", "default", "via", choix["gw"], "dev", choix["dev"], "proto", "static", "metric", METRIQUE])
+            actifs = [choix["dev"]]
+        if cle != dernier and dernier is not None:
+            sh("logger", "-t", "xiii-duo", "routes : " + cle)
+        dernier = cle
+        try:
+            tmp = ETAT + ".tmp"; json.dump({"mode": c["mode"], "liens": L, "actifs": actifs, "t": time.time()}, open(tmp, "w")); os.chmod(tmp, 0o644); os.replace(tmp, ETAT)
+        except OSError: pass
+        time.sleep(3)
+
+if __name__ == "__main__":
+    a = sys.argv[1:] or ["etat"]
+    if a[0] == "service": service()
+    elif a[0] == "regler":
+        n = json.loads(a[1]); c = conf()
+        if n.get("mode") not in ("arret", "secours", "repartition"): sys.exit("mode inconnu")
+        c.update({k: n[k] for k in ("mode", "prefere", "poids") if k in n})
+        os.makedirs(os.path.dirname(CONF), exist_ok=True); json.dump(c, open(CONF, "w"), indent=1)
+        subprocess.run(["systemctl", "restart", "xiii-duo.service"])
+    else:
+        print(open(ETAT).read() if os.path.exists(ETAT) else "{}")

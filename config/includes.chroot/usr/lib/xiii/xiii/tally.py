@@ -51,6 +51,7 @@ class Tally(Gtk.Application):
     def do_activate(self):
         if not self.win: self.construire()
         self.win.present()
+        if BOITIER: GLib.timeout_add(400, lambda: (self.boitier(), False)[1])
 
     def signaler(self):
         if not self.maj_prevue:
@@ -343,5 +344,10 @@ def info(t):
     b = boite(False, 10, "info-bulle", margin_top=6); b.append(ico("info", 16, "c")); b.append(label(t, wrap=True, hexpand=True)); return b
 
 
+BOITIER = False
+
+
 def main():
-    sys.exit(Tally().run(sys.argv))
+    global BOITIER
+    BOITIER = "--boitier" in sys.argv
+    sys.exit(Tally().run([a for a in sys.argv if a != "--boitier"]))

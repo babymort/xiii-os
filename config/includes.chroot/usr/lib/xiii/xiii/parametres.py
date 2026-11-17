@@ -648,7 +648,8 @@ class Parametres(Gtk.Application):
             c.append(reglage("ethernet-port", "État", None, droite=label(i["etat"] + (" · " + i["conn"] if i["conn"] else ""), "attenue")))
             for k, n in (("ip", "Adresse IPv4"), ("passerelle", "Passerelle"), ("dns", "Serveur DNS"), ("mac", "Adresse physique (MAC)")):
                 c.append(reglage(None, n, None, droite=label(i[k] or "—", "mono", selectable=True)))
-        c.append(reglage("settings-2", "Modifier (IP fixe, DNS…)", "", clic=lambda: S.detacher("nm-connection-editor")))
+        for i in L:
+            c.append(reglage("settings-2", "Régler %s (IP fixe, rôle Internet…)" % i["dev"], "", clic=lambda d=i["dev"]: (setattr(self, "iface_sel", d), self.aller("iface"))))
 
     def p_vpn(self, c, cle):
         L = S.vpns()
@@ -667,10 +668,196 @@ class Parametres(Gtk.Application):
                          droite=interrupteur(False, lambda on: S.en_fond(S.point_acces, lambda r: self.toast(("Point d'accès actif" if on else "Point d'accès arrêté") if not isinstance(r, Exception) and r[0] else "Impossible : " + (r[1] if not isinstance(r, Exception) else str(r))),
                                                                        nom.get_text(), mdp.get_text(), on))))
 
+    # ------------------------------------------------------------------ Réseau XIII (phase 10)
+    def p_interfaces(self, c, cle):
+        from . import reseau as R
+        L = R.interfaces() if not S.DEMO else R.interfaces()
+        sortie = R.route_defaut() if not S.DEMO else "wlan0"
+        d = R.duo_etat()
+        h = boite(False, 16, "hero"); h.append(ico("network", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label("Interfaces réseau", "hero-grand"))
+        v.append(label("Sortie Internet : " + ("XIII Duo (%s)" % " + ".join(d.get("actifs", [])) if sortie == "duo" else (sortie or "aucune")), "attenue")); h.append(v); c.append(h)
+        c.append(info("Chaque connexion se règle séparément : par exemple le câble en IP fixe pour piloter la régie, et le Wi-Fi en automatique pour garder Internet, en même temps."))
+        c.append(groupe_titre("Interfaces"))
+        self._trafic = {}; self._lab_trafic = {}
+        for i in L:
+            mode = {"auto": "automatique (DHCP)", "manual": "IP fixe"}.get(i["mode"], "—")
+            sous = " · ".join(x for x in (i["etat"], i["connexion"], i["ip"], mode if i["uuid"] else "", ("Internet" if i["internet"] else ("réseau local seulement" if i["jamais_defaut"] else "")), i["debit"]) if x)
+            r = reglage(R.ICONES.get(i["nature"], "network"), "%s · %s" % (R.NOMS.get(i["nature"], i["nature"]), i["dev"]), sous,
+                        droite=self._etiquette_trafic(i["dev"]), clic=lambda dev=i["dev"]: (setattr(self, "iface_sel", dev), self.aller("iface")))
+            c.append(r)
+        GLib.timeout_add(1000, self._maj_trafic)
+        c.append(groupe_titre("Sortie Internet"))
+        choix = [("auto", "Automatique (NetworkManager choisit)")] + [(i["dev"], "%s · %s" % (R.NOMS.get(i["nature"]), i["dev"])) for i in L if i["etat"] == "connecté"]
+        cur = sortie if any(k == sortie for k, _ in choix) else "auto"
+        c.append(reglage("globe", "Interface utilisée pour Internet", "Les autres restent actives pour leur réseau local",
+                         droite=deroulant(choix, cur, lambda k: S.en_fond(R.sortie_internet, lambda r: (self.toast("Sortie Internet réglée"), self.aller("interfaces", False)), None if k == "auto" else k), 300)))
+        c.append(reglage("git-merge" if os.path.exists(theme.LUCIDE + "/git-merge.svg") else "network", "XIII Duo", "Plusieurs liens ensemble : secours automatique ou répartition", clic=lambda: self.aller("duo")))
+        c.append(reglage("bookmark", "Profils réseau", "Réglages enregistrés par lieu, appliqués en un clic", clic=lambda: self.aller("profilsreseau")))
+        # test de la régie
+        c.append(groupe_titre("Tester un appareil"))
+        r = boite(False, 8, "reglage")
+        e = Gtk.Entry(placeholder_text="Adresse de la régie (ex. 192.168.10.240)", hexpand=True, text=getattr(self, "_ping_ip", ""))
+        devs = [("", "Toutes interfaces")] + [(i["dev"], i["dev"]) for i in L if i["etat"] == "connecté"]
+        sel = {"dev": ""}
+        r.append(e); r.append(deroulant(devs, "", lambda k: sel.update(dev=k), 180))
+        res = label("", "attenue")
+        def tester():
+            self._ping_ip = e.get_text().strip()
+            if not self._ping_ip: return
+            res.set_text("Test en cours…")
+            S.en_fond(lambda: R.ping(self._ping_ip, sel["dev"] or None) if not S.DEMO else (True, "0.4 ms", 0),
+                      lambda x: res.set_text(("✓ Répond — %s de latence%s" % (x[1], "" if not x[2] else ", %d %% de pertes" % x[2])) if x[0] else "✗ Ne répond pas (câble, adresse ou masque ?)"))
+        e.connect("activate", lambda *_: tester()); r.append(bouton("Tester", None, "pilule", rappel=tester)); c.append(r); c.append(res)
+        r2 = boite(False, 8, "reglage"); r2.append(label("Trouver les appareils du réseau local", "reglage-titre", hexpand=True))
+        dd = {"dev": next((i["dev"] for i in L if i["etat"] == "connecté" and not i["internet"]), next((i["dev"] for i in L if i["etat"] == "connecté"), ""))}
+        r2.append(deroulant([(i["dev"], i["dev"]) for i in L if i["etat"] == "connecté"] or [("", "—")], dd["dev"], lambda k: dd.update(dev=k), 180))
+        zone = boite(True, 4)
+        def chercher():
+            vider(zone); zone.append(label("Recherche sur %s…" % dd["dev"], "attenue"))
+            def fini(L2):
+                vider(zone)
+                if isinstance(L2, Exception) or not L2: zone.append(label("Aucun appareil trouvé.", "attenue")); return
+                for ip, mac, nom in L2:
+                    zone.append(reglage(None, ip + ("  ·  " + nom if nom else ""), mac, droite=bouton("Copier", "copy", "plat", taille=14, rappel=lambda ip=ip: (Gdk.Display.get_default().get_clipboard().set_text(ip), self.toast("Copié")))))
+            S.en_fond(lambda: R.appareils(dd["dev"]) if not S.DEMO else [("192.168.10.240", "7c:2e:0d:11:22:33", "ATEM Mini Pro"), ("192.168.10.60", "00:1b:21:aa:bb:cc", "")], fini)
+        r2.append(bouton("Chercher", None, "fantome", rappel=chercher)); c.append(r2); c.append(zone)
+
+    def _etiquette_trafic(self, dev):
+        l = label("", "petit", "attenue"); self._lab_trafic[dev] = l; return l
+
+    def _maj_trafic(self):
+        from . import reseau as R
+        if self.page != "interfaces" or not self.win: return False
+        t = R.trafic(); now = time.time()
+        for dev, l in self._lab_trafic.items():
+            if dev in t and dev in self._trafic:
+                (r0, s0), t0 = self._trafic[dev]; dt = max(.1, now - t0)
+                l.set_text("↓ %s/s  ↑ %s/s" % (S.humain((t[dev][0] - r0) / dt), S.humain((t[dev][1] - s0) / dt)))
+            if dev in t: self._trafic[dev] = (t[dev], now)
+        return True
+
+    def p_iface(self, c, cle):
+        from . import reseau as R
+        dev = getattr(self, "iface_sel", None) or ("enp3s0" if S.DEMO else None)
+        i = next((x for x in R.interfaces() if x["dev"] == dev), None)
+        if not i: c.append(info("Interface introuvable.")); return
+        h = boite(False, 16, "hero"); h.append(ico(R.ICONES.get(i["nature"], "network"), 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label("%s · %s" % (R.NOMS.get(i["nature"]), dev), "hero-grand"))
+        v.append(label(" · ".join(x for x in (i["etat"], i["connexion"], i["ip"], i["debit"]) if x), "attenue")); h.append(v); c.append(h)
+        conf = R.connexion(i["uuid"]) if i["uuid"] and not S.DEMO else {}
+        adr0 = (conf.get("ipv4.addresses", "") or (i["ip"] if i["mode"] == "manual" else "")).split(",")[0].strip()
+        etat = {"mode": i["mode"] if i["mode"] in ("auto", "manual") else "auto", "internet": not i["jamais_defaut"]}
+        c.append(groupe_titre("Adresse IP"))
+        rb = boite(False, 8, "reglage")
+        b_auto = Gtk.ToggleButton(label="Automatique (DHCP)", active=etat["mode"] == "auto"); b_fixe = Gtk.ToggleButton(label="Adresse IP fixe", active=etat["mode"] == "manual", group=b_auto)
+        rb.append(b_auto); rb.append(b_fixe); c.append(rb)
+        fixe = boite(True, 4); c.append(fixe)
+        e_adr = Gtk.Entry(text=adr0.split("/")[0], placeholder_text="ex. 192.168.10.50", hexpand=True)
+        e_masque = Gtk.Entry(text=str(ipaddress_masque(adr0)), placeholder_text="255.255.255.0", hexpand=True)
+        e_gw = Gtk.Entry(text=(conf.get("ipv4.gateway", "") if conf.get("ipv4.gateway", "") not in ("--",) else "") or ("" if i["jamais_defaut"] else i["passerelle"]), placeholder_text="vide pour un réseau régie", hexpand=True)
+        e_dns = Gtk.Entry(text=conf.get("ipv4.dns", "") or "", placeholder_text="ex. 1.1.1.1, 9.9.9.9", hexpand=True)
+        for t_, e in (("Adresse", e_adr), ("Masque", e_masque), ("Passerelle", e_gw), ("DNS", e_dns)):
+            r = boite(False, 10, "reglage"); r.append(dim(label(t_, "reglage-titre"), 120)); r.append(e); fixe.append(r)
+        fixe.set_visible(etat["mode"] == "manual")
+        b_fixe.connect("toggled", lambda b: (etat.update(mode="manual" if b.get_active() else "auto"), fixe.set_visible(b.get_active())))
+        c.append(groupe_titre("Rôle"))
+        sw = interrupteur(etat["internet"], lambda on: etat.update(internet=on))
+        c.append(reglage("globe", "Utiliser cette connexion pour Internet", "Désactivé : réseau local seulement (régie, caméras, NDI) — Internet continue de passer par les autres connexions", droite=sw))
+        c.append(groupe_titre("Préréglages"))
+        pr = boite(False, 8, "reglage")
+        def preset(adr, gw, internet):
+            b_fixe.set_active(True); e_adr.set_text(adr); e_masque.set_text("255.255.255.0"); e_gw.set_text(gw); sw.set_active(internet)
+        pr.append(bouton("Régie Blackmagic (192.168.10.x)", None, "fantome", rappel=lambda: preset("192.168.10.50", "", False)))
+        pr.append(bouton("Régie 192.168.0.x", None, "fantome", rappel=lambda: preset("192.168.0.50", "", False)))
+        pr.append(bouton("Liaison directe PC ↔ PC", None, "fantome", rappel=lambda: preset("10.13.13.1", "", False)))
+        pr.append(bouton("Box / routeur (DHCP)", None, "fantome", rappel=lambda: (b_auto.set_active(True), sw.set_active(True))))
+        c.append(pr)
+        def appliquer():
+            try:
+                adr = e_adr.get_text().strip()
+                if etat["mode"] == "manual":
+                    adr = "%s/%d" % (adr, prefixe(e_masque.get_text().strip() or "255.255.255.0"))
+                args = (dev, i["nature"], etat["mode"], adr, e_gw.get_text(), e_dns.get_text(), etat["internet"])
+            except Exception as e:
+                self.toast("Adresse invalide : %s" % e); return
+            self.toast("Application…")
+            def fini(r):
+                if isinstance(r, Exception): self.toast("Impossible : %s" % r)
+                else: self.toast("Réglage appliqué" if r[0] else "Refusé : %s" % r[1][:120])
+                self.aller("iface", False)
+            S.en_fond(R.appliquer_ip, fini, *args)
+        ap = bouton("Appliquer", None, "pilule", rappel=appliquer); ap.set_halign(Gtk.Align.END); c.append(ap)
+        c.append(groupe_titre("Détails"))
+        for k, n in (("mac", "Adresse physique (MAC)"), ("passerelle", "Passerelle actuelle"), ("dns", "DNS actuel")):
+            c.append(reglage(None, n, None, droite=label(i[k] or "—", "mono", selectable=True)))
+        c.append(reglage("settings-2", "Réglages avancés (802.1X, VLAN, IPv6…)", "", clic=lambda: S.detacher("nm-connection-editor")))
+
+    def p_profilsreseau(self, c, cle):
+        from . import reseau as R
+        L = R.profils()
+        if S.DEMO and not L:
+            L = [{"nom": "Régie plateau A", "wifi": "Studio-XIII", "auto": True, "interfaces": [{"dev": "enp3s0", "mode": "manual", "adresse": "192.168.10.50/24", "internet": False}, {"dev": "wlan0", "mode": "auto", "internet": True}], "sortie": "wlan0"},
+                 {"nom": "Bureau", "wifi": "Box-Maison", "auto": True, "interfaces": [{"dev": "enp3s0", "mode": "auto", "internet": True}], "sortie": None}]
+        c.append(info("Un profil retient le réglage de chaque connexion (IP fixe ou automatique, rôle Internet) et la sortie Internet. "
+                      "S'il est associé à un Wi-Fi, il s'applique tout seul quand vous rejoignez ce Wi-Fi."))
+        if not L: c.append(label("Aucun profil enregistré.", "attenue"))
+        for n, p in enumerate(L):
+            resume = " · ".join("%s %s" % (x["dev"], "IP fixe " + x.get("adresse", "").split("/")[0] if x.get("mode") == "manual" else "auto") + ("" if x.get("internet", True) else " (local)") for x in p.get("interfaces", []))
+            r = reglage("bookmark", p["nom"], (("Wi-Fi « %s » · " % p["wifi"]) if p.get("wifi") else "") + resume,
+                        droite=bouton("Appliquer", None, "pilule", rappel=lambda p=p: S.en_fond(R.appliquer_profil, lambda r: self.toast(("Profil « %s » appliqué" % p["nom"]) if not isinstance(r, Exception) and r[0] else "Partiellement appliqué : %s" % (r[1] if not isinstance(r, Exception) else r)), p)))
+            c.append(r)
+            ar = boite(False, 8, halign=Gtk.Align.END)
+            def basc(on, n=n):
+                L2 = R.profils(); L2[n]["auto"] = on; R.sauver_profils(L2)
+            ar.append(label("Automatique", "petit", "attenue")); ar.append(interrupteur(p.get("auto", True), basc))
+            ar.append(bouton(None, "trash-2", "plat", tip="Supprimer", rappel=lambda n=n: (R.sauver_profils([x for k, x in enumerate(R.profils()) if k != n]), self.aller("profilsreseau", False))))
+            c.append(ar)
+        c.append(groupe_titre("Enregistrer la configuration actuelle"))
+        e = Gtk.Entry(placeholder_text="Nom du lieu (ex. Régie plateau A)", hexpand=True)
+        w = Gtk.Entry(placeholder_text="Wi-Fi associé (facultatif)", hexpand=True, text=R.wifi_actuel() if not S.DEMO else "Studio-XIII")
+        r = boite(False, 8, "reglage"); r.append(e); r.append(w)
+        def enregistrer():
+            if not e.get_text().strip(): e.grab_focus(); return
+            def fond():
+                p = R.capturer(e.get_text().strip(), w.get_text().strip()); L2 = [x for x in R.profils() if x["nom"] != p["nom"]] + [p]; R.sauver_profils(L2)
+            S.en_fond(fond, lambda _: (self.toast("Profil enregistré"), self.aller("profilsreseau", False)))
+        r.append(bouton("Enregistrer", None, "pilule", rappel=enregistrer)); c.append(r)
+
     def p_duo(self, c, cle):
-        c.append(info("XIII Duo utilisera le Wi-Fi et le câble en même temps : Plexo pour les téléchargements, répartition et secours automatique pour le reste. Arrive dans une prochaine version."))
-        e = S.details_interfaces()
-        for i in e: c.append(reglage("wifi" if i["type"] == "wifi" else "ethernet-port", i["dev"], i["etat"]))
+        from . import reseau as R
+        conf = R.duo() if not S.DEMO else {"mode": "repartition", "prefere": "enp3s0", "poids": {}}
+        et = R.duo_etat() if not S.DEMO else {"liens": [{"dev": "wlan0", "gw": "192.168.1.1", "ok": True, "latence": 14.2, "type": "wifi"}, {"dev": "usb0", "gw": "172.20.10.1", "ok": True, "latence": 38.5, "type": "ethernet"}], "actifs": ["wlan0", "usb0"]}
+        h = boite(False, 16, "hero"); h.append(ico("git-merge" if os.path.exists(theme.LUCIDE + "/git-merge.svg") else "network", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label("XIII Duo", "hero-grand"))
+        v.append(label({"arret": "Arrêté", "secours": "Secours automatique", "repartition": "Répartition"}[conf["mode"]] + (" · actif sur " + " + ".join(et.get("actifs", [])) if et.get("actifs") else ""), "attenue")); h.append(v); c.append(h)
+        c.append(groupe_titre("Mode"))
+        for k, t_, s in (("arret", "Arrêt", "Une seule connexion sert Internet, choisie par le système"),
+                         ("secours", "Secours automatique", "Une connexion préférée ; si elle tombe, tout bascule sur l'autre en 3 secondes"),
+                         ("repartition", "Répartition", "Les connexions sont utilisées ensemble : chaque nouvelle connexion part sur un lien, débits cumulés quand plusieurs transferts tournent")):
+            c.append(reglage("circle-check" if conf["mode"] == k else "circle", t_, s, clic=lambda k=k: self._duo(dict(conf, mode=k))))
+        liens = et.get("liens", [])
+        if conf["mode"] == "secours":
+            c.append(reglage("star", "Connexion préférée", "", droite=deroulant([("", "Câble d'abord")] + [(l["dev"], l["dev"]) for l in liens], conf.get("prefere", ""), lambda k: self._duo(dict(conf, prefere=k)), 200)))
+        c.append(groupe_titre("Liens Internet"))
+        if not liens: c.append(info("Un seul lien (ou aucun) avec Internet. Branchez un câble, un téléphone en partage USB ou une clé 4G en plus du Wi-Fi. Les connexions réglées « réseau local seulement » ne sont jamais utilisées."))
+        for l in liens:
+            r = reglage("wifi" if l.get("type") == "wifi" else "ethernet-port", l["dev"], "Passerelle %s · %s" % (l["gw"], ("%.0f ms" % l["latence"]) if l.get("ok") and l.get("latence") else "pas d'Internet"),
+                        droite=label("● utilisé" if l["dev"] in et.get("actifs", []) else ("● prêt" if l.get("ok") else "● hors service"), "accent" if l.get("ok") else "attenue"))
+            c.append(r)
+            if conf["mode"] == "repartition":
+                sp = Gtk.SpinButton.new_with_range(1, 10, 1); sp.set_value(int(conf.get("poids", {}).get(l["dev"], 1)))
+                sp.connect("value-changed", lambda s, d=l["dev"]: self._duo(dict(conf, poids=dict(conf.get("poids", {}), **{d: int(s.get_value())})), recharger=False))
+                c.append(reglage(None, "Part du trafic sur " + l["dev"], "Plus le chiffre est grand, plus ce lien reçoit de connexions", droite=sp))
+        c.append(groupe_titre("Téléchargements accélérés"))
+        plexo = shutil.which("plexo") or os.path.exists("/opt/plexo/Plexo.AppImage") or os.path.exists("/usr/share/applications/plexo.desktop")
+        c.append(reglage("download", "Plexo", "Découpe chaque téléchargement en morceaux récupérés sur toutes les connexions à la fois (Wi-Fi + câble + téléphone) : un seul gros fichier va plus vite",
+                         droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher(["gtk-launch", "plexo"])) if plexo else bouton("Site", None, "fantome", rappel=lambda: S.detacher(["xdg-open", "https://getplexo.app/"]))))
+        c.append(info("La répartition cumule les débits quand plusieurs connexions tournent (plusieurs téléchargements, envois, flux). Un seul téléchargement reste sur un lien : utilisez Plexo pour le découper."))
+
+    def _duo(self, conf, recharger=True):
+        from . import reseau as R
+        S.en_fond(R.regler_duo, lambda ok: (self.toast("XIII Duo réglé" if ok else "Réglage annulé"), self.aller("duo", False) if recharger else None), conf)
 
     # ================================================================== PERSONNALISATION
     def p_perso(self, c, cle):
@@ -1403,6 +1590,19 @@ def geocoder(ville):
     return json.load(urllib.request.urlopen("https://geocoding-api.open-meteo.com/v1/search?" + q, timeout=10)).get("results", [])
 
 # ================================================================================================ composants de page
+def prefixe(masque):
+    import ipaddress
+    masque = masque.strip().lstrip("/")
+    if masque.isdigit(): return int(masque)
+    return ipaddress.ip_network("0.0.0.0/" + masque).prefixlen
+
+
+def ipaddress_masque(adr):
+    import ipaddress
+    try: return ipaddress.ip_interface(adr if "/" in adr else adr + "/24").network.netmask if adr else "255.255.255.0"
+    except ValueError: return "255.255.255.0"
+
+
 def groupe_titre(t):
     return label(t, "groupe-titre")
 

@@ -1,0 +1,32 @@
+#!/bin/sh
+# Phase 10 — Réseau XIII : service XIII Duo, Plexo (téléchargements sur plusieurs connexions)
+set -e
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends iputils-ping iproute2 curl ca-certificates python3
+chmod 0755 /usr/local/bin/xiii-duo
+systemctl enable xiii-duo.service
+
+# --- Plexo (github.com/anmolkapil/plexo) : dernière version Linux publiée (.deb, sinon AppImage)
+python3 - <<'PY' || echo "Plexo : non installé (sera proposé dans Paramètres)"
+import json, urllib.request, subprocess, os, re
+req = urllib.request.Request("https://api.github.com/repos/anmolkapil/plexo/releases", headers={"User-Agent": "OS-XIII", "Accept": "application/vnd.github+json"})
+rel = json.load(urllib.request.urlopen(req, timeout=30))
+for r in rel:
+    noms = [a["name"] for a in r.get("assets", [])]
+    print("Plexo", r.get("tag_name"), noms)
+    deb = [a for a in r["assets"] if a["name"].endswith(".deb") and re.search(r"amd64|x86_64|x64", a["name"], re.I)] or [a for a in r["assets"] if a["name"].endswith(".deb")]
+    img = [a for a in r["assets"] if a["name"].lower().endswith(".appimage") and not re.search(r"arm|aarch64", a["name"], re.I)]
+    if deb:
+        f = "/tmp/" + deb[0]["name"]; urllib.request.urlretrieve(deb[0]["browser_download_url"], f)
+        subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", f], check=True, env=dict(os.environ, DEBIAN_FRONTEND="noninteractive"))
+        os.unlink(f); print("Plexo installé (.deb)"); break
+    if img:
+        os.makedirs("/opt/plexo", exist_ok=True); f = "/opt/plexo/Plexo.AppImage"
+        urllib.request.urlretrieve(img[0]["browser_download_url"], f); os.chmod(f, 0o755)
+        subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", "libfuse2t64"], env=dict(os.environ, DEBIAN_FRONTEND="noninteractive"))
+        open("/usr/share/applications/plexo.desktop", "w").write("[Desktop Entry]\nType=Application\nName=Plexo\nComment=Téléchargements accélérés : Wi-Fi + câble + partage de téléphone ensemble\n"
+            "Exec=/opt/plexo/Plexo.AppImage --no-sandbox %U\nIcon=xiii-plexo\nCategories=Network;FileTransfer;\nTerminal=false\n")
+        print("Plexo installé (AppImage)"); break
+else:
+    raise SystemExit("aucune version Linux trouvée")
+PY
+apt-get clean
