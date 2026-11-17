@@ -46,7 +46,7 @@ class Visite:
         return True
 
     def lancer(self):
-        self.i = 0; self.win.present(); GLib.timeout_add(250, lambda: (self.montrer(), False)[1])
+        self.i = 0; self.shell.bulles.set_visible(False); self.win.present(); GLib.timeout_add(250, lambda: (self.montrer(), False)[1])
 
     def rect(self, widget, ou):
         ok, r = widget.compute_bounds(widget.get_root())
@@ -64,7 +64,7 @@ class Visite:
         vider(self.bulle)
         h = boite(False, 10); h.append(ico("sparkles", 20, "c")); h.append(label(titre, "panneau-titre", hexpand=True))
         h.append(label("%d / %d" % (self.i + 1, len(self.L)), "attenue", "petit")); self.bulle.append(h)
-        self.bulle.append(label(texte, wrap=True))
+        self.bulle.append(label(texte, wrap=True, largeur=46))
         bas = boite(False, 8, margin_top=6)
         self.case = Gtk.CheckButton(label="Ne plus afficher", active=True); bas.append(self.case); bas.append(Gtk.Box(hexpand=True))
         if self.i < len(self.L) - 1: bas.append(bouton("Passer la visite", None, "plat", rappel=lambda: self.fin(False)))
@@ -73,7 +73,7 @@ class Visite:
         bas.append(bouton("Terminer" if dernier else "Suivant", None, "pilule", rappel=self.suivant))
         self.bulle.append(bas)
         W, Hh = self.win.get_width(), self.win.get_height()
-        bw = 380; _, nat = self.bulle.get_preferred_size(); bh = max(nat.height, 150)
+        _, nat = self.bulle.get_preferred_size(); bw = max(380, nat.width); bh = max(nat.height, 150)
         if self.trou:
             x, y, w, h = self.trou
             bx = min(max(12, x + w / 2 - bw / 2), W - bw - 12)
