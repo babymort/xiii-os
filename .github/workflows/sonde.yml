@@ -9,11 +9,18 @@ jobs:
     container: debian:trixie
     steps:
       - run: |
-          sed -i 's/^Components: main$/Components: main contrib non-free/' /etc/apt/sources.list.d/debian.sources
-          dpkg --add-architecture i386
+          apt-get update -qq && apt-get install -y -qq curl gnupg ca-certificates >/dev/null
+          curl -fsSLo /usr/share/keyrings/claude-desktop-archive-keyring.asc https://downloads.claude.ai/claude-desktop/key.asc
+          gpg --show-keys /usr/share/keyrings/claude-desktop-archive-keyring.asc
+          curl -fsSLo /usr/share/keyrings/claude-code.asc https://downloads.claude.ai/keys/claude-code.asc
+          gpg --show-keys /usr/share/keyrings/claude-code.asc
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/claude-desktop-archive-keyring.asc] https://downloads.claude.ai/claude-desktop/apt/stable stable main" > /etc/apt/sources.list.d/claude-desktop.list
+          echo "deb [signed-by=/usr/share/keyrings/claude-code.asc] https://downloads.claude.ai/claude-code/apt/stable stable main" > /etc/apt/sources.list.d/claude-code.list
           apt-get update -qq
-          for p in calamares calamares-settings-debian qt6-wayland wine wine32:i386 wine64 winetricks icoutils cabextract fonts-wine libwine:i386 gamemode umu-launcher; do
-            v=$(apt-cache policy $p | awk '/Candidat|Candidate/{print $2}'); echo "$p => ${v:-ABSENT}"; done
-          apt-get download calamares-settings-debian >/dev/null 2>&1 && dpkg -c calamares-settings-debian*.deb | awk '{print $6}' | grep -vE '/$' | head -60
-          dpkg -I calamares-settings-debian*.deb | grep -i depends
-# v3
+          apt-cache show claude-desktop | grep -E '^(Version|Depends|Recommends|Suggests|Installed-Size|Size)' | head -12
+          apt-cache show claude-code | grep -E '^(Version|Depends|Recommends|Installed-Size|Size)' | head -8
+          cd /tmp && apt-get download claude-desktop claude-code >/dev/null
+          for d in *.deb; do echo "== $d"; dpkg -c $d | awk '{print $6}' | grep -vE '/$' | grep -vE 'resources/app|locales/|\.pak$|node_modules' | head -60; done
+          dpkg -e claude-desktop*.deb /tmp/ctl && ls /tmp/ctl && sed -n 1,80p /tmp/ctl/postinst
+          mkdir x && dpkg -x claude-desktop*.deb x && find x -name '*.desktop' -exec cat {} \;
+          ls x/usr/bin -l; cat x/usr/bin/claude-desktop 2>/dev/null | head -40
