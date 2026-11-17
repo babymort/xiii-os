@@ -112,6 +112,8 @@ def palette(cfg):
     t = theme_effectif(cfg)
     s = skin_perso(cfg) if t == "perso" else SKINS[t]
     A = s.get("acc") or cfg.get("accent", "#f0b378")
+    if t in ("sobre", "sobrec") and A.lower() == "#f0b378":
+        A = "#ff8a3d" if t == "sobre" else "#c2570c"  # accents du thème Sobre de la suite
     clair = s.get("clair", False)
     verre = cfg.get("transparence", True) and s.get("verre", False)
     contraste = cfg.get("contraste", False)
@@ -119,7 +121,7 @@ def palette(cfg):
     p = dict(theme=t, fond=s["fond"], panneau=rgba(s["panneau"], al) if not s["panneau"].startswith("rgba") else s["panneau"], panneau_plein=s["panneau"],
              carte=s["carte"], carte2=s["carte2"], texte=s["texte"], attenue=s["attenue"] if not contraste else s["texte"], bord=s["bord"] if not contraste else rgba(s["texte"] if s["texte"].startswith("#") else "#888888", .55),
              survol=rgba("#000000" if clair else "#ffffff", .06), ombre="rgba(60,40,20,0.18)" if clair else "rgba(0,0,0,0.50)",
-             accent_texte=(melange(A, "#000000", .30) if clair and lum(A) > .5 else A), clair=clair)
+             accent_texte=(melange(A, "#000000", .42) if clair and lum(A) > .5 else A), clair=clair)
     p.update(accent=A, accent_survol=melange(A, "#ffffff", 0.18), sur_accent=sur_accent(A), sobre=bool(s.get("plat")), verre=verre,
              rayon="%dpx" % s["r"], rayon_petit="%dpx" % max(0, s["r"] // 2 + (1 if s["r"] else 0)),
              lueur="none" if not verre else "0 0 48px alpha(%s,0.12)" % A,
