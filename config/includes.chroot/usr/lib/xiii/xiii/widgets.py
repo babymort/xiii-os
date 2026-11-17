@@ -10,6 +10,7 @@ from .ui import *
 WIDGETS = [  # clé, nom, icône, description
     ("meteo", "Météo", "cloud-sun", "Temps actuel et prévisions sur 5 jours"),
     ("systeme", "Système", "activity", "Processeur, mémoire, disque, réseau, température"),
+    ("duo", "Réseau / Duo", "network", "Débit de chaque connexion en direct, sortie Internet et XIII Duo"),
     ("media", "Lecture en cours", "music", "Titre joué et commandes (lecteurs compatibles MPRIS)"),
     ("projet", "Projet XIII", "clapperboard", "Fiche projet exportée depuis la Suite XIII"),
     ("conducteur", "Conducteur", "list-video", "Dernier conducteur CONDUCO"),
@@ -161,6 +162,7 @@ class Tableau:
             self._net.set_text("↓ %s/s   ↑ %s/s" % (S.humain(rx), S.humain(tx)))
             self._temp.set_text(("%d °C" % t) if t else "—")
         if hasattr(self, "_media_maj"): self._media_maj()
+        if getattr(self, "_duo", None): self._duo_tic()
         return True
 
     def ram(self):
@@ -204,6 +206,30 @@ class Tableau:
         r = boite(False, 10); r.append(ico("network", 14, "d")); self._net = label("—", "petit", hexpand=True); r.append(self._net)
         r.append(ico("thermometer", 14, "d")); self._temp = label("—", "petit"); r.append(self._temp); v.append(r)
         return self.carte("systeme", "Système", "activity", v, lambda: S.detacher("xiii-bilan"))
+
+    def w_duo(self):
+        from . import reseau as R
+        v = boite(True, 6); self._duo = {}
+        its = [i for i in R.interfaces() if i["etat"] == "connecté"]
+        d = R.duo_etat() if not S.DEMO else {"mode": "repartition", "actifs": ["wlan0", "usb0"]}
+        conf = R.duo() if not S.DEMO else {"mode": "repartition"}
+        v.append(label({"arret": "Sortie Internet : " + (R.route_defaut() or "aucune"), "secours": "Duo · secours sur " + " + ".join(d.get("actifs", [])),
+                        "repartition": "Duo · répartition " + " + ".join(d.get("actifs", []))}.get(conf.get("mode"), ""), "petit", "attenue", ellipsize=True))
+        if not its: v.append(label("Aucune connexion", "attenue"))
+        for i in its:
+            r = boite(False, 8); r.append(ico(R.ICONES.get(i["nature"], "network"), 14, "c" if i["internet"] or i["dev"] in d.get("actifs", []) else "d"))
+            r.append(label(i["dev"], "petit", "gras")); l = label("—", "petit", hexpand=True, xalign=1); r.append(l); v.append(r)
+            self._duo[i["dev"]] = l
+        self._duo_avant = (R.trafic(), time.time())
+        return self.carte("duo", "Réseau", "network", v, lambda: S.detacher(["xiii-parametres", "--page", "duo"]))
+
+    def _duo_tic(self):
+        from . import reseau as R
+        t, now = R.trafic(), time.time(); (t0, n0) = self._duo_avant; dt = max(.2, now - n0)
+        for dev, l in self._duo.items():
+            if S.DEMO: l.set_text("↓ %s/s  ↑ %s/s" % (S.humain(2.4e6 if dev == "wlan0" else 1.1e6), S.humain(3.2e5))); continue
+            if dev in t and dev in t0: l.set_text("↓ %s/s  ↑ %s/s" % (S.humain((t[dev][0] - t0[dev][0]) / dt), S.humain((t[dev][1] - t0[dev][1]) / dt)))
+        self._duo_avant = (t, now)
 
     def w_media(self):
         v = boite(True, 8)

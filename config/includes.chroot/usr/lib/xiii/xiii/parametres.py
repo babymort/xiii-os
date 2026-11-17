@@ -750,7 +750,9 @@ class Parametres(Gtk.Application):
         etat = {"mode": i["mode"] if i["mode"] in ("auto", "manual") else "auto", "internet": not i["jamais_defaut"]}
         c.append(groupe_titre("Adresse IP"))
         rb = boite(False, 8, "reglage")
-        b_auto = Gtk.ToggleButton(label="Automatique (DHCP)", active=etat["mode"] == "auto"); b_fixe = Gtk.ToggleButton(label="Adresse IP fixe", active=etat["mode"] == "manual", group=b_auto)
+        b_auto = Gtk.ToggleButton(label="Automatique (DHCP)"); b_fixe = Gtk.ToggleButton(label="Adresse IP fixe", group=b_auto)
+        for b_ in (b_auto, b_fixe): b_.add_css_class("bascule-mode")
+        (b_fixe if etat["mode"] == "manual" else b_auto).set_active(True)
         rb.append(b_auto); rb.append(b_fixe); c.append(rb)
         fixe = boite(True, 4); c.append(fixe)
         e_adr = Gtk.Entry(text=adr0.split("/")[0], placeholder_text="ex. 192.168.10.50", hexpand=True)
@@ -852,7 +854,7 @@ class Parametres(Gtk.Application):
         c.append(groupe_titre("Téléchargements accélérés"))
         plexo = shutil.which("plexo") or os.path.exists("/opt/plexo/Plexo.AppImage") or os.path.exists("/usr/share/applications/plexo.desktop")
         c.append(reglage("download", "Plexo", "Découpe chaque téléchargement en morceaux récupérés sur toutes les connexions à la fois (Wi-Fi + câble + téléphone) : un seul gros fichier va plus vite",
-                         droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher(["gtk-launch", "plexo"])) if plexo else bouton("Site", None, "fantome", rappel=lambda: S.detacher(["xdg-open", "https://getplexo.app/"]))))
+                         droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("plexo")) if plexo else bouton("Site", None, "fantome", rappel=lambda: S.detacher(["xdg-open", "https://getplexo.app/"]))))
         c.append(info("La répartition cumule les débits quand plusieurs connexions tournent (plusieurs téléchargements, envois, flux). Un seul téléchargement reste sur un lien : utilisez Plexo pour le découper."))
 
     def _duo(self, conf, recharger=True):

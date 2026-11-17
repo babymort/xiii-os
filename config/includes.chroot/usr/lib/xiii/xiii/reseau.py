@@ -10,7 +10,10 @@ DEMO = bool(os.environ.get("XIII_DEMO"))
 
 
 def nm(*a, t=15):
-    r = subprocess.run(["nmcli"] + list(a), capture_output=True, text=True, timeout=t)
+    try:
+        r = subprocess.run(["nmcli"] + list(a), capture_output=True, text=True, timeout=t)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return 1, "", str(e)
     return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
 
 
@@ -82,7 +85,8 @@ def connexion(uuid):
 
 
 def route_defaut():
-    o = subprocess.run(["ip", "-4", "route", "show", "default"], capture_output=True, text=True).stdout
+    try: o = subprocess.run(["ip", "-4", "route", "show", "default"], capture_output=True, text=True).stdout
+    except OSError: return None
     best = None
     for l in o.splitlines():
         m = re.search(r"dev (\S+)", l); me = re.search(r"metric (\d+)", l)

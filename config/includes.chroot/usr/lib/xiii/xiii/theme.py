@@ -61,6 +61,8 @@ button {{ transition: {p['anim']}; }}
 button.pilule {{ background: {p['accent']}; color: {p['sur_accent']}; border-radius: 999px; padding: 6px 18px; font-weight: 700; border: none; box-shadow: none; }}
 button.pilule label {{ color: {p['sur_accent']}; }}
 button.pilule:hover {{ background: {p['accent_survol']}; }}
+button.bascule-mode:checked {{ background: {p['accent']}; color: {p['sur_accent']}; font-weight: 700; }}
+button.bascule-mode:checked label {{ color: {p['sur_accent']}; }}
 button.pilule:disabled {{ opacity: .5; }}
 button.fantome {{ background: transparent; border: 1px solid alpha({p['accent']},0.55); border-radius: 999px; padding: 4px 14px; box-shadow: none; }}
 button.fantome label {{ color: {p['accent_texte']}; }}

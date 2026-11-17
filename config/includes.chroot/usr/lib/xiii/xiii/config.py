@@ -21,7 +21,7 @@ DEFAUTS = {
     "barre_badge": True,
     "epingles": ["xiii-parametres.desktop", "com.anthropic.Claude.desktop", "firefox-esr.desktop", "thunar.desktop",
                  "org.xfce.mousepad.desktop", "mpv.desktop", "xiii-bilan.desktop"],
-    "menu_epingles": ["xiii-parametres.desktop", "com.anthropic.Claude.desktop", "xiii-claude-code.desktop", "firefox-esr.desktop", "thunar.desktop", "org.xfce.mousepad.desktop",
+    "menu_epingles": ["xiii-parametres.desktop", "com.anthropic.Claude.desktop", "xiii-claude-code.desktop", "xiii-suite-accueil.desktop", "xiii-tally.desktop", "firefox-esr.desktop", "thunar.desktop", "org.xfce.mousepad.desktop",
                       "mpv.desktop", "steam.desktop", "xiii-bilan.desktop", "xiii-pilotes.desktop", "xiii-demarrage.desktop",
                       "org.gnome.DiskUtility.desktop", "pavucontrol.desktop", "xiii-webcam.desktop"],
     "menu_recommandes": True,
@@ -60,7 +60,7 @@ DEFAUTS = {
     "police": "IBM Plex Sans",
     "montage_auto": True,
     "ecrans": {},
-    "widgets": ["meteo", "systeme", "projet", "plan", "conducteur", "media", "notes", "raccourcis"],
+    "widgets": ["meteo", "systeme", "duo", "projet", "plan", "conducteur", "media", "notes", "raccourcis"],
     "visite_faite": False,
 }
 
