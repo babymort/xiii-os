@@ -37,3 +37,4 @@ python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import con
 sleep 3; xiii-ctl demarrer; sleep 2; grim /out/c-sobre-menu.png; xiii-ctl fermer
 cp /root/.config/xiii/reglages.json /out/ 2>/dev/null
 labwc --exit
+# relance
