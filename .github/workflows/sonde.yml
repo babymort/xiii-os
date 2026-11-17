@@ -9,18 +9,11 @@ jobs:
     container: debian:trixie
     steps:
       - run: |
-          apt-get update -qq && apt-get install -y -qq curl gnupg ca-certificates >/dev/null
-          curl -fsSLo /usr/share/keyrings/claude-desktop-archive-keyring.asc https://downloads.claude.ai/claude-desktop/key.asc
-          gpg --show-keys /usr/share/keyrings/claude-desktop-archive-keyring.asc
-          curl -fsSLo /usr/share/keyrings/claude-code.asc https://downloads.claude.ai/keys/claude-code.asc
-          gpg --show-keys /usr/share/keyrings/claude-code.asc
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/claude-desktop-archive-keyring.asc] https://downloads.claude.ai/claude-desktop/apt/stable stable main" > /etc/apt/sources.list.d/claude-desktop.list
-          echo "deb [signed-by=/usr/share/keyrings/claude-code.asc] https://downloads.claude.ai/claude-code/apt/stable stable main" > /etc/apt/sources.list.d/claude-code.list
+          sed -i 's/^Components: main$/Components: main contrib non-free/' /etc/apt/sources.list.d/debian.sources
           apt-get update -qq
-          apt-cache show claude-desktop | grep -E '^(Version|Depends|Recommends|Suggests|Installed-Size|Size)' | head -12
-          apt-cache show claude-code | grep -E '^(Version|Depends|Recommends|Installed-Size|Size)' | head -8
-          cd /tmp && apt-get download claude-desktop claude-code >/dev/null
-          for d in *.deb; do echo "== $d"; dpkg -c $d | awk '{print $6}' | grep -vE '/$' | grep -vE 'resources/app|locales/|\.pak$|node_modules' | head -60; done
-          dpkg -e claude-desktop*.deb /tmp/ctl && ls /tmp/ctl && sed -n 1,80p /tmp/ctl/postinst
-          mkdir x && dpkg -x claude-desktop*.deb x && find x -name '*.desktop' -exec cat {} \;
-          ls x/usr/bin -l; cat x/usr/bin/claude-desktop 2>/dev/null | head -40
+          for p in labwc grim libltc11 python3-numpy v4l2loopback-dkms v4l2loopback-utils gstreamer1.0-plugins-bad fonts-orbitron fonts-press-start-2p fonts-courier-prime gnome-sushi tumbler ffmpegthumbnailer poppler-utils python3-gi-cairo; do
+            v=$(apt-cache policy $p | awk '/Candidat|Candidate/{print $2}'); echo "$p => ${v:-ABSENT}"; done
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq labwc grim gstreamer1.0-plugins-bad libltc11 >/dev/null 2>&1
+          labwc --version; grim -h 2>&1 | head -20
+          strings /usr/bin/labwc | grep -iE "image_copy_capture|image_capture_source|foreign_toplevel_list|screencopy" | sort -u | head
+          find / -name "libgstdecklink*" 2>/dev/null | head; ls /usr/lib/x86_64-linux-gnu/libltc* 2>/dev/null
