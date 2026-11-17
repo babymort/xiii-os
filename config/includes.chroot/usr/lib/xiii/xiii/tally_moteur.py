@@ -23,7 +23,10 @@ def charger():
 
 def sauver(r):
     os.makedirs(os.path.dirname(REGLAGES), exist_ok=True)
-    tmp = REGLAGES + ".tmp"; json.dump(r, open(tmp, "w"), ensure_ascii=False, indent=1); os.replace(tmp, REGLAGES)
+    tmp = REGLAGES + ".tmp"
+    with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:  # contient les mots de passe des mélangeurs
+        json.dump(r, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, REGLAGES)
 
 
 def ip_locale():

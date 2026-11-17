@@ -1,0 +1,4 @@
+# OS XIII — Tally XIII : lampes USB blink(1) et boîtiers ESP32 programmables par la personne connectée
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="27b8", ATTRS{idProduct}=="01ed", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="tty", KERNEL=="ttyUSB[0-9]*", TAG+="uaccess"
+SUBSYSTEM=="tty", KERNEL=="ttyACM[0-9]*", TAG+="uaccess"

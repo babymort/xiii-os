@@ -1,7 +1,7 @@
 # OS XIII — TALLY XIII, le tableau de bord : mélangeurs (ATEM, vMix, TriCaster), caméras en direct, QR codes pour les téléphones,
 # forçage manuel, alerte quand un téléphone décroche. Continue de tourner en arrière-plan quand la fenêtre est fermée.
 # Application développée par Matthieu Lamotte.
-import os, sys, subprocess, shutil, time, tempfile
+import os, sys, subprocess, shutil, time, tempfile, threading
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, Gio
@@ -95,10 +95,35 @@ class Tally(Gtk.Application):
         self.d_type = Gtk.DropDown(model=Gtk.StringList.new([T.NOMS_TYPES[k] for k in T.TYPES])); aj.append(self.d_type)
         self.e_ip = Gtk.Entry(placeholder_text="Adresse IP (ex. 192.168.10.240)", hexpand=True); aj.append(self.e_ip)
         self.e_port = Gtk.Entry(placeholder_text="Port", width_chars=6); aj.append(self.e_port)
-        self.d_type.connect("notify::selected", lambda *_: self.e_port.set_placeholder_text(str(T.PORTS.get(list(T.TYPES)[self.d_type.get_selected()], "—"))))
         aj.append(bouton("Ajouter", "plus", "pilule", taille=14, rappel=self.ajouter)); v.append(aj)
+        self.ident = boite(False, 8, "reglage"); self.ident.append(label("Identifiants du TriCaster", "reglage-titre"))
+        self.e_util = Gtk.Entry(placeholder_text="Utilisateur (ex. admin)", hexpand=True); self.ident.append(self.e_util)
+        self.e_mdp = Gtk.PasswordEntry(show_peek_icon=True, hexpand=True); self.e_mdp.set_property("placeholder-text", "Mot de passe"); self.ident.append(self.e_mdp)
+        v.append(self.ident); self.ident.set_visible(False)
+        def type_change(*_):
+            ty = list(T.TYPES)[self.d_type.get_selected()]
+            self.e_port.set_placeholder_text(str(T.PORTS.get(ty, "—"))); self.ident.set_visible(ty == "tricaster")
+            self.e_ip.set_placeholder_text("127.0.0.1 si MELANGO tourne sur ce PC" if ty == "melango" else "Adresse IP (ex. 192.168.10.240)")
+        self.d_type.connect("notify::selected", type_change)
         v.append(info("ATEM : adresse IP du mélangeur (réglée dans ATEM Setup). vMix : IP du PC vMix (API TCP active par défaut, port 8099). "
-                      "TriCaster : IP du TriCaster (API web). Plusieurs mélangeurs peuvent être suivis en même temps : le programme l'emporte."))
+                      "TriCaster : IP du TriCaster (API web), avec ses identifiants s'il en demande. MELANGO XIII : NDI XIII doit tourner sur le PC de MELANGO "
+                      "et « Tally sur téléphone » être activé dans MELANGO (Sorties). Plusieurs mélangeurs peuvent être suivis en même temps : le programme l'emporte."))
+        # noms des caméras depuis la suite
+        v.append(label("Noms des caméras", "groupe-titre"))
+        f, o = T.dernier_export_cameras()
+        nb = boite(False, 8, "reglage"); nb.append(ico("layout-grid", 20, "c"))
+        nv = boite(True, 2, hexpand=True); nv.append(label("Reprendre les noms de SYNO ou PLANO", "reglage-titre"))
+        nv.append(label(("Dernier export trouvé : " + os.path.basename(f)) if f else "Exportez la liste des sources (SYNO) ou le plan (PLANO) en .xiii.json", "reglage-sous", wrap=True)); nb.append(nv)
+        if f: nb.append(bouton("Reprendre", None, "pilule", rappel=lambda f=f: self.importer_noms(f)))
+        nb.append(bouton("Choisir un fichier…", None, "fantome", rappel=self.choisir_noms)); v.append(nb)
+        # lampes USB
+        v.append(label("Lampes USB (blink(1))", "groupe-titre"))
+        self.l_lampes = boite(True, 6); v.append(self.l_lampes); self.lampes_vues = None
+        GLib.timeout_add_seconds(3, self.maj_lampes); self.maj_lampes()
+        # boîtiers Wi-Fi
+        v.append(label("Boîtiers Wi-Fi (ESP32 / M5Stack ATOM)", "groupe-titre"))
+        v.append(reglage_simple("cpu", "Programmer un boîtier", "Branchez-le en USB : programme Tally XIII installé, Wi-Fi et caméra réglés, sans terminal",
+                                bouton("Programmer…", None, "pilule", rappel=self.boitier)))
         # téléphones et boîtiers
         v.append(label("Téléphones et boîtiers", "groupe-titre"))
         r = self.moteur.r
@@ -170,6 +195,7 @@ class Tally(Gtk.Application):
             tt = boite(True, 2, hexpand=True)
             tt.append(label((s.get("nom") or T.NOMS_TYPES.get(s["type"], s["type"])) + ("  ·  " + s["ip"] if s.get("ip") else ""), "reglage-titre"))
             tt.append(label(vivant["message"] if vivant else ("Désactivé" if not s.get("actif", True) else "—"), "reglage-sous")); r.append(tt)
+            r.append(bouton(None, "pencil", "plat", tip="Modifier", rappel=lambda i=i, r=r: self.editer_source(r, i)))
             r.append(interrupteur(s.get("actif", True), lambda on, i=i: self.modifier_source(i, actif=on)))
             r.append(bouton(None, "trash-2", "plat", tip="Retirer", rappel=lambda i=i: self.retirer(i)))
             self.l_sources.append(r)
@@ -211,14 +237,97 @@ class Tally(Gtk.Application):
     # ------------------------------------------------------------- mélangeurs
     def ajouter(self):
         typ = list(T.TYPES)[self.d_type.get_selected()]; ip = self.e_ip.get_text().strip()
-        if typ != "simulateur" and not ip: self.e_ip.grab_focus(); return
+        if typ not in ("simulateur", "melango") and not ip: self.e_ip.grab_focus(); return
+        if typ == "melango" and not ip: ip = "127.0.0.1"
         s = {"type": typ, "ip": ip, "actif": True}
         if self.e_port.get_text().strip().isdigit(): s["port"] = int(self.e_port.get_text())
+        if typ == "tricaster" and self.e_util.get_text().strip():
+            s["utilisateur"] = self.e_util.get_text().strip(); s["mot_de_passe"] = self.e_mdp.get_text(); self.e_mdp.set_text("")
         self.moteur.r.setdefault("sources", []).append(s); T.sauver(self.moteur.r); self.moteur.recharger_sources()
         self.e_ip.set_text(""); self.e_port.set_text("")
 
     def modifier_source(self, i, **kw):
         self.moteur.r["sources"][i].update(kw); T.sauver(self.moteur.r); self.moteur.recharger_sources()
+
+    def editer_source(self, parent, i):
+        s = self.moteur.r["sources"][i]
+        pop = Gtk.Popover(); pop.set_parent(parent)
+        g = Gtk.Grid(row_spacing=6, column_spacing=8, margin_top=10, margin_bottom=10, margin_start=10, margin_end=10)
+        champs = [("nom", "Nom affiché", False), ("ip", "Adresse IP", False), ("port", "Port", False)]
+        if s["type"] == "tricaster": champs += [("utilisateur", "Utilisateur", False), ("mot_de_passe", "Mot de passe", True)]
+        E = {}
+        for n, (k, t_, secret) in enumerate(champs):
+            g.attach(label(t_, "reglage-sous"), 0, n, 1, 1)
+            e = Gtk.PasswordEntry(show_peek_icon=True) if secret else Gtk.Entry()
+            e.set_text(str(s.get(k, "") or "")); e.set_size_request(240, -1); g.attach(e, 1, n, 1, 1); E[k] = e
+        def ok():
+            for k, e in E.items():
+                val = e.get_text().strip() if k != "mot_de_passe" else e.get_text()
+                if k == "port": val = int(val) if val.isdigit() else None
+                if val in ("", None): s.pop(k, None)
+                else: s[k] = val
+            T.sauver(self.moteur.r); self.moteur.recharger_sources(); pop.popdown()
+        g.attach(bouton("Enregistrer", None, "pilule", rappel=ok), 1, len(champs), 1, 1)
+        pop.set_child(g); pop.connect("closed", lambda p: GLib.idle_add(p.unparent)); pop.popup()
+
+    # ------------------------------------------------------------- noms, lampes, boîtiers
+    def importer_noms(self, f):
+        import json
+        try:
+            noms = T.noms_depuis_xiii(json.load(open(f, encoding="utf-8")))
+        except Exception as e:
+            self.notifier("Noms non repris", str(e)); return
+        if not noms: self.notifier("Aucune caméra trouvée", os.path.basename(f)); return
+        n = dict(self.moteur.r.get("noms", {})); n.update({str(k): v for k, v in noms.items()})
+        self.regler(noms=n, cameras=max(int(self.moteur.r.get("cameras", 8)), max(noms)))
+        self.notifier("%d nom(s) de caméra repris" % len(noms), ", ".join("%d : %s" % kv for kv in list(noms.items())[:6]))
+
+    def choisir_noms(self):
+        d = Gtk.FileDialog(title="Export SYNO (sources) ou PLANO (plan)")
+        flt = Gtk.FileFilter(); flt.set_name("Fichiers Suite XIII"); flt.add_pattern("*.json"); fl = Gio.ListStore.new(Gtk.FileFilter); fl.append(flt); d.set_filters(fl)
+        def fini(dlg, res):
+            try: self.importer_noms(dlg.open_finish(res).get_path())
+            except GLib.Error: pass
+        d.open(self.win, None, fini)
+
+    def notifier(self, titre, corps):
+        n = Gio.Notification.new(titre); n.set_body(corps); n.set_icon(Gio.ThemedIcon.new("xiii-tally")); self.send_notification(None, n)
+
+    def maj_lampes(self):
+        if not self.win: return True
+        L = T.Lampes.detecter()
+        cle = [s for s, _ in L]
+        if cle == self.lampes_vues: return True
+        self.lampes_vues = cle; vider(self.l_lampes)
+        if not L:
+            self.l_lampes.append(label("Aucune lampe blink(1) branchée. Branchez-en une par caméra : elle s'allume en rouge à l'antenne, en vert en preview.", "attenue", wrap=True))
+            return True
+        aff = self.moteur.r.get("lampes", {}); n = int(self.moteur.r.get("cameras", 8))
+        for serie, dev in L:
+            r = boite(False, 12, "reglage"); r.append(ico("lightbulb", 20, "c"))
+            r.append(label("blink(1) " + serie, "reglage-titre", hexpand=True))
+            dd = Gtk.DropDown(model=Gtk.StringList.new(["Aucune caméra"] + ["Caméra %d" % k for k in range(1, n + 1)]))
+            dd.set_selected(int(aff.get(serie, 0) or 0))
+            def choix(d, _p, serie=serie):
+                a = dict(self.moteur.r.get("lampes", {})); k = d.get_selected()
+                if k: a[serie] = k
+                else: a.pop(serie, None)
+                self.regler(lampes=a)
+            dd.connect("notify::selected", choix); r.append(dd)
+            def tester(dev=dev):
+                def f():
+                    try:
+                        for c in ((255, 0, 0), (0, 160, 0), (0, 0, 0)): T.Lampes.couleur(dev, *c); time.sleep(0.5)
+                    except OSError as e:
+                        GLib.idle_add(self.notifier, "Lampe inaccessible", "Débranchez puis rebranchez la lampe (%s)" % e)
+                    self.moteur.lampes.couleurs.clear(); self.moteur.lampes.evt.set()
+                threading.Thread(target=f, daemon=True).start()
+            r.append(bouton("Tester", None, "fantome", rappel=tester)); self.l_lampes.append(r)
+        return True
+
+    def boitier(self):
+        from .tally_boitier import Programmeur
+        Programmeur(self.win, self.moteur.url().replace("http://", "").rstrip("/"))
 
     def retirer(self, i):
         del self.moteur.r["sources"][i]; T.sauver(self.moteur.r); self.moteur.recharger_sources()

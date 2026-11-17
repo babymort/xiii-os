@@ -23,3 +23,5 @@ xxhash
 plocate
 deja-dup
 timeshift
+esptool
+python3-serial
