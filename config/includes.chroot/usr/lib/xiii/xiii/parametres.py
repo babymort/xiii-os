@@ -761,6 +761,29 @@ class Parametres(Gtk.Application):
         c.append(groupe_titre("Épinglées dans le menu"))
         self.liste_epingles(c, "menu_epingles")
 
+    def p_widgets(self, c, cle):
+        from .widgets import WIDGETS
+        actifs = list(self.cfg["widgets"]); noms = {w[0]: w for w in WIDGETS}
+        c.append(info("Les widgets s'ouvrent d'un clic sur la météo, à gauche de la barre des tâches. Les widgets Suite XIII lisent les fichiers .xiii.json exportés depuis la suite (dossiers ~/XIII, Téléchargements, Documents)."))
+        c.append(groupe_titre("Widgets affichés"))
+        for i, k in enumerate(actifs):
+            if k not in noms: continue
+            _, nom, ic, desc = noms[k]
+            dr = boite(False, 4)
+            def bouger(i=i, d=0):
+                L = list(self.cfg["widgets"]); j = i + d
+                if 0 <= j < len(L): L[i], L[j] = L[j], L[i]; self.regler(widgets=L); self.aller("widgets", False)
+            dr.append(bouton(None, "chevron-up", "plat", taille=14, tip="Monter", rappel=lambda i=i: bouger(i, -1)))
+            dr.append(bouton(None, "chevron-down", "plat", taille=14, tip="Descendre", rappel=lambda i=i: bouger(i, 1)))
+            dr.append(interrupteur(True, lambda on, k=k: (self.regler(widgets=[x for x in self.cfg["widgets"] if x != k]), self.aller("widgets", False))))
+            c.append(reglage(ic, nom, desc, droite=dr))
+        autres = [w for w in WIDGETS if w[0] not in actifs]
+        if autres:
+            c.append(groupe_titre("Autres widgets"))
+            for k, nom, ic, desc in autres:
+                c.append(reglage(ic, nom, desc, droite=interrupteur(False, lambda on, k=k: (self.regler(widgets=self.cfg["widgets"] + [k]), self.aller("widgets", False)))))
+        c.append(reglage("cloud-sun", "Ville de la météo", self.cfg["meteo_ville"], clic=lambda: self.aller("meteo")))
+
     def p_haut(self, c, cle):
         cfg = self.cfg
         c.append(reglage("app-window", "Titre de la fenêtre active", "Affiché à gauche de la barre du haut", droite=interrupteur(cfg["haut_titre"], lambda on: self.regler(haut_titre=on))))
@@ -1000,6 +1023,8 @@ class Parametres(Gtk.Application):
         c.append(reglage("clapperboard", "Mode tournage", "Performances maximales, notifications en silence, jamais de mise en veille — pour le plateau",
                          droite=interrupteur(cfg["mode_tournage"], lambda on: self.regler(mode_tournage=on))))
         c.append(reglage("cloud-sun", "Météo de la barre des tâches", cfg["meteo_ville"], clic=lambda: self.aller("meteo")))
+        c.append(reglage("sparkles", "Revoir la visite guidée", "Le tour du bureau en une minute", droite=bouton("Lancer", None, "pilule",
+                         rappel=lambda: S.detacher(["xiii-ctl", "visite"]))))
         c.append(groupe_titre("Réglages d'OS XIII"))
         c.append(reglage("download", "Exporter mes réglages", "Fichier .xiii.json réutilisable sur un autre PC", droite=bouton("Exporter", None, "fantome", rappel=self.exporter)))
         c.append(reglage("plus", "Importer des réglages", "", droite=bouton("Importer", None, "fantome", rappel=self.importer)))

@@ -29,6 +29,7 @@ PAGES = [
     ("verrou", "Écran de verrouillage", "lock", "perso", "Image, délai", "verrouillage"),
     ("barre", "Barre des tâches", "panel-bottom", "perso", "Alignement, épingles, météo", "taskbar epingler alignement"),
     ("demarrer", "Menu Démarrer", "layout-grid", "perso", "Épingles, recommandations", "menu demarrer"),
+    ("widgets", "Widgets", "layout-dashboard", "perso", "Météo, système, projets Suite XIII…", "widgets tableau meteo notes media projet conducteur"),
     ("haut", "Barre du haut", "panel-top", "perso", "Horloge, titre, batterie", "horloge secondes"),
     ("polices", "Polices", "type", "perso", "Police et taille du texte", "police texte taille"),
     ("curseur", "Curseur", "mouse-pointer-2", "perso", "Taille du pointeur", "pointeur souris"),

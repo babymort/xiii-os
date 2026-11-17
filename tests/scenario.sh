@@ -8,15 +8,17 @@ notify-send -a "Pilotes XIII" -i preferences-system --action=ouvrir="Ouvrir Pilo
 sleep 0.5
 notify-send -a "Capture" -i camera-photo "Capture enregistrée" "Copiée dans le presse-papiers · capture-2026-11-16.png" &
 mousepad >/dev/null 2>&1 &
-sleep 3
+sleep 2
+for i in 1 2 3 4 5 6 7 8 9; do grim /out/v-$i.png; xiii-ctl visite-suivant; sleep 1; done
+sleep 1
 grim /out/01-bureau.png
-for p in demarrer son wifi bluetooth batterie centre alim volet meteo; do
+for p in demarrer son wifi bluetooth batterie centre alim volet widgets; do
   xiii-ctl $p; sleep 2; grim /out/p-$p.png; xiii-ctl fermer; sleep 0.6
 done
 xiii-ctl demarrer-toutes; sleep 2; grim /out/p-toutes.png; xiii-ctl fermer; sleep 0.5
 xiii-parametres --page accueil >> /out/param.log 2>&1 &
 sleep 6; grim /out/s-accueil.png
-for pg in ecran son theme fond barre perso wifi bluetooth apropos alimentation stockage souris clavier xiii maj apps notifications heure; do
+for pg in widgets xiii ecran son theme fond barre perso wifi bluetooth apropos alimentation stockage souris clavier xiii maj apps notifications heure; do
   xiii-parametres --page $pg >> /out/param.log 2>&1
   sleep 2.5; grim /out/s-$pg.png
 done

@@ -7,7 +7,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Gtk4LayerShell", "1.0")
 from gi.repository import Gtk, Gdk, GLib, Gio
 from gi.repository import Gtk4LayerShell as LS
-from . import config, theme, systeme as S, apps, notifs, panneaux as P
+from . import config, theme, systeme as S, apps, notifs, panneaux as P, widgets as W
 from .fenetres import Gestionnaire
 from .ui import *
 
@@ -58,6 +58,14 @@ class Shell(Gtk.Application):
         GLib.timeout_add_seconds(6, self.maj_icones)
         GLib.timeout_add_seconds(1800, self.maj_meteo)
         self.maj_icones(); self.maj_meteo(); self.maj_taches(); self.tic()
+        if not self.cfg.get("visite_faite"):
+            GLib.timeout_add_seconds(3, lambda: (self.visite(), False)[1])
+
+    def visite(self):
+        from .visite import Visite, etapes
+        if not getattr(self, "_visite", None): self._visite = Visite(self)
+        self._visite.L = etapes(self)
+        self._visite.lancer()
 
     def do_activate(self):
         pass
@@ -91,7 +99,7 @@ class Shell(Gtk.Application):
             "son": (P.Son, {T: HH + 8, R: 8}, (T, R)), "wifi": (P.Wifi, {T: HH + 8, R: 8}, (T, R)),
             "bluetooth": (P.Bluetooth, {T: HH + 8, R: 8}, (T, R)), "batterie": (P.Batterie, {T: HH + 8, R: 8}, (T, R)),
             "centre": (P.Centre, {T: HH + 8, R: 8}, (T, R)), "alim": (P.Alimentation, {T: HH + 8, R: 8}, (T, R)),
-            "volet": (P.Volet, {T: HH + 8, B: HB + 10, R: 8}, (T, B, R)), "meteo": (P.Meteo, {B: HB + 10, Lf: 8}, (B, Lf)),
+            "volet": (P.Volet, {T: HH + 8, B: HB + 10, R: 8}, (T, B, R)), "widgets": (W.Tableau, {T: HH + 8, B: HB + 10, Lf: 8}, (T, B, Lf)),
         }
         for nom, (cls, marges, ancres) in defs.items():
             w = Gtk.Window(application=self)
@@ -123,6 +131,12 @@ class Shell(Gtk.Application):
         if nom == "demarrer-recherche":
             if self.ouvert != "demarrer": self.ouvrir("demarrer")
             self.menu.recherche.grab_focus(); return
+        if nom == "meteo": nom = "widgets"
+        if nom == "visite":
+            self.fermer(); self.visite(); return
+        if nom == "visite-suivant":
+            if getattr(self, "_visite", None): self._visite.suivant()
+            return
         if nom == "demarrer-toutes":
             self.ouvrir("demarrer"); self.menu.vue("toutes"); return
         if self.ouvert == nom: self.fermer()
@@ -135,8 +149,7 @@ class Shell(Gtk.Application):
         w, obj = self.panneaux[nom]
         self.ouvert = nom
         self.voile.present()
-        if nom == "meteo": obj.rendu(self._meteo)
-        else: obj.rafraichir()
+        obj.rafraichir()
         w.present()
         for b in self.boutons_panneaux.get(nom, []): b.add_css_class("ouvert")
 
@@ -158,9 +171,10 @@ class Shell(Gtk.Application):
         self.boutons_panneaux = {}
         # gauche : météo
         self.b_meteo = Gtk.Button(); self.b_meteo.add_css_class("tb"); self.b_meteo.set_margin_start(6)
-        self.b_meteo.connect("clicked", lambda *_: self.basculer("meteo"))
-        clic_droit(self.b_meteo, lambda: self.parametres("meteo"))
-        self.boutons_panneaux["meteo"] = [self.b_meteo]
+        self.b_meteo.connect("clicked", lambda *_: self.basculer("widgets"))
+        self.b_meteo.set_tooltip_text("Widgets")
+        clic_droit(self.b_meteo, lambda: self.parametres("widgets"))
+        self.boutons_panneaux["widgets"] = [self.b_meteo]
         # centre : Démarrer, recherche, applications
         self.groupe = boite(False, 2)
         self.b_start = Gtk.Button(); self.b_start.add_css_class("tb"); self.b_start.set_tooltip_text("Démarrer")
@@ -293,7 +307,7 @@ class Shell(Gtk.Application):
         self.h_dnd = ico("bell-off", 16, "d"); d.prepend(self.h_dnd)
         self.h_centre = hb("centre", "accueil", "Centre de contrôle"); self.h_centre.set_child(ico("sliders-horizontal", 16))
         self.h_alim = hb("alim", "alimentation", "Session"); self.h_alim.set_child(ico("power", 16, "c"))
-        cb.set_end_widget(d)
+        cb.set_end_widget(d); self.zone_haut = d
         self.haut.set_child(cb)
 
     def maj_titre(self):
@@ -352,7 +366,7 @@ class Shell(Gtk.Application):
         ic, nom = P.METEO.get(m["code"], ("cloud", ""))
         bx = boite(False, 8, margin_start=4, margin_end=4); bx.append(ico(ic, 22, "c"))
         v = boite(True, 0, valign=Gtk.Align.CENTER); v.append(label("%d°C" % m["t"], "meteo-t")); v.append(label(nom, "horloge-d", ellipsize=True, largeur=16))
-        bx.append(v); self.b_meteo.set_child(bx); self.b_meteo.set_tooltip_text("%s — %s" % (self.cfg["meteo_ville"], nom))
+        bx.append(v); self.b_meteo.set_child(bx); self.b_meteo.set_tooltip_text("Widgets — %s, %s" % (self.cfg["meteo_ville"], nom))
 
     # ============================================================== notifications
     def notif_nouvelle(self, n, remplacee):

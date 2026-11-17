@@ -47,6 +47,8 @@ DEFAUTS = {
     "police": "IBM Plex Sans",
     "montage_auto": True,
     "ecrans": {},
+    "widgets": ["meteo", "systeme", "projet", "plan", "conducteur", "media", "notes", "raccourcis"],
+    "visite_faite": False,
 }
 
 def charger():
