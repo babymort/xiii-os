@@ -239,7 +239,8 @@ class App(Gtk.Application):
             self.vider(self.p_san, ""); self.p_san.remove(self.p_san.get_first_child())
             h = Gtk.Box(spacing=16, css_classes=["carte"])
             couleur = "ok" if note >= 70 else "neutre" if note >= 45 else "ko"
-            h.append(Gtk.Label(label="%d" % note, css_classes=["titre", couleur])); v = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            nl = Gtk.Label(); nl.set_markup('<span size="xx-large" weight="bold" foreground="%s">%d</span>' % ({"ok": "#6fbf73", "neutre": "#f0b378", "ko": "#e98080"}[couleur], note))
+            h.append(nl); v = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             v.append(Gtk.Label(label="Note de forme sur 100", css_classes=["nom"], xalign=0))
             v.append(Gtk.Label(label="Excellent" if note >= 85 else "Bon" if note >= 70 else "Correct" if note >= 45 else "À améliorer", css_classes=["val"], xalign=0))
             h.append(v); self.p_san.append(h)

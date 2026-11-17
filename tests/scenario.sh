@@ -2,7 +2,7 @@
 # Scénario de captures du bureau XIII (exécuté par labwc -s sur écran virtuel)
 sleep 1
 wlr-randr --output HEADLESS-1 --custom-mode 1600x900 >/out/randr.log 2>&1
-mkdir -p /root/Bureau /root/XIII/Concert-Dome/01_Rushes; touch "/root/Bureau/Conducteur.pdf" "/root/Bureau/Plan de feu.png" "/root/Bureau/Notes.txt"; mkdir -p "/root/Bureau/Rushes jour 1"
+mkdir -p /root/.config; echo "XDG_DESKTOP_DIR=\"\$HOME/Bureau\"" > /root/.config/user-dirs.dirs; mkdir -p /root/Bureau /root/XIII/Concert-Dome/01_Rushes; touch "/root/Bureau/Conducteur.pdf" "/root/Bureau/Plan de feu.png" "/root/Bureau/Notes.txt"; mkdir -p "/root/Bureau/Rushes jour 1"
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(timecode=True, projet_actif="Concert-Dome", profil="tournage")'
 xiii-shell > /out/shell.log 2>&1 &
 sleep 6

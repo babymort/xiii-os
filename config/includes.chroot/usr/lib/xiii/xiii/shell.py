@@ -165,6 +165,8 @@ class Shell(Gtk.Application):
         for b in self.boutons_panneaux.get(nom, []): b.add_css_class("ouvert")
 
     def fermer(self, garder_voile=False):
+        for v in ("vue_taches", "dispositions"):
+            if hasattr(self, v): getattr(self, v).fermer()
         if self.ouvert:
             w, obj = self.panneaux[self.ouvert]; w.set_visible(False)
             for b in self.boutons_panneaux.get(self.ouvert, []): b.remove_css_class("ouvert")

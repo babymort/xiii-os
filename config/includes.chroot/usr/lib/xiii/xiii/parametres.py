@@ -410,7 +410,7 @@ class Parametres(Gtk.Application):
                                          ("jamais de veille" if r.get("eveil") else ""), ("lumière nocturne" if r.get("nuit") else "")) if x)
             b = bouton("Actif" if k == cur else "Activer", None, "pilule" if k == cur else "fantome",
                        rappel=lambda k=k: (self.regler(profil=k, mode_tournage=(k == "tournage")), self.aller("profils", False)))
-            c.append(reglage(ic, nom, desc + (" — " + det if det else ""), droite=b))
+            c.append(reglage(ic, nom, desc, droite=b))
         c.append(reglage("gamepad-2", "Profil Jeu : lancer Steam en mode console", "Big Picture plein écran, à la manette", droite=interrupteur(self.cfg.get("jeu_console", False), lambda on: self.regler(jeu_console=on))))
 
     def p_historique(self, c, cle):
