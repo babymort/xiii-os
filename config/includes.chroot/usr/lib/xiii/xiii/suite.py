@@ -32,11 +32,11 @@ CIBLES = {
     "project": [("callsheeto", "xp-file", "CALL SHEETO — feuille de service"), ("conduco", "xp-file", "CONDUCO — conducteur"), ("deviso", "xp-file", "DEVISO — devis"), ("dossier", "xp-file", "DOSSIER — dossier de production")],
     "contacts": [("callsheeto", "xb-cfile", "Annuaire XIII (via CALL SHEETO)"), ("dossier", "xb-cfile", "Annuaire XIII (via DOSSIER)")],
     "crew": [("callsheeto", "project-upload", "CALL SHEETO — feuille de service"), ("deviso", "project-upload", "DEVISO — devis")],
-    "rundown": [("callsheeto", "xcs-file", "CALL SHEETO — feuille de service depuis le conducteur")],
+    "rundown": [("callsheeto", "project-upload", "CALL SHEETO — feuille de service depuis le conducteur")],
     "workplan": [("callsheeto", "project-upload", "CALL SHEETO — feuilles de service du plan de travail")],
     "equipment": [("plano", "project-upload", "PLANO — placer le matériel"), ("deviso", "project-upload", "DEVISO — chiffrer le matériel")],
-    "sources": [("backupo", "xb-jfile", "BACKUPO — sources à sauvegarder")],
-    "locations": [("repero", "project-upload", "REPERO — lieux sur la carte"), ("callsheeto", "xrp-file", "CALL SHEETO — lieux de la journée")],
+    "sources": [("backupo", "project-upload", "BACKUPO — sources à sauvegarder")],
+    "locations": [("repero", "project-upload", "REPERO — lieux sur la carte")],
     "places": [("repero", "project-upload", "REPERO — lieux sur la carte")],
     "decoupage": [("storyboardo", "project-upload", "STORYBOARDO"), ("scripto", "project-upload", "SCRIPTO")],
     "layout": [("plano", "project-upload", "PLANO")],
@@ -140,7 +140,8 @@ JS_INJECTER = r"""
 (async () => {
   const L = %s, champ = %s, multiple = %s;
   let inp = null;
-  for (let i = 0; i < 80 && !(inp = document.getElementById(champ)); i++) await new Promise(r => setTimeout(r, 150));
+  for (let i = 0; i < 40 && !(inp = document.getElementById(champ)); i++) await new Promise(r => setTimeout(r, 150));
+  if (!inp) inp = document.getElementById('project-upload');
   if (!inp) { const c = [...document.querySelectorAll('input[type=file]')].filter(x => /json/.test(x.accept || '')); inp = c[0] || null; }
   if (!inp) return 'absent';
   await new Promise(r => setTimeout(r, 600));
@@ -276,7 +277,7 @@ class Suite(Gtk.Application):
     def charge(self, v, ev, w):
         if ev == WebKit.LoadEvent.FINISHED and getattr(w, "_apres", None):
             js = w._apres; w._apres = None
-            v.evaluate_javascript(js, -1, None, None, None, lambda vv, res: self._resultat(vv, res), None)
+            v.evaluate_javascript(js, -1, None, None, None, lambda vv, res, *_: self._resultat(vv, res), None)
 
     def _resultat(self, v, res):
         try:

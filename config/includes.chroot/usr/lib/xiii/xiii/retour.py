@@ -82,7 +82,7 @@ class Retour(Gtk.Application):
         if not ndi.disponible():
             self.vide_titre.set_text("Runtime NDI non installé")
             self.vide_texte.set_text("Le runtime NDI est gratuit mais sa licence interdit de le fournir dans OS XIII : il s'installe en un clic après acceptation de la licence.")
-            self.vide.append(bouton("Installer le runtime NDI", None, "pilule", rappel=lambda: os.system("xiii-parametres --page ndi &")))
+            bi = bouton("Installer le runtime NDI", None, "pilule", rappel=lambda: os.system("xiii-parametres --page ndi &")); bi.set_halign(Gtk.Align.CENTER); self.vide.append(bi)
             self.barre.set_visible(False)
         else:
             self.chercher()
