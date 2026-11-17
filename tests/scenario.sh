@@ -50,6 +50,17 @@ printf '{"format":"xiii-link","version":1,"kind":"rundown","project":{"name":"Co
 xiii-suite --ouvrir /root/Bureau/conducteur.xiii.json >> /out/suite.log 2>&1 & sleep 14; grim /out/x-rundown.png
 xiii-suite --dossier "/root/Bureau/Notes.txt" >> /out/suite.log 2>&1 & sleep 14; grim /out/x-dossier.png
 pkill -f "xiii.suite"; sleep 1
+xiii-tally > /out/tally.log 2>&1 & sleep 6; grim /out/x-tally.png
+python3 -c '
+import gi; gi.require_version("Gtk","4.0"); gi.require_version("WebKit","6.0")
+from gi.repository import Gtk, WebKit, GLib
+a = Gtk.Application(application_id="fr.xiii.testtel")
+def act(app):
+    w = Gtk.ApplicationWindow(application=app, title="Téléphone", default_width=390, default_height=780); v = WebKit.WebView(); w.set_child(v)
+    v.load_uri("http://127.0.0.1:8790/?cam=1"); w.present()
+a.connect("activate", act); a.run(None)' > /out/tel.log 2>&1 & sleep 9; grim /out/x-telephone.png
+curl -s http://127.0.0.1:8790/api/etat > /out/tally-etat.json; curl -s http://127.0.0.1:8790/api/cam/1 >> /out/tally-etat.json
+pkill -f fr.xiii.testtel; pkill -f "xiii.tally"; sleep 0.5
 xiii-retour > /out/retour.log 2>&1 & sleep 4; grim /out/x-retour.png; pkill -f "xiii.retour"; sleep 0.5
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(theme="clair", accent="#3d8bfd")'
 sleep 3; xiii-ctl demarrer; sleep 2; grim /out/c-clair-menu.png; xiii-ctl fermer

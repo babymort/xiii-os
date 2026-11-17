@@ -65,7 +65,7 @@ def pour_fenetre(app_id):
     """Trouve l'appli .desktop d'une fenêtre (app_id Wayland / classe X11)."""
     global _index_wm
     if not app_id: return None
-    alias = {"fr.xiii.parametres": "xiii-parametres.desktop", "fr.xiii.bilan": "xiii-bilan.desktop", "fr.xiii.demarrage": "xiii-demarrage.desktop", "fr.xiii.windows": "xiii-windows.desktop", "fr.xiii.somme": "xiii-somme.desktop", "steam": "steam.desktop", "fr.xiii.bienvenue": "xiii-installer.desktop", "fr.xiii.claudecode": "xiii-claude-code.desktop", "fr.xiii.retour": "xiii-retour.desktop", "ndi-xiii": "xiii-ndi.desktop", "ndi xiii": "xiii-ndi.desktop",
+    alias = {"fr.xiii.parametres": "xiii-parametres.desktop", "fr.xiii.bilan": "xiii-bilan.desktop", "fr.xiii.demarrage": "xiii-demarrage.desktop", "fr.xiii.windows": "xiii-windows.desktop", "fr.xiii.somme": "xiii-somme.desktop", "steam": "steam.desktop", "fr.xiii.bienvenue": "xiii-installer.desktop", "fr.xiii.claudecode": "xiii-claude-code.desktop", "fr.xiii.retour": "xiii-retour.desktop", "fr.xiii.tally": "xiii-tally.desktop", "ndi-xiii": "xiii-ndi.desktop", "ndi xiii": "xiii-ndi.desktop",
              "org.xfce.mousepad": "org.xfce.mousepad.desktop", "thunar": "thunar.desktop", "firefox-esr": "firefox-esr.desktop", "mpv": "mpv.desktop"}
     if app_id.startswith("fr.xiii.suite."):
         a = par_id("xiii-suite-%s.desktop" % ("accueil" if app_id[14:] == "index" else app_id[14:]))

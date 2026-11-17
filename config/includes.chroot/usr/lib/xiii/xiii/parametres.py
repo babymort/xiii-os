@@ -1338,6 +1338,8 @@ class Parametres(Gtk.Application):
         c.append(groupe_titre("Suite XIII sur ce PC"))
         c.append(reglage("layout-grid", "Outils de la Suite XIII", "Hors ligne, chacun dans sa fenêtre — fichiers .xiii.json, envoi à DOSSIER, mises à jour", clic=lambda: self.aller("suite")))
         c.append(reglage("radio-tower", "NDI", "Runtime NDI, module NDI XIII, retour plateau", clic=lambda: self.aller("ndi")))
+        c.append(reglage("siren", "Tally XIII", "Tally des mélangeurs ATEM, vMix, TriCaster sur les téléphones et boîtiers des cadreurs",
+                         droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("xiii-tally"))))
         c.append(groupe_titre("Mode tournage"))
         c.append(reglage("clapperboard", "Mode tournage", "Performances maximales, notifications en silence, jamais de mise en veille — pour le plateau",
                          droite=interrupteur(cfg["mode_tournage"], lambda on: self.regler(mode_tournage=on))))

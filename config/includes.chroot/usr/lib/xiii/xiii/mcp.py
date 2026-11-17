@@ -229,6 +229,20 @@ def ouvrir_outil(a):
     return "Ouvert : " + (f or oid)
 
 
+def tally_etat(_):
+    import urllib.request
+    try:
+        return json.loads(urllib.request.urlopen("http://127.0.0.1:8790/api/etat", timeout=2).read())
+    except Exception:
+        return "Tally XIII n'est pas lancé (menu Démarrer › Suite XIII › Tally XIII)."
+
+
+def tally_forcer(a):
+    import urllib.request, urllib.parse
+    q = urllib.parse.urlencode({"cam": int(a.get("camera")), "etat": a.get("etat", "auto")})
+    return urllib.request.urlopen("http://127.0.0.1:8790/api/forcer?" + q, timeout=2).read().decode()
+
+
 O = lambda **p: {"type": "object", "properties": p, "additionalProperties": False}
 OUTILS = [
     ("etat_systeme", "État du PC sous OS XIII : processeur, charge, mémoire, disque, température, batterie, carte graphique, réseau et adresses IP.", O(), etat_systeme, True),
@@ -243,6 +257,9 @@ OUTILS = [
     ("outils_suite_xiii", "Liste des outils de la Suite XIII installés hors ligne (CONDUCO, SYNO, PLANO, CALL SHEETO, DOSSIER, ENCODO, MELANGO…).", O(), outils_suite, True),
     ("ouvrir_outil_xiii", "Ouvre un outil de la Suite XIII dans sa fenêtre, ou un fichier .xiii.json dans le bon outil.",
      O(id={"type": "string"}, fichier={"type": "string"}), ouvrir_outil, False),
+    ("tally_etat", "État de TALLY XIII : chaque caméra (antenne, preview, repos), son nom, les téléphones connectés et les mélangeurs suivis.", O(), tally_etat, True),
+    ("tally_forcer", "Force le tally d'une caméra (programme, preview, repos) ou rend la main au mélangeur (auto).",
+     dict(O(camera={"type": "integer"}, etat={"type": "string", "enum": ["programme", "preview", "repos", "auto"]}), required=["camera", "etat"]), tally_forcer, False),
     ("capture_ecran", "Prend une capture de l'écran pour voir ce qui est affiché (réduite de moitié par défaut).", O(reduite={"type": "boolean"}), capture, True),
     ("notifier", "Affiche une notification sur le bureau.", dict(O(titre={"type": "string"}, message={"type": "string"}), required=["message"]), notifier, False),
     ("ouvrir", "Ouvre un fichier, un dossier ou une adresse web avec l'application par défaut.", dict(O(cible={"type": "string"}), required=["cible"]), ouvrir, False),

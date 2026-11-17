@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Tally XIII
+Comment=Tally des mélangeurs ATEM, vMix et TriCaster sur les téléphones et boîtiers des cadreurs
+Keywords=tally;atem;vmix;tricaster;camera;cadreur;rouge;antenne;preview;
+Exec=xiii-tally
+Icon=xiii-tally
+Terminal=false
+Categories=X-XIII-Suite;
+StartupWMClass=fr.xiii.tally

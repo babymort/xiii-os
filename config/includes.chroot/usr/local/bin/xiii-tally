@@ -1,0 +1,4 @@
+#!/bin/sh
+# TALLY XIII : tableau de bord (et serveur des téléphones). « xiii-tally --serveur » : sans interface.
+if [ "$1" = "--serveur" ]; then exec python3 -c 'import sys; sys.path.insert(0, "/usr/lib/xiii"); import runpy; runpy.run_module("xiii.tally_moteur", run_name="__main__")'; fi
+exec python3 -c 'import sys; sys.path.insert(0, "/usr/lib/xiii"); from xiii.tally import main; main()' "$@"

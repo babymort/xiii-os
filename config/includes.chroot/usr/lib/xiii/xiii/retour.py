@@ -38,7 +38,7 @@ class Retour(Gtk.Application):
         return 0
 
     def construire(self):
-        cfg = config.charger()
+        cfg = config.charger(); couleurs(cfg)
         css = Gtk.CssProvider(); css.load_from_string(theme.css_parametres(cfg) + """
             .retour { background: #000; }
             .surimp { background: alpha(#000, .55); border-radius: 12px; padding: 8px 14px; color: #fff; }
