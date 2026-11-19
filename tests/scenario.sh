@@ -66,7 +66,7 @@ curl -s http://127.0.0.1:8790/api/etat > /out/tally-etat.json; curl -s http://12
 pkill -f fr.xiii.testtel; pkill -f "xiii.tally"; sleep 0.5
 xiii-retour > /out/retour.log 2>&1 & sleep 4; grim /out/x-retour.png; pkill -f "xiii.retour"; sleep 0.5
 # Phase 11 — thèmes de la suite
-for th in cyber term w2k xp mac9 gb regie soleil rainbow sepia sobrec perso; do
+for th in cyber gb sepia; do
   python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config, theme; c=config.charger(); c['theme']='$th'; config.modifier(theme='$th', fond=theme.fond_assorti(c))"
   sleep 2.5; xiii-ctl demarrer; sleep 1.8; grim /out/t-$th.png; xiii-ctl fermer; sleep 0.4
 done
@@ -78,6 +78,29 @@ sleep 3; xiii-ctl demarrer; sleep 2; grim /out/c-clair-menu.png; xiii-ctl fermer
 xiii-ctl centre; sleep 2; grim /out/c-clair-centre.png; xiii-ctl fermer
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(theme="sobre", accent="#f0b378", barre_alignement="gauche")'
 sleep 3; xiii-ctl demarrer; sleep 2; grim /out/c-sobre-menu.png; xiii-ctl fermer
+# Phase 11b — finitions
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(theme="sombre", accent="#f0b378", barre_alignement="centre")'
+sleep 2
+mkdir -p /root/Images; cp /usr/share/xiii/wallpapers/xiii-sombre.png /root/Images/plateau.png 2>/dev/null
+printf 'CONDUCTEUR\n10:00 Ouverture\n10:05 Plateau\n' > /root/Images/notes.txt
+mousepad /root/Images/notes.txt >/dev/null 2>&1 & sleep 3
+imv /root/Images/plateau.png >/dev/null 2>&1 & sleep 3
+sleep 2; xiii-ctl vue; sleep 2; grim /out/f-vue-miniatures.png; xiii-ctl fermer; sleep 0.5
+ls -la /root/.cache/xiii/miniatures > /out/miniatures.txt 2>&1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(barre_style="onglets")'
+sleep 2; grim /out/f-barre-onglets.png
+gdbus emit --session --object-path /fr/xiii/progres --signal com.canonical.Unity.LauncherEntry.Update "application://org.xfce.mousepad.desktop" "{'progress': <0.6>, 'progress-visible': <true>}" 2>>/out/f.log
+sleep 1; grim /out/f-barre-progres.png
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(barre_style="icones")'
+sleep 1.5; grim /out/f-barre-progres-icones.png
+wtype -M logo -k space -m logo; sleep 2; grim /out/f-super-espace.png; xiii-ctl fermer; sleep 0.5
+xiii-apercu /root/Images/plateau.png >> /out/f.log 2>&1 & sleep 3; grim /out/f-apercu-image.png; pkill -f xiii.apercu; sleep 0.5
+xiii-apercu /root/Images/notes.txt >> /out/f.log 2>&1 & sleep 3; grim /out/f-apercu-texte.png; pkill -f xiii.apercu; sleep 0.5
+xiii-timecode >> /out/f.log 2>&1 & sleep 3; grim /out/f-timecode.png; pkill -f xiii.ltc; sleep 0.5
+xiii-ctl widgets; sleep 3; grim /out/f-widgets.png; wtype -k Page_Down; sleep 1; grim /out/f-widgets-bas.png; xiii-ctl fermer; sleep 0.5
+for pg in acquisition outilsprod barre; do xiii-parametres --page $pg >> /out/param.log 2>&1 & sleep 4; grim /out/f-p-$pg.png; pkill -f xiii.parametres; sleep 0.5; done
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import theme; [print(k, theme.SKINS[k].get("police") if hasattr(theme,"SKINS") else "") for k in ("cyber","gb","sepia")]' >> /out/f.log 2>&1
+pkill mousepad; pkill imv
 cp /root/.config/xiii/reglages.json /out/ 2>/dev/null
 labwc --exit
 # relance

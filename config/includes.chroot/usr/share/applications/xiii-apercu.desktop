@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Aperçu rapide
+Comment=Voir un fichier sans l'ouvrir
+Exec=xiii-apercu %f
+Icon=view-reveal
+NoDisplay=true
+Categories=Utility;
+StartupWMClass=fr.xiii.apercu

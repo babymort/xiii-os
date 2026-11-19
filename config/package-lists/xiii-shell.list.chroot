@@ -25,3 +25,4 @@ deja-dup
 timeshift
 esptool
 python3-serial
+libltc11

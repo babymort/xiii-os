@@ -1,10 +1,282 @@
 [
- {"motifs": ["*steam*"], "note": "Steam existe en version Linux native, préinstallée avec OS XIII : préférez-la (jeux Windows via Proton)."},
- {"motifs": ["*epic*games*", "*gog*galaxy*", "*battle*net*", "*ubisoft*", "*ea app*", "*origin*"], "note": "Lanceur de jeux : fonctionne en général, mais les jeux protégés par certains anti-triche peuvent refuser de démarrer.", "composants": ["vcrun2022", "corefonts"]},
- {"motifs": ["*photoshop*", "*illustrator*", "*premiere*", "*after*effects*", "*lightroom*", "*creative*cloud*"], "note": "Les logiciels Adobe récents fonctionnent mal sous Linux. Alternatives conseillées : GIMP, Krita, Inkscape, DaVinci Resolve, Kdenlive."},
- {"motifs": ["*office*", "*word*", "*excel*", "*powerpoint*"], "note": "Microsoft Office récent fonctionne mal sous Wine : utilisez LibreOffice ou Office en ligne. Office 2010-2016 peut fonctionner.", "composants": ["corefonts"]},
- {"motifs": ["*vmix*"], "note": "vMix nécessite l'accès direct à la carte graphique (DirectX 11) : fonctionnement non garanti. MELANGO XIII est l'alternative de la suite.", "composants": ["vcrun2022", "dotnet48", "d3dcompiler_47"]},
- {"motifs": ["*resolume*", "*obs*"], "note": "Une version Linux native existe peut-être (OBS Studio l'est) : vérifiez avant d'installer la version Windows."},
- {"motifs": ["*notepad++*", "*7z*", "*7-zip*", "*vlc*", "*irfanview*", "*winrar*", "*foobar*", "*audacity*"], "note": "Fonctionne très bien sous OS XIII."},
- {"motifs": ["*companion*", "*bitfocus*"], "note": "Bitfocus Companion existe en version Linux : elle sera proposée dans le Centre de logiciels XIII."}
+ {
+  "motifs": [
+   "*steam*"
+  ],
+  "note": "Steam existe en version Linux native, préinstallée avec OS XIII : préférez-la (jeux Windows via Proton)."
+ },
+ {
+  "motifs": [
+   "*atem*software*",
+   "*atem*setup*",
+   "*blackmagic*atem*",
+   "*atem*switcher*",
+   "atem*.exe"
+  ],
+  "note": "ATEM Software Control : le panneau fonctionne souvent sous Wine, mais la mise à jour du firmware par USB n'est pas garantie. Pour le tally, utilisez Tally XIII (natif).",
+  "composants": [
+   "vcrun2022",
+   "corefonts"
+  ]
+ },
+ {
+  "motifs": [
+   "*hyperdeck*",
+   "*videohub*",
+   "*blackmagic*videohub*"
+  ],
+  "note": "Logiciels de contrôle Blackmagic par réseau : fonctionnent en général. Les mises à jour par USB ne sont pas garanties.",
+  "composants": [
+   "vcrun2022"
+  ]
+ },
+ {
+  "motifs": [
+   "*davinci*",
+   "*resolve*"
+  ],
+  "note": "DaVinci Resolve existe en version Linux native (site Blackmagic) : préférez-la, la version Windows ne fonctionne pas sous Wine.",
+  "composants": []
+ },
+ {
+  "motifs": [
+   "*tricaster*",
+   "*livecontrol*",
+   "*newtek*",
+   "*vizrt*"
+  ],
+  "note": "Logiciels TriCaster / LiveControl : le contrôle à distance peut fonctionner ; pour le tally, Tally XIII lit le TriCaster directement.",
+  "composants": [
+   "vcrun2022",
+   "dotnet48"
+  ]
+ },
+ {
+  "motifs": [
+   "*ndi*tools*",
+   "*ndi*studio*monitor*",
+   "*ndi*screen*capture*"
+  ],
+  "note": "NDI Tools n'existe pas sous Linux et fonctionne mal sous Wine : utilisez Retour plateau (moniteur NDI) et NDI XIII, intégrés à OS XIII.",
+  "composants": []
+ },
+ {
+  "motifs": [
+   "*wirecast*",
+   "*xsplit*",
+   "*streamlabs*"
+  ],
+  "note": "Logiciel de direct gourmand en carte graphique : fonctionnement incertain. Alternatives : OBS Studio (natif) ou MELANGO XIII.",
+  "composants": [
+   "vcrun2022",
+   "dotnet48",
+   "d3dcompiler_47"
+  ]
+ },
+ {
+  "motifs": [
+   "*avid*",
+   "*media*composer*",
+   "*pro*tools*"
+  ],
+  "note": "Avid Media Composer / Pro Tools ne fonctionnent pas sous Wine (pilotes et protection). Alternatives : DaVinci Resolve (natif), Ardour, Reaper (natif).",
+  "composants": []
+ },
+ {
+  "motifs": [
+   "*reaper*"
+  ],
+  "note": "REAPER existe en version Linux native (reaper.fm) : préférez-la.",
+  "composants": []
+ },
+ {
+  "motifs": [
+   "*capture*one*",
+   "*affinity*"
+  ],
+  "note": "Fonctionnement partiel sous Wine. Alternatives natives : darktable, RawTherapee, Krita, Inkscape.",
+  "composants": [
+   "vcrun2022",
+   "dotnet48"
+  ]
+ },
+ {
+  "motifs": [
+   "*lightkey*",
+   "*grandma*",
+   "*onyx*",
+   "*freestyler*",
+   "*qlc*"
+  ],
+  "note": "Logiciels lumière : les consoles USB/DMX sont rarement reconnues via Wine. QLC+ existe en version Linux native.",
+  "composants": [
+   "vcrun2022",
+   "corefonts"
+  ]
+ },
+ {
+  "motifs": [
+   "*dante*controller*",
+   "*dante*virtual*"
+  ],
+  "note": "Dante Controller fonctionne parfois sous Wine ; Dante Virtual Soundcard non (pilote audio Windows).",
+  "composants": [
+   "vcrun2022",
+   "dotnet48"
+  ]
+ },
+ {
+  "motifs": [
+   "*teamviewer*",
+   "*anydesk*",
+   "*rustdesk*"
+  ],
+  "note": "Ces logiciels existent en version Linux native : préférez-la (Parsec, Moonlight et Sunshine arrivent dans le Centre de logiciels XIII).",
+  "composants": []
+ },
+ {
+  "motifs": [
+   "*zoom*",
+   "*teams*",
+   "*discord*",
+   "*slack*",
+   "*spotify*"
+  ],
+  "note": "Version Linux native ou version web disponible : préférez-la, plus stable que la version Windows.",
+  "composants": []
+ },
+ {
+  "motifs": [
+   "*libreoffice*",
+   "*gimp*",
+   "*inkscape*",
+   "*krita*",
+   "*blender*",
+   "*handbrake*",
+   "*shotcut*",
+   "*kdenlive*"
+  ],
+  "note": "Logiciel libre disponible en version Linux native, plus rapide : installez plutôt la version Linux.",
+  "composants": []
+ },
+ {
+  "motifs": [
+   "*mpc-hc*",
+   "*potplayer*",
+   "*kmplayer*"
+  ],
+  "note": "Fonctionne sous OS XIII ; le lecteur vidéo intégré (mpv) lit déjà presque tous les formats.",
+  "composants": [
+   "vcrun2022"
+  ]
+ },
+ {
+  "motifs": [
+   "*paint.net*",
+   "*paintdotnet*"
+  ],
+  "note": "Paint.NET demande .NET récent : fonctionnement incertain. Alternatives natives : Pinta, Krita, GIMP.",
+  "composants": [
+   "dotnet48"
+  ]
+ },
+ {
+  "motifs": [
+   "*sketchup*",
+   "*autocad*",
+   "*revit*",
+   "*solidworks*",
+   "*fusion*360*"
+  ],
+  "note": "Logiciels de CAO / 3D : fonctionnement partiel ou nul sous Wine. Alternatives natives : FreeCAD, Blender, LibreCAD.",
+  "composants": [
+   "vcrun2022",
+   "dotnet48",
+   "d3dcompiler_47"
+  ]
+ },
+ {
+  "motifs": [
+   "*epic*games*",
+   "*gog*galaxy*",
+   "*battle*net*",
+   "*ubisoft*",
+   "*ea app*",
+   "*origin*"
+  ],
+  "note": "Lanceur de jeux : fonctionne en général, mais les jeux protégés par certains anti-triche peuvent refuser de démarrer.",
+  "composants": [
+   "vcrun2022",
+   "corefonts"
+  ]
+ },
+ {
+  "motifs": [
+   "*photoshop*",
+   "*illustrator*",
+   "*premiere*",
+   "*after*effects*",
+   "*lightroom*",
+   "*creative*cloud*"
+  ],
+  "note": "Les logiciels Adobe récents fonctionnent mal sous Linux. Alternatives conseillées : GIMP, Krita, Inkscape, DaVinci Resolve, Kdenlive."
+ },
+ {
+  "motifs": [
+   "*office*",
+   "*word*",
+   "*excel*",
+   "*powerpoint*"
+  ],
+  "note": "Microsoft Office récent fonctionne mal sous Wine : utilisez LibreOffice ou Office en ligne. Office 2010-2016 peut fonctionner.",
+  "composants": [
+   "corefonts"
+  ]
+ },
+ {
+  "motifs": [
+   "*vmix*"
+  ],
+  "note": "vMix nécessite l'accès direct à la carte graphique (DirectX 11) : fonctionnement non garanti. MELANGO XIII est l'alternative de la suite.",
+  "composants": [
+   "vcrun2022",
+   "dotnet48",
+   "d3dcompiler_47"
+  ]
+ },
+ {
+  "motifs": [
+   "*resolume*",
+   "*obs*"
+  ],
+  "note": "Une version Linux native existe peut-être (OBS Studio l'est) : vérifiez avant d'installer la version Windows."
+ },
+ {
+  "motifs": [
+   "*notepad++*",
+   "*7z*",
+   "*7-zip*",
+   "*vlc*",
+   "*irfanview*",
+   "*winrar*",
+   "*foobar*",
+   "*audacity*"
+  ],
+  "note": "Fonctionne très bien sous OS XIII."
+ },
+ {
+  "motifs": [
+   "*companion*",
+   "*bitfocus*"
+  ],
+  "note": "Bitfocus Companion existe en version Linux : elle sera proposée dans le Centre de logiciels XIII."
+ },
+ {
+  "motifs": [
+   "*setup*.exe",
+   "*install*.exe"
+  ],
+  "note": "Programme d'installation : OS XIII crée un environnement Windows dédié et un raccourci dans le menu Démarrer à la fin.",
+  "composants": []
+ }
 ]

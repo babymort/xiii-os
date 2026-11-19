@@ -1,7 +1,7 @@
 # OS XIII — vérification d'offload : sommes de contrôle (xxHash64, MD5, SHA-256) d'un dossier de rushes,
 # comparaison source ↔ copie, rapport texte + MHL, comme BACKUPO XIII. Clic droit sur un dossier dans Fichiers.
 # Application développée par Matthieu Lamotte.
-import os, sys, time, hashlib, threading, datetime, socket, getpass
+import os, sys, time, hashlib, threading, datetime, socket, getpass, json
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, Gio
@@ -23,6 +23,20 @@ def hacher(chemin, algo, avance):
             if not b: break
             h.update(b); avance(len(b))
     return h.hexdigest()
+
+HISTO = os.path.expanduser("~/.local/share/xiii/offload.json")
+
+def historique():
+    try: return json.load(open(HISTO))
+    except Exception: return []
+
+def historiser(e):
+    """Mémorise les dernières vérifications (widget « Offload » du tableau de widgets)."""
+    try:
+        h = [e] + historique()
+        os.makedirs(os.path.dirname(HISTO), exist_ok=True); json.dump(h[:30], open(HISTO, "w"), ensure_ascii=False, indent=1)
+    except OSError:
+        pass
 
 def lister(racine):
     if os.path.isfile(racine): return [racine]
@@ -82,7 +96,7 @@ class Somme(Gtk.Application):
             fait[0] += n
             if int(fait[0] / total * 200) != int((fait[0] - n) / total * 200):
                 d = time.time() - t0 or 1
-                GLib.idle_add(lambda f=fait[0], d=d: (self.barre.set_fraction(f / total), self.barre.set_text("%d %% · %s/s" % (100 * f / total, S.humain(f / d))), False)[2])
+                GLib.idle_add(lambda f=fait[0], d=d: (self.barre.set_fraction(f / total), self.barre.set_text("%d %% · %s/s" % (100 * f / total, S.humain(f / d))), S.progres("xiii-somme.desktop", f / total), False)[3])
         ok = ko = manq = 0; lignes = []
         for f in fichiers:
             rel = os.path.relpath(f, src) if os.path.isdir(src) else os.path.basename(f)
@@ -116,8 +130,10 @@ class Somme(Gtk.Application):
         except OSError as e:
             rapport = "Rapport non enregistré (%s)." % e
         bilan = ("%d fichier(s) vérifié(s)" % len(lignes)) if not cop else ("%d identique(s) · %d différent(s) · %d manquant(s)" % (ok, ko, manq))
+        historiser({"date": datetime.datetime.now().isoformat(timespec="seconds"), "source": src, "copie": cop, "algo": algo,
+                    "fichiers": len(lignes), "octets": sum(t for _, t, _, _ in lignes), "ok": ok, "differents": ko, "manquants": manq, "rapport": os.path.join(d, nom + ".mhl")})
         def fin():
-            self.go.set_sensitive(True); self.barre.set_fraction(1)
+            self.go.set_sensitive(True); self.barre.set_fraction(1); S.progres("xiii-somme.desktop", None)
             self.etat.set_text(("✓ " if not ko and not manq else "⚠ ") + bilan + " — " + rapport)
             S.detacher(["notify-send", "-a", "Vérification d'offload", "-i", "drive-harddisk", "Vérification terminée", bilan])
             return False

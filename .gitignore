@@ -1,9 +1,11 @@
-.build/
-cache/
-chroot/
-binary/
 *.iso
 *.log
+*.pyc
+.build/
+__pycache__/
+binary/
+cache/
+chroot/
 config/binary
 config/bootstrap
 config/chroot

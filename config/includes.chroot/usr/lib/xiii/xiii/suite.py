@@ -17,7 +17,7 @@ try:
     from gi.repository import GdkWayland
 except (ValueError, ImportError):
     GdkWayland = None
-from . import config
+from . import config, systeme as S
 
 SYS = "/usr/share/xiii/suite"
 UTIL = os.path.join(GLib.get_user_data_dir(), "xiii", "suite")
@@ -331,8 +331,17 @@ class Suite(Gtk.Application):
         def fini(d):
             f, projet = info if info else (None, None)
             if f: self.notifier("Enregistré dans " + ("le projet « %s »" % projet if projet else "Téléchargements"), os.path.basename(f), os.path.dirname(f))
+        try:
+            u = dl.get_web_view().get_uri() if dl.get_web_view() else ""
+            oid = re.sub(r"^.*/([a-z0-9_-]+)\.html.*$", r"\1", u) if ".html" in (u or "") else None
+        except Exception:
+            oid = None
+        did = "xiii-suite-%s.desktop" % oid if oid else None
+        if did:
+            dl.connect("notify::estimated-progress", lambda d, *_: S.progres(did, d.get_estimated_progress()))
+            dl.connect("failed", lambda *_: S.progres(did, None))
         dl.connect("decide-destination", destination)
-        dl.connect("finished", fini)
+        dl.connect("finished", lambda d: (did and S.progres(did, None), fini(d)))
 
     def notifier(self, titre, corps, dossier=None):
         n = Gio.Notification.new(titre); n.set_body(corps)

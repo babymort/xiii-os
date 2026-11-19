@@ -32,8 +32,25 @@ class VueTaches:
         self.corps = boite(True, 18, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
         ov.add_overlay(self.corps)
 
+    def nb_bureaux(self):
+        try:
+            import re
+            t = open(os.path.expanduser("~/.config/labwc/rc.xml")).read()
+            return max(1, min(6, int(re.search(r'<desktops number="(\d+)"', t).group(1))))
+        except Exception:
+            return 1
+
+    def envoyer(self, f, n):
+        """Glisser une fenêtre sur un bureau : on l'active puis on déclenche le raccourci labwc SendToDesktop."""
+        self.fermer(); self.shell.fenetres.activer(f)
+        GLib.timeout_add(250, lambda: (S.detacher(["wtype", "-M", "logo", "-M", "alt", "-M", "shift", "-k", str(n), "-m", "shift", "-m", "alt", "-m", "logo"]), False)[1])
+
+    def aller(self, n):
+        self.fermer()
+        GLib.timeout_add(150, lambda: (S.detacher(["wtype", "-M", "logo", "-M", "alt", "-k", str(n), "-m", "alt", "-m", "logo"]), False)[1])
+
     def ouvrir(self):
-        vider(self.corps)
+        vider(self.corps); self.shell.vue_ouverte = True
         t = label("Fenêtres ouvertes", "panneau-titre", xalign=0.5); self.corps.append(t)
         fen = self.shell.fenetres.liste() if self.shell.fenetres and self.shell.fenetres.ok else []
         g = Gtk.FlowBox(max_children_per_line=4, min_children_per_line=min(4, max(1, len(fen))), selection_mode=Gtk.SelectionMode.NONE,
@@ -50,19 +67,44 @@ class VueTaches:
             h.append(bouton(None, "x", "plat", taille=14, tip="Fermer", rappel=lambda f=f: (self.shell.fenetres.fermer(f), GLib.timeout_add(250, lambda: (self.ouvrir(), False)[1]))))
             c.append(h)
             mid = boite(True, 6, valign=Gtk.Align.CENTER, vexpand=True)
-            mid.append(gicon_image(a.get_icon(), 56) if a else ico("app-window", 56, "c"))
+            mp = self.shell.miniatures.chemin(f) if getattr(self.shell, "miniatures", None) else None
+            if mp:
+                pic = Gtk.Picture.new_for_filename(mp); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(240, 120); pic.add_css_class("miniature"); mid.append(pic)
+            else:
+                mid.append(gicon_image(a.get_icon(), 56) if a else ico("app-window", 56, "c"))
             mid.append(label(f.titre or "", "attenue", "petit", xalign=0.5, ellipsize=True, largeur=30))
             if f.reduite: mid.append(label("réduite", "accent", "petit", xalign=0.5))
             c.append(mid)
             gc = Gtk.GestureClick(); gc.connect("released", lambda *_a, f=f: (self.fermer(), self.shell.fenetres.activer(f))); c.add_controller(gc)
+            ds = Gtk.DragSource(actions=Gdk.DragAction.MOVE)
+            ds.connect("prepare", lambda *_a, f=f: Gdk.ContentProvider.new_for_value(str(f.id)))
+            c.add_controller(ds)
             g.append(c)
         self.corps.append(g)
-        aide = label("Clic : aller à la fenêtre · ✕ : fermer · Super + Ctrl + ← / → : changer de bureau · Échap : quitter", "attenue", "petit", xalign=0.5)
+        n = self.nb_bureaux()
+        if n > 1 and fen:
+            rang = boite(False, 12, halign=Gtk.Align.CENTER)
+            for i in range(1, n + 1):
+                p = boite(True, 4, "panneau", "bureau-puce"); p.set_size_request(150, 70)
+                p.append(ico("layout-dashboard", 20, "c")); p.append(label("Bureau %d" % i, "gras", "petit", xalign=0.5))
+                dt = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
+                def depose(cible, val, x, y, i=i):
+                    f = next((w for w in fen if str(w.id) == val), None)
+                    if f: self.envoyer(f, i)
+                    return bool(f)
+                dt.connect("drop", depose)
+                dt.connect("enter", lambda *_a, p=p: (p.add_css_class("survol-depot"), Gdk.DragAction.MOVE)[1])
+                dt.connect("leave", lambda *_a, p=p: p.remove_css_class("survol-depot"))
+                p.add_controller(dt)
+                gp = Gtk.GestureClick(); gp.connect("released", lambda *_a, i=i: self.aller(i)); p.add_controller(gp)
+                rang.append(p)
+            self.corps.append(rang)
+        aide = label("Clic : aller à la fenêtre · glisser sur un bureau : l'y déplacer · ✕ : fermer · Échap : quitter", "attenue", "petit", xalign=0.5)
         self.corps.append(aide)
         self.w.present()
 
     def fermer(self):
-        self.w.set_visible(False)
+        self.w.set_visible(False); self.shell.vue_ouverte = False
 
 # ================================================================================ DISPOSITIONS (snap layouts)
 # régions définies dans rc.xml (labwc) et déclenchées par Super+Alt+F1…F12

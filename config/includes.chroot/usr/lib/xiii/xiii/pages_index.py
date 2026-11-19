@@ -63,6 +63,7 @@ PAGES = [
     ("xiii", "Suite XIII", "zap", None, "Mode tournage, météo, réglages partagés", "tournage xiii suite"),
     ("suite", "Outils de la Suite XIII", "layout-grid", "xiii", "Hors ligne, fichiers .xiii.json, envoi à DOSSIER, mise à jour", "suite outils conduco syno plano dossier encodo melango graphico hors ligne xiii json"),
     ("ndi", "NDI", "radio-tower", "xiii", "Runtime NDI, module NDI XIII, retour plateau", "ndi retour plateau moniteur source graphico melango stream rtmp srt tally"),
+    ("acquisition", "Cartes d'acquisition", "video", "xiii", "Blackmagic DeckLink, boîtiers HDMI USB, caméra virtuelle", "decklink blackmagic ultrastudio intensity carte acquisition capture hdmi sdi webcam v4l2 camera virtuelle desktop video"),
     ("projet", "Projet XIII actif", "folder-kanban", "xiii", "Dossiers du projet en cours, affiché dans la barre", "projet dossier rushes tournage"),
     ("outilsprod", "Outils de production", "hash", "xiii", "Timecode, vérification d'offload, santé du PC", "timecode checksum offload somme controle mhl sante"),
     ("meteo", "Météo", "cloud-sun", "xiii", "Ville affichée dans la barre des tâches", "meteo ville"),

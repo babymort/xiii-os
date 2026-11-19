@@ -29,4 +29,18 @@ for r in rel:
 else:
     raise SystemExit("aucune version Linux trouvée")
 PY
+# --- Extension Firefox « Download with Plexo » (addons.mozilla.org) : les téléchargements du navigateur passent par Plexo
+if dpkg -s plexo >/dev/null 2>&1 || [ -e /opt/plexo/Plexo.AppImage ] || ls /usr/share/applications/*lexo*.desktop >/dev/null 2>&1; then
+python3 - <<'PY'
+import json, os
+f = "/etc/firefox/policies/policies.json"; os.makedirs(os.path.dirname(f), exist_ok=True)
+try: d = json.load(open(f))
+except Exception: d = {}
+pol = d.setdefault("policies", {}); ext = pol.setdefault("ExtensionSettings", {})
+ext["extension@getplexo.app"] = {"installation_mode": "normal_installed",
+    "install_url": "https://addons.mozilla.org/firefox/downloads/latest/download-with-plexo/latest.xpi"}
+json.dump(d, open(f, "w"), indent=2)
+print("Extension Firefox Plexo : politique installée")
+PY
+fi
 apt-get clean

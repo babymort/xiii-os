@@ -164,7 +164,7 @@ class Parametres(Gtk.Application):
         if self.histo and p[3]:
             self.fil.append(bouton(None, "chevron-left", "plat", taille=18, tip="Retour", rappel=self.retour))
         if p[3]:
-            pb = Gtk.Button(); pb.add_css_class("fil-lien"); pb.set_child(label(PAR_CLE[p[3]][1]))
+            pb = Gtk.Button(); pb.add_css_class("fil-lien"); pb.set_child(label(PAR_CLE[p[3]][1], "fil-txt"))
             pb.connect("clicked", lambda *_: self.aller(p[3])); self.fil.append(pb)
             self.fil.append(label("›", "page-titre", "attenue"))
         self.fil.append(label(p[1], "page-titre"))
@@ -556,7 +556,7 @@ class Parametres(Gtk.Application):
         c.append(reglage("timer", "Délai avant répétition", "", droite=dim(curseur(int(delay), lambda v: rc_ecrire(lambda r: setattr(rc_noeud(r, "keyboard/repeatDelay"), "text", str(int(v)))), 150, 1000, 10, 500), 260)))
         c.append(reglage("gauge", "Vitesse de répétition", "", droite=dim(curseur(int(rate), lambda v: rc_ecrire(lambda r: setattr(rc_noeud(r, "keyboard/repeatRate"), "text", str(int(v)))), 5, 60, 1, 500), 260)))
         c.append(groupe_titre("Raccourcis clavier d'OS XIII"))
-        for k, d in (("Super", "Menu Démarrer"), ("Super + A", "Centre de contrôle"), ("Super + N", "Volet de notifications"), ("Super + I", "Paramètres"),
+        for k, d in (("Super", "Menu Démarrer"), ("Super + A", "Centre de contrôle"), ("Super + N", "Volet de notifications"), ("Super + I", "Paramètres"), ("Super + Espace", "Rechercher (applications, fichiers, réglages, calcul, Claude)"),
                      ("Super + E", "Explorateur de fichiers"), ("Super + L", "Verrouiller"), ("Super + Maj + S", "Capture d'une zone"), ("Impr. écran", "Capture de l'écran entier"),
                      ("Super + V", "Historique du presse-papiers"), ("Super + .", "Émojis"), ("Super + Tab", "Vue des tâches"), ("Super + Z", "Dispositions des fenêtres"),
                      ("Super + D", "Afficher le bureau"), ("Super + W", "Widgets"), ("Super + ← / →", "Ancrer la fenêtre à gauche / droite"), ("Super + ↑", "Agrandir"),
@@ -855,7 +855,8 @@ class Parametres(Gtk.Application):
         plexo = shutil.which("plexo") or os.path.exists("/opt/plexo/Plexo.AppImage") or os.path.exists("/usr/share/applications/plexo.desktop")
         c.append(reglage("download", "Plexo", "Découpe chaque téléchargement en morceaux récupérés sur toutes les connexions à la fois (Wi-Fi + câble + téléphone) : un seul gros fichier va plus vite",
                          droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("plexo")) if plexo else bouton("Site", None, "fantome", rappel=lambda: S.detacher(["xdg-open", "https://getplexo.app/"]))))
-        c.append(info("La répartition cumule les débits quand plusieurs connexions tournent (plusieurs téléchargements, envois, flux). Un seul téléchargement reste sur un lien : utilisez Plexo pour le découper."))
+        c.append(info("La répartition cumule les débits quand plusieurs connexions tournent (plusieurs téléchargements, envois, flux). Un seul téléchargement reste sur un lien : utilisez Plexo pour le découper. "
+                      "L'extension Firefox « Download with Plexo » est installée : les téléchargements du navigateur passent par Plexo."))
 
     def _duo(self, conf, recharger=True):
         from . import reseau as R
@@ -1024,6 +1025,8 @@ class Parametres(Gtk.Application):
         c.append(groupe_titre("Comportement"))
         c.append(reglage("panel-bottom", "Alignement", "Position du bouton Démarrer et des applications",
                          droite=deroulant([("centre", "Centré"), ("gauche", "À gauche")], cfg["barre_alignement"], lambda v: self.regler(barre_alignement=v))))
+        c.append(reglage("app-window", "Style de la barre des tâches", "Icônes seules (Windows 11) ou onglets avec le titre de la fenêtre",
+                         droite=deroulant([("icones", "Icônes"), ("onglets", "Onglets")], cfg.get("barre_style", "icones"), lambda v: self.regler(barre_style=v))))
         c.append(groupe_titre("Applications épinglées"))
         self.liste_epingles(c, "epingles")
 
@@ -1325,6 +1328,69 @@ class Parametres(Gtk.Application):
             for d in exist:
                 c.append(reglage("folder", d, None, droite=bouton("Actif" if d == cur else "Activer", None, "pilule" if d == cur else "fantome", rappel=lambda d=d: activer(d))))
 
+    def p_acquisition(self, c, cle):
+        from . import acquisition as A
+        bm = A.cartes_blackmagic() if not S.DEMO else ["Blackmagic Design DeckLink Mini Recorder 4K"]
+        pil = A.pilote_blackmagic() or S.DEMO
+        h = boite(False, 16, "hero"); h.append(ico("video", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label("Cartes d'acquisition", "hero-grand"))
+        v.append(label(" · ".join(bm) if bm else "Aucune carte Blackmagic détectée", "attenue", wrap=True)); h.append(v); c.append(h)
+        c.append(groupe_titre("Entrées vidéo reconnues"))
+        per = A.peripheriques_video() if not S.DEMO else [("/dev/video0", "USB Video: HDMI Capture"), ("/dev/video42", "Carte d acquisition (OS XIII)")]
+        if not per: c.append(info("Aucune entrée vidéo. Les boîtiers HDMI → USB (UVC) et les webcams fonctionnent sans pilote : branchez-les, ils apparaissent ici."))
+        for d, n in per:
+            c.append(reglage("webcam" if d != A.VIRTUELLE else "cast", n, d + ("  · caméra virtuelle d'OS XIII" if d == A.VIRTUELLE else "  · prête à l'emploi"), droite=label("✓", "accent")))
+        c.append(groupe_titre("Blackmagic DeckLink / UltraStudio / Intensity"))
+        if not pil:
+            c.append(info("Le pilote Blackmagic « Desktop Video » est gratuit mais ne peut pas être livré avec OS XIII. "
+                          "1. Téléchargez « Desktop Video pour Linux » sur le site de Blackmagic Design (archive .tar). "
+                          "2. Choisissez l'archive ci-dessous : OS XIII installe le pilote et ses dépendances, puis demande un redémarrage."))
+            c.append(reglage("external-link", "Page de téléchargement Blackmagic", "blackmagicdesign.com › Support › Desktop Video",
+                             droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher(["xdg-open", "https://www.blackmagicdesign.com/support/family/capture-and-playback"]))))
+            def choisir():
+                d = Gtk.FileDialog(title="Archive Desktop Video (Linux)")
+                ff = Gtk.FileFilter(); ff.set_name("Archive Desktop Video"); [ff.add_pattern(p) for p in ("*.tar", "*.tar.gz", "*.tgz", "*.tar.xz")]
+                st = Gio.ListStore.new(Gtk.FileFilter); st.append(ff); d.set_filters(st)
+                def fini(dlg, res):
+                    try: f = dlg.open_finish(res).get_path()
+                    except Exception: return
+                    self.toast("Installation du pilote Blackmagic… (quelques minutes)")
+                    S.en_fond(lambda: subprocess.run(["pkexec", "xiii-acquisition", "desktop-video", f], capture_output=True, text=True),
+                              lambda r: (self.toast("Pilote installé : redémarrez le PC" if r.returncode == 0 else (r.stdout.strip().splitlines() or ["Installation annulée ou impossible"])[-1]), self.aller("acquisition", False)))
+                d.open(self.win, None, fini)
+            c.append(reglage("download", "Installer le pilote Desktop Video", "Depuis l'archive téléchargée chez Blackmagic", droite=bouton("Choisir l'archive…", None, "pilule", rappel=choisir)))
+        else:
+            c.append(reglage("check", "Pilote Desktop Video", "Installé", droite=bouton("Désinstaller", None, "plat", "danger",
+                             rappel=lambda: S.en_fond(lambda: subprocess.run(["pkexec", "xiii-acquisition", "retirer-desktop-video"]).returncode, lambda r: self.aller("acquisition", False)))))
+            if os.path.exists("/usr/bin/BlackmagicDesktopVideoSetup"):
+                c.append(reglage("settings", "Réglages Blackmagic", "Format vidéo, connecteur d'entrée, mise à jour du firmware", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher("BlackmagicDesktopVideoSetup"))))
+        c.append(groupe_titre("Pont vers la caméra virtuelle"))
+        c.append(info("MELANGO XIII, OBS, les visioconférences et les navigateurs ne savent lire que des webcams. Le pont recopie l'entrée DeckLink "
+                      "dans une caméra virtuelle « Carte d'acquisition (OS XIII) »."))
+        if not A.camera_virtuelle() and not S.DEMO:
+            c.append(reglage("cast", "Caméra virtuelle", "Module v4l2loopback (installé à la demande)",
+                             droite=bouton("Installer", None, "pilule", rappel=lambda: (self.toast("Installation de la caméra virtuelle…"),
+                                           S.en_fond(lambda: subprocess.run(["pkexec", "xiii-acquisition", "camera-virtuelle"], capture_output=True).returncode,
+                                                     lambda r: (self.toast("Caméra virtuelle prête" if r == 0 else "Installation annulée ou impossible"), self.aller("acquisition", False)))))))
+        elif not pil:
+            c.append(info("Installez d'abord le pilote Desktop Video pour activer le pont."))
+        else:
+            n = max(1, A.nb_entrees_decklink()) if not S.DEMO else 2
+            etat = {"entree": str(self.cfg.get("decklink_entree", 0)), "mode": self.cfg.get("decklink_mode", "auto")}
+            c.append(reglage("plug", "Entrée de la carte", None, droite=deroulant([(str(i), "Entrée %d" % (i + 1)) for i in range(n)], etat["entree"],
+                             lambda v: (etat.__setitem__("entree", v), self.regler(decklink_entree=int(v))))))
+            c.append(reglage("film", "Format du signal", None, droite=deroulant(A.MODES, etat["mode"], lambda v: (etat.__setitem__("mode", v), self.regler(decklink_mode=v)))))
+            actif = A.pont_actif() or (S.DEMO and False)
+            def basculer(on):
+                if on:
+                    if not A.gst_decklink(): self.toast("Module GStreamer DeckLink absent"); return
+                    A.pont_demarrer(int(etat["entree"]), etat["mode"]); self.toast("Pont actif : choisissez « Carte d'acquisition (OS XIII) » comme caméra")
+                else:
+                    A.pont_arreter()
+                self.regler(decklink_pont=on)
+            c.append(reglage("cast", "Envoyer la carte vers la caméra virtuelle", "Relancé automatiquement à l'ouverture de session",
+                             droite=interrupteur(bool(actif), basculer)))
+
     def p_outilsprod(self, c, cle):
         cfg = self.cfg
         c.append(groupe_titre("Horloge timecode"))
@@ -1332,7 +1398,10 @@ class Parametres(Gtk.Application):
                          droite=interrupteur(cfg.get("timecode", False), lambda on: self.regler(timecode=on))))
         c.append(reglage("film", "Images par seconde", None, droite=deroulant([(str(f), "%s i/s" % f) for f in (24, 25, 30, 50, 60)], str(cfg.get("timecode_fps", 25)),
                                                                               lambda v: self.regler(timecode_fps=int(v)))))
-        c.append(info("Pour caler plusieurs PC d'un plateau : activez « Régler l'heure automatiquement » (Heure et langue) sur chacun. Entrée LTC : à venir."))
+        c.append(info("Pour caler plusieurs PC d'un plateau : activez « Régler l'heure automatiquement » (Heure et langue) sur chacun."))
+        c.append(groupe_titre("Timecode LTC (entrée audio)"))
+        c.append(reglage("audio-waveform", "Lire le timecode d'une entrée son", "SMPTE LTC venant d'une caméra, d'un enregistreur ou d'un générateur (Tentacle, Deity…) : grand affichage plateau et widget",
+                         droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("xiii-timecode"))))
         c.append(groupe_titre("Vérification d'offload"))
         c.append(reglage("hash", "Vérifier une copie de cartes", "xxHash64 / MD5 / SHA-256, rapport texte + MHL, comme BACKUPO XIII. Aussi au clic droit sur un dossier dans Fichiers.",
                          droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("xiii-somme"))))

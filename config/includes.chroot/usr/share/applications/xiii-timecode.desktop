@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Timecode LTC
+GenericName=Lecteur de timecode
+Comment=Affiche en grand le timecode SMPTE LTC reçu sur une entrée audio
+Exec=xiii-timecode
+Icon=xiii-timecode
+Categories=AudioVideo;Video;X-XIII;
+Keywords=timecode;ltc;smpte;synchro;tournage;
+StartupWMClass=fr.xiii.timecode

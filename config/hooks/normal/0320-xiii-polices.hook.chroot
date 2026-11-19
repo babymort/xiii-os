@@ -1,0 +1,15 @@
+#!/bin/sh
+# Design XIII — polices des thèmes de la suite (licence SIL OFL) : Cyberpunk (Rajdhani, Orbitron, Share Tech Mono),
+# Game Boy (Press Start 2P, Pixelify Sans), Pellicule (Courier Prime). Tahoma (Win 2000 / XP) vient des polices de Wine.
+set -e
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends fonts-courier-prime curl ca-certificates
+D=/usr/share/fonts/truetype/xiii-themes; mkdir -p $D
+B=https://raw.githubusercontent.com/google/fonts/main/ofl
+for f in "orbitron/Orbitron%5Bwght%5D.ttf" "rajdhani/Rajdhani-Regular.ttf" "rajdhani/Rajdhani-Medium.ttf" "rajdhani/Rajdhani-SemiBold.ttf" "rajdhani/Rajdhani-Bold.ttf" \
+         "sharetechmono/ShareTechMono-Regular.ttf" "pressstart2p/PressStart2P-Regular.ttf" "pixelifysans/PixelifySans%5Bwght%5D.ttf"; do
+  n=$(basename "$f" | sed 's/%5B/[/; s/%5D/]/')
+  curl -fsSL --retry 3 -o "$D/$n" "$B/$f" || echo "police indisponible : $f"
+done
+for l in orbitron rajdhani sharetechmono pressstart2p pixelifysans; do curl -fsSL "$B/$l/OFL.txt" -o "$D/OFL-$l.txt" || true; done
+ls -la $D
+fc-cache -f >/dev/null

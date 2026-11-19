@@ -49,7 +49,17 @@ class Shell(Gtk.Application):
             a.connect("activate", getattr(self, "_act_" + nom)); self.add_action(a)
         self.creer_fenetres()
         self.serveur = notifs.Serveur(self.notif_nouvelle, self.notif_fermee)
+        from .miniatures import Miniatures
+        self.miniatures = Miniatures(self); self.progres = {}
         self.fenetres = Gestionnaire(self.maj_taches)
+        self.ecouter_progres()
+        if self.cfg.get("decklink_pont") and not S.DEMO:      # pont DeckLink → caméra virtuelle
+            try:
+                from . import acquisition as A
+                if A.pilote_blackmagic() and A.camera_virtuelle() and not A.pont_actif():
+                    A.pont_demarrer(int(self.cfg.get("decklink_entree", 0)), self.cfg.get("decklink_mode", "auto"))
+            except Exception:
+                pass
         self.zone = tray.Zone(self.maj_zone)
         self.mon = config.surveiller(self.cfg_change)
         self.services(premier=True)
@@ -258,6 +268,7 @@ class Shell(Gtk.Application):
         if not hasattr(self, "taches"): return
         vider(self.taches)
         fen = self.fenetres.liste() if self.fenetres and self.fenetres.ok else []
+        if hasattr(self, "miniatures"): self.miniatures.changement(fen)
         groupes = {}   # id d'appli -> [fenetres]
         info = {}
         for f in fen:
@@ -271,6 +282,24 @@ class Shell(Gtk.Application):
             self.taches.append(self.bouton_tache(cle, a, fs))
         self.maj_titre()
 
+    def ecouter_progres(self):
+        """Progression sous les icônes de la barre (com.canonical.Unity.LauncherEntry, comme Ubuntu / KDE)."""
+        try:
+            from gi.repository import Gio
+            bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        except Exception:
+            return
+        def signal(conn, exp, chemin, iface, nom, params):
+            try:
+                uri, props = params.unpack()
+                did = uri.replace("application://", "")
+                if props.get("progress-visible") is False or ("progress" not in props and "progress-visible" in props): self.progres.pop(did, None)
+                elif "progress" in props: self.progres[did] = float(props["progress"])
+                GLib.idle_add(lambda: (self.maj_taches(), False)[1])
+            except Exception:
+                pass
+        bus.signal_subscribe(None, "com.canonical.Unity.LauncherEntry", "Update", None, None, 0, signal)
+
     def bouton_tache(self, cle, a, fs):
         b = Gtk.Button(); b.add_css_class("tb")
         actif = any(f.active for f in fs)
@@ -278,12 +307,23 @@ class Shell(Gtk.Application):
         v = boite(True, 2, valign=Gtk.Align.CENTER)
         if a: im = gicon_image(a.get_icon(), 26)
         else: im = Gtk.Image.new_from_icon_name((fs[0].app_id if fs else "") or "application-x-executable"); im.set_pixel_size(26)
-        v.append(im)
-        ind = Gtk.Box(halign=Gtk.Align.CENTER); ind.add_css_class("tb-ind")
-        if actif: ind.add_css_class("actif")
-        elif not fs: ind.add_css_class("vide")
-        v.append(ind); b.set_child(v)
         nom = a.get_display_name() if a else (fs[0].titre if fs else "")
+        if self.cfg.get("barre_style") == "onglets" and fs:     # style « onglets » : icône + titre
+            b.add_css_class("tb-onglet")
+            h = boite(False, 8); im.set_pixel_size(20); h.append(im)
+            h.append(label((fs[0].titre if len(fs) == 1 and fs[0].titre else nom) + (" (%d)" % len(fs) if len(fs) > 1 else ""), "petit", ellipsize=True, largeur=18))
+            v.append(h)
+        else:
+            v.append(im)
+        pr = self.progres.get(a.get_id()) if a else None
+        if pr is not None:                                       # progression (somme, téléchargements…)
+            pb = Gtk.ProgressBar(fraction=max(0, min(1, pr))); pb.add_css_class("tb-progres"); v.append(pb)
+        else:
+            ind = Gtk.Box(halign=Gtk.Align.CENTER); ind.add_css_class("tb-ind")
+            if actif: ind.add_css_class("actif")
+            elif not fs: ind.add_css_class("vide")
+            v.append(ind)
+        b.set_child(v)
         b.set_tooltip_text(fs[0].titre if len(fs) == 1 and fs[0].titre else nom + (" — %d fenêtres" % len(fs) if len(fs) > 1 else ""))
         def clic(*_):
             if not fs:
@@ -316,6 +356,9 @@ class Shell(Gtk.Application):
                         c = boite(True, 6, "carte"); c.set_size_request(220, -1)
                         h = boite(False, 8); h.append(gicon_image(a.get_icon(), 16) if a else ico("app-window", 16)); h.append(label(f.titre or nom, "petit", "gras", hexpand=True, ellipsize=True, largeur=28))
                         h.append(bouton(None, "x", "plat", taille=12, role="d", rappel=lambda f=f: (self.fenetres.fermer(f), pop.popdown()))); c.append(h)
+                        mp = self.miniatures.chemin(f) if hasattr(self, "miniatures") else None
+                        if mp:
+                            pic = Gtk.Picture.new_for_filename(mp); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(220, 124); pic.add_css_class("miniature"); c.append(pic)
                         g = Gtk.GestureClick(); g.connect("released", lambda *_x, f=f: (pop.popdown(), self.fenetres.activer(f))); c.add_controller(g)
                         v.append(c)
                     pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); etat["pop"] = pop; pop.popup()
@@ -527,6 +570,7 @@ class Shell(Gtk.Application):
         if profils.courant(ancien)[0] != profils.courant(cfg)[0]: self.appliquer_profil(profils.courant(cfg)[0])
         if hasattr(self, "coins"): self.coins.maj()
         if hasattr(self, "bureau"): self.bureau.maj()
+        if ancien.get("barre_style") != cfg.get("barre_style"): self.maj_taches()
         # icônes teintées : reconstruire
         self.construire_haut(); self.demarrer_timecode(); self.b_cherche.set_child(ico("search", 20)); self.b_vue.set_child(ico("layout-dashboard", 19))
         ov = self.b_cloche.get_child(); ov.set_child(ico("bell", 19))
@@ -782,6 +826,12 @@ class MenuDemarrer:
             b.connect("clicked", lambda _b, f=f: (self.shell.fermer(), apps.ouvrir_fichier(f)))
             self.grille_rec.append(b)
 
+    def avec_apercu(self, b, f):
+        """Ligne de résultat fichier + bouton œil (aperçu rapide sans ouvrir)."""
+        r = boite(False, 4); b.set_hexpand(True); r.append(b)
+        r.append(bouton(None, "eye", "plat", taille=16, role="d", tip="Aperçu rapide", rappel=lambda: (self.shell.fermer(), S.detacher(["xiii-apercu", f]))))
+        return r
+
     def remplir_toutes(self):
         vider(self.grille_cat); vider(self.liste_az)
         for cle, nom, ic, L in apps.par_categorie():
@@ -864,7 +914,7 @@ class MenuDemarrer:
                 b = Gtk.Button(); b.add_css_class("ligne"); b.add_css_class("plat")
                 bx = boite(False, 12); bx.append(gicon_image(apps.icone_fichier(f), 24))
                 v = boite(True, 0); v.append(label(os.path.basename(f))); v.append(label(os.path.dirname(f).replace(os.path.expanduser("~"), "~"), "attenue", "petit", ellipsize=True)); bx.append(v)
-                b.set_child(bx); b.connect("clicked", lambda _b, f=f: (self.shell.fermer(), apps.ouvrir_fichier(f))); self.res.append(b)
+                b.set_child(bx); b.connect("clicked", lambda _b, f=f: (self.shell.fermer(), apps.ouvrir_fichier(f))); self.res.append(self.avec_apercu(b, f))
         if len(q) >= 3 and not S.DEMO:
             maison = os.path.expanduser("~")
             trouves_f = [l for l in S.out(["plocate", "-i", "-l", "40", "--", self.recherche.get_text().strip()], 2).splitlines()
@@ -875,7 +925,7 @@ class MenuDemarrer:
                     b = Gtk.Button(); b.add_css_class("ligne"); b.add_css_class("plat")
                     bx = boite(False, 12); bx.append(gicon_image(apps.icone_fichier(f), 24))
                     v = boite(True, 0); v.append(label(os.path.basename(f))); v.append(label(os.path.dirname(f).replace(maison, "~"), "attenue", "petit", ellipsize=True)); bx.append(v)
-                    b.set_child(bx); b.connect("clicked", lambda _b, f=f: (self.shell.fermer(), apps.ouvrir_fichier(f))); self.res.append(b)
+                    b.set_child(bx); b.connect("clicked", lambda _b, f=f: (self.shell.fermer(), apps.ouvrir_fichier(f))); self.res.append(self.avec_apercu(b, f))
         self.res.append(label("Web et assistant", "section"))
         brut0 = self.recherche.get_text().strip()
         self.res.append(bouton("Demander à Claude : « %s »" % brut0, "sparkles", "ligne", "plat", taille=18,

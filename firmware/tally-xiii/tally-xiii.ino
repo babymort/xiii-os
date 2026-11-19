@@ -6,7 +6,7 @@
 //  rouge = à l'antenne, vert = preview, numéro de caméra en blanc au repos.
 //  Configuration par le câble USB depuis Tally XIII (« Programmer un boîtier ») : une ligne JSON
 //    {"ssid":"…","mdp":"…","serveur":"192.168.1.20:8790","cam":3,"lum":40}
-//  Bouton : appui court = caméra suivante (1 → 9), appui long = luminosité.
+//  Bouton : appui court = caméra suivante (1 → 20), appui long = luminosité. À partir de 10, le numéro défile.
 //  Application développée par Matthieu Lamotte — SUITE XIII / OS XIII.
 // =====================================================================
 #include <WiFi.h>
@@ -48,12 +48,33 @@ void tout(uint8_t r, uint8_t g, uint8_t b) {
   pix.show();
 }
 
+int defil = 0;  // décalage du défilement pour les numéros à deux chiffres
+
+// colonne x (0 = gauche) du numéro n écrit en chiffres de 3 colonnes séparés d'une colonne vide, suivi d'un espace
+uint8_t colonne(int n, int x) {
+  char s[4]; snprintf(s, sizeof s, "%d", n);
+  int L = strlen(s), total = L * 4 + 2;
+  x = ((x % total) + total) % total;
+  int d = x / 4, cx = x % 4;
+  if (d >= L || cx == 3) return 0;
+  uint8_t col = 0;
+  for (int y = 0; y < 5; y++) if (CHIFFRES[s[d] - '0'][y] & (1 << (3 - cx))) col |= 1 << y;
+  return col;
+}
+
 void chiffre(int n, uint8_t r, uint8_t g, uint8_t b) {
   pix.clear();
-  const uint8_t *c = CHIFFRES[n % 10];
-  for (int y = 0; y < 5; y++)
-    for (int x = 0; x < 5; x++)
-      if (c[y] & (1 << (4 - x))) pix.setPixelColor(y * 5 + x, pix.Color(r, g, b));
+  if (n < 10) {
+    const uint8_t *c = CHIFFRES[n % 10];
+    for (int y = 0; y < 5; y++)
+      for (int x = 0; x < 5; x++)
+        if (c[y] & (1 << (4 - x))) pix.setPixelColor(y * 5 + x, pix.Color(r, g, b));
+  } else {  // 10 à 40 : le numéro défile de droite à gauche
+    for (int x = 0; x < 5; x++) {
+      uint8_t col = colonne(n, x + defil);
+      for (int y = 0; y < 5; y++) if (col & (1 << y)) pix.setPixelColor(y * 5 + x, pix.Color(r, g, b));
+    }
+  }
   pix.setPixelColor(0, pix.Color(r, g, b));  // ATOM Lite : sa seule LED reste allumée
   pix.show();
 }
@@ -118,7 +139,7 @@ void bouton() {
   if (!b && bas) {
     bas = false;
     if (millis() - tBouton > 700) lum = lum >= 100 ? 10 : lum + 30;
-    else cam = cam >= 9 ? 1 : cam + 1;
+    else cam = cam >= 20 ? 1 : cam + 1;
     sauver(); affiche = ""; dessiner("repos"); delay(600);
   }
 }
@@ -149,6 +170,8 @@ void loop() {
     } else echecs++;
     e = echecs >= 6 ? "serveur" : etat;
   } else e = echecs >= 6 ? "serveur" : etat;
+  static unsigned long tDefil = 0;
+  if (cam >= 10 && e != "programme" && e != "preview" && millis() - tDefil > 170) { tDefil = millis(); defil++; affiche = ""; }
   if (e != affiche) { affiche = e; dessiner(e); }
   delay(5);
 }

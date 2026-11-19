@@ -37,13 +37,13 @@ SKINS = {
     "w2k": dict(fond="#3a6ea5", panneau="#d4d0c8", carte="#e4e1da", carte2="#d4d0c8", texte="#000000", attenue="#404040", bord="#808080", acc="#0a246a", r=0, plat=True, clair=True, police="Tahoma"),
     "xp": dict(fond="#ece9d8", panneau="#fffffe", carte="#ffffff", carte2="#f4f3ee", texte="#000000", attenue="#555555", bord="#7f9db9", acc="#0a5fd8", r=6, plat=True, clair=True, police="Tahoma"),
     "mac9": dict(fond="#dddddd", panneau="#eeeeee", carte="#f4f4f4", carte2="#e4e4e4", texte="#000000", attenue="#555555", bord="#888888", acc="#3333cc", r=2, plat=True, clair=True),
-    "cyber": dict(fond="#0d0221", panneau="#140533", carte="#1d0a45", carte2="#150638", texte="#e0f7ff", attenue="#8b7fb8", bord="rgba(255,42,109,0.55)", acc="#05d9e8", acc2="#ff2a6d", r=4, verre=True, police="IBM Plex Mono", neon=True),
+    "cyber": dict(fond="#0d0221", panneau="#140533", carte="#1d0a45", carte2="#150638", texte="#e0f7ff", attenue="#8b7fb8", bord="rgba(255,42,109,0.55)", acc="#05d9e8", acc2="#ff2a6d", r=4, verre=True, police="Rajdhani", neon=True),
     "term": dict(fond="#000000", panneau="#030a03", carte="#061206", carte2="#020802", texte="#33ff66", attenue="#1a9e3c", bord="#1f7a35", acc="#33ff66", r=0, plat=True, police="IBM Plex Mono", phosphore=True),
-    "gb": dict(fond="#9bbc0f", panneau="#8bac0f", carte="#9bbc0f", carte2="#8bac0f", texte="#0f380f", attenue="#306230", bord="#0f380f", acc="#0f380f", r=0, plat=True, clair=True, police="IBM Plex Mono", pixel=True),
+    "gb": dict(fond="#9bbc0f", panneau="#8bac0f", carte="#9bbc0f", carte2="#8bac0f", texte="#0f380f", attenue="#306230", bord="#0f380f", acc="#0f380f", r=0, plat=True, clair=True, police="Pixelify Sans", pixel=True),
     "regie": dict(fond="#000000", panneau="#0a0000", carte="#140000", carte2="#0a0000", texte="#ff3b30", attenue="#992018", bord="#5a0f0a", acc="#ff3b30", r=8, plat=True),
     "soleil": dict(fond="#ffffff", panneau="#ffffff", carte="#ffffff", carte2="#f2f2f2", texte="#000000", attenue="#222222", bord="#000000", acc="#0033cc", r=6, plat=True, clair=True, fort=True),
     "rainbow": dict(fond="#1a1033", panneau="#241747", carte="#2e1f5a", carte2="#261a4d", texte="#ffffff", attenue="#bfb2e6", bord="#7d5fd6", acc="#ffd166", r=14, verre=True, arcenciel=True),
-    "sepia": dict(fond="#e9dcc2", panneau="#f4ead6", carte="#fbf5e8", carte2="#eadcbf", texte="#3b2a1a", attenue="#7a6248", bord="#b49a74", acc="#8a4b14", r=4, plat=True, clair=True, police="Liberation Mono"),
+    "sepia": dict(fond="#e9dcc2", panneau="#f4ead6", carte="#fbf5e8", carte2="#eadcbf", texte="#3b2a1a", attenue="#7a6248", bord="#b49a74", acc="#8a4b14", r=4, plat=True, clair=True, police="Courier Prime"),
 }
 # thème perso : départs identiques à la suite (⚙️ › Affichage › Thème perso)
 DEPARTS = [
@@ -160,7 +160,7 @@ def effets(p):
 def css_commun(p):
     return f"""
 * {{ font-family: "{p['police']}", "IBM Plex Sans", sans-serif; }}
-{effets(p)}
+{effets(p)}{('.titre-astoria, .page-titre, .hero-grand, .panneau-titre, .nav-titre { font-family: Orbitron, Astoria, sans-serif; letter-spacing: 1px; }' if p['neon'] else '')}{('.page-titre, .hero-grand, .panneau-titre, .nav-titre { font-family: "Press Start 2P", Astoria, monospace; font-size: 16px; }' if p['pixel'] else '')}
 label {{ color: {p['texte']}; }}
 .attenue, .attenue label {{ color: {p['attenue']}; }}
 .petit {{ font-size: 11.5px; }}
@@ -235,6 +235,14 @@ button.hb label {{ font-size: 12.5px; }}
 .tb-ind {{ background: {p['attenue']}; min-height: 3px; min-width: 6px; border-radius: 2px; transition: min-width 220ms cubic-bezier(.2,.9,.3,1.2), background 200ms ease; }}
 .tb-ind.actif {{ background: {p['accent']}; min-width: 16px; }}
 .tb-ind.vide {{ background: transparent; }}
+progressbar.tb-progres {{ min-width: 26px; }}
+progressbar.tb-progres trough {{ min-height: 3px; background: alpha({p['texte']}, .15); border-radius: 2px; }}
+progressbar.tb-progres progress {{ min-height: 3px; background: {p['accent']}; border-radius: 2px; box-shadow: 0 0 6px {p['accent']}, 0 0 2px {p['accent']}; }}
+.tb.tb-onglet {{ min-width: 150px; padding: 0 10px; }}
+.tb.tb-onglet.actif {{ background: alpha({p['accent']}, .14); }}
+picture.miniature {{ border-radius: {p['rayon_petit']}; border: 1px solid {p['bord']}; }}
+.bureau-puce {{ padding: 10px; transition: background 150ms ease; }}
+.bureau-puce.survol-depot, .bureau-puce:hover {{ background: alpha({p['accent']}, .22); border-color: {p['accent']}; }}
 .horloge-h {{ font-weight: 600; font-size: 12.5px; }}
 .horloge-d {{ font-size: 11px; color: {p['attenue']}; }}
 .badge {{ background: {p['accent']}; color: {p['sur_accent']}; border-radius: 999px; font-size: 10px; font-weight: 700; min-width: 16px; min-height: 16px; padding: 0 4px; }}

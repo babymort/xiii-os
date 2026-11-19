@@ -14,7 +14,7 @@ def etapes(sh):
     return [
         (None, None, "Bienvenue dans OS XIII", "Faisons le tour du bureau en une minute. Vous pourrez revoir cette visite depuis Paramètres › Suite XIII."),
         (sh.b_start, B, "Menu Démarrer", "Vos applications épinglées, vos fichiers récents et toutes les applications par catégories. Touche Windows (Super) pour l'ouvrir."),
-        (sh.b_cherche, B, "Rechercher", "Tapez pour trouver une application, un réglage, un fichier, faire un calcul ou chercher sur le Web."),
+        (sh.b_cherche, B, "Rechercher", "Tapez pour trouver une application, un réglage, un fichier, faire un calcul ou chercher sur le Web — Super + Espace de n'importe où."),
         (sh.taches, B, "Barre des tâches", "Applications épinglées et ouvertes. Clic : ouvrir ou réduire. Clic droit : épingler, fermer. Clic molette : nouvelle fenêtre."),
         (sh.b_meteo, B, "Widgets", "Météo, état du système, lecture en cours, notes et vos projets Suite XIII (projet, conducteur, prochain tournage)."),
         (sh.droite, B, "Heure et notifications", "Le volet de notifications avec le calendrier et le mode Ne pas déranger."),
@@ -23,7 +23,7 @@ def etapes(sh):
         (sh.taches, B, "Claude intégré", "Claude Desktop (discussion, Cowork, Claude Code) est épinglé à la barre : Super + C pour l'ouvrir, Super + Maj + C pour Claude Code dans votre projet. "
          "Il est relié à OS XIII : il voit l'état du PC et vos fichiers de la Suite XIII. Connectez-vous avec votre compte Claude.",
          ("Se connecter à Claude", lambda: claude.ouvrir())),
-        (None, None, "C'est parti !", "Raccourcis utiles : Super (menu), Super + I (Paramètres), Super + Maj + S (capture), Super + V (presse-papiers), Super + L (verrouiller)."),
+        (None, None, "C'est parti !", "Raccourcis utiles : Super (menu), Super + Espace (rechercher), Super + I (Paramètres), Super + Maj + S (capture), Super + V (presse-papiers), Super + L (verrouiller)."),
     ]
 
 class Visite:

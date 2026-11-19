@@ -15,6 +15,9 @@ WIDGETS = [  # clé, nom, icône, description
     ("projet", "Projet XIII", "clapperboard", "Fiche projet exportée depuis la Suite XIII"),
     ("conducteur", "Conducteur", "list-video", "Dernier conducteur CONDUCO"),
     ("plan", "Prochain tournage", "calendar-days", "Plan de travail DECOUP : prochaine journée"),
+    ("offload", "Offload", "hard-drive-download", "Dernières vérifications de copies de rushes (sommes de contrôle, BACKUPO)"),
+    ("ndi", "Sources NDI", "cast", "Flux NDI visibles sur le réseau, ouverture en un clic dans Retour plateau"),
+    ("timecode", "Timecode LTC", "clock", "Timecode reçu sur une entrée audio (application Timecode LTC ouverte)"),
     ("notes", "Notes", "notebook-pen", "Bloc-notes rapide, enregistré automatiquement"),
     ("raccourcis", "Raccourcis", "folder", "Dossiers et liens utiles"),
 ]
@@ -163,6 +166,7 @@ class Tableau:
             self._temp.set_text(("%d °C" % t) if t else "—")
         if hasattr(self, "_media_maj"): self._media_maj()
         if getattr(self, "_duo", None): self._duo_tic()
+        if getattr(self, "_tc", None): self._tc_tic()
         return True
 
     def ram(self):
@@ -230,6 +234,63 @@ class Tableau:
             if S.DEMO: l.set_text("↓ %s/s  ↑ %s/s" % (S.humain(2.4e6 if dev == "wlan0" else 1.1e6), S.humain(3.2e5))); continue
             if dev in t and dev in t0: l.set_text("↓ %s/s  ↑ %s/s" % (S.humain((t[dev][0] - t0[dev][0]) / dt), S.humain((t[dev][1] - t0[dev][1]) / dt)))
         self._duo_avant = (t, now)
+
+    def w_offload(self):
+        from . import somme
+        v = boite(True, 6)
+        h = somme.historique()
+        b = dernier_lien("backupo") if not S.DEMO else None
+        if S.DEMO:
+            h = [{"date": "2026-11-19T18:42:10", "source": "/media/CARTE_A001", "copie": "/media/SSD_RUSHES/J03/A001", "fichiers": 412, "octets": 238e9, "ok": 412, "differents": 0, "manquants": 0},
+                 {"date": "2026-11-19T12:05:51", "source": "/media/CARTE_B002", "copie": "/media/SSD_RUSHES/J03/B002", "fichiers": 188, "octets": 96e9, "ok": 187, "differents": 0, "manquants": 1}]
+        if not h and not b:
+            v.append(label("Aucune vérification pour l'instant. Clic droit sur un dossier de rushes → « Vérifier la copie (sommes de contrôle) ».", "attenue", "petit", wrap=True))
+        for e in h[:3]:
+            bon = not e.get("differents") and not e.get("manquants")
+            r = boite(False, 8); r.append(ico("circle-check" if bon else "triangle-alert", 16, "c" if bon else "d"))
+            col = boite(True, 0, hexpand=True)
+            col.append(label(os.path.basename(e.get("source", "").rstrip("/")) + (" → " + os.path.basename((e.get("copie") or "").rstrip("/")) if e.get("copie") else ""), "petit", "gras", ellipsize=True))
+            col.append(label("%s · %d fichiers · %s%s" % (e.get("date", "")[5:16].replace("T", " "), e.get("fichiers", 0), S.humain(e.get("octets", 0)),
+                             "" if bon else " · %d diff., %d manq." % (e.get("differents", 0), e.get("manquants", 0))), "petit", "attenue", ellipsize=True))
+            r.append(col); v.append(r)
+        if b:
+            v.append(label("BACKUPO : " + str((b.get("data") or {}).get("titre") or (b.get("data") or {}).get("name") or "dernier rapport"), "petit", "attenue", ellipsize=True))
+        return self.carte("offload", "Offload", "hard-drive-download", v, lambda: S.detacher("xiii-somme"))
+
+    def w_ndi(self):
+        from . import ndi
+        v = boite(True, 6)
+        if S.DEMO:
+            srcs = [("REGIE (MELANGO PGM)", ""), ("CAM-1 (NDI HX)", ""), ("CAM-2 (NDI HX)", ""), ("PC-GRAPHISME (Écran)", "")]
+        elif not ndi.disponible():
+            v.append(label("Le moteur NDI n'est pas encore installé.", "attenue", "petit", wrap=True))
+            v.append(bouton("Installer le moteur NDI", "download", "plat", rappel=lambda: S.detacher("xiii-ndi-runtime")))
+            return self.carte("ndi", "Sources NDI", "cast", v)
+        else:
+            if not getattr(self, "_ndi_rech", None):
+                try: self._ndi_rech = ndi.Recherche()
+                except Exception: self._ndi_rech = None
+            srcs = self._ndi_rech.sources(400) if self._ndi_rech else []
+        if not srcs: v.append(label("Aucune source NDI sur le réseau pour l'instant.", "attenue", "petit", wrap=True))
+        for nom, url in srcs[:5]:
+            r = boite(False, 8); r.append(ico("video", 14, "c")); r.append(label(nom, "petit", hexpand=True, ellipsize=True))
+            r.append(bouton(None, "monitor-play", "plat", taille=14, tip="Ouvrir dans Retour plateau", rappel=lambda n=nom: S.detacher(["xiii-retour", n])))
+            v.append(r)
+        if len(srcs) > 5: v.append(label("+ %d autres" % (len(srcs) - 5), "petit", "attenue"))
+        return self.carte("ndi", "Sources NDI", "cast", v, lambda: S.detacher("xiii-retour"))
+
+    def w_timecode(self):
+        from . import ltc
+        v = boite(True, 4)
+        self._tc = label("--:--:--:--", "hero-grand", xalign=0.5); v.append(self._tc)
+        self._tc_etat = label("", "petit", "attenue", xalign=0.5); v.append(self._tc_etat)
+        self._tc_mod = ltc
+        return self.carte("timecode", "Timecode LTC", "clock", v, lambda: S.detacher("xiii-timecode"))
+
+    def _tc_tic(self):
+        t = "10:24:13:08" if S.DEMO else self._tc_mod.lire_partage(1.5)
+        self._tc.set_text(t or "--:--:--:--")
+        self._tc_etat.set_text("Signal LTC reçu" if t else "Ouvrez « Timecode LTC » pour écouter une entrée audio")
 
     def w_media(self):
         v = boite(True, 8)

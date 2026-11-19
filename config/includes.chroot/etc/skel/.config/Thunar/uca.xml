@@ -1,6 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <actions>
 <action>
+	<icon>view-reveal-symbolic</icon>
+	<name>Aperçu rapide</name>
+	<submenu></submenu>
+	<unique-id>xiii-apercu-1</unique-id>
+	<command>xiii-apercu %f</command>
+	<description>Voir le fichier sans l'ouvrir (Espace)</description>
+	<range>1-1</range>
+	<patterns>*</patterns>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
 	<icon>xiii-somme</icon>
 	<name>Vérifier (somme de contrôle)</name>
 	<unique-id>xiii-somme-1</unique-id>

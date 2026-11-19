@@ -1,0 +1,36 @@
+#!/bin/sh
+# OS XIII — cartes d'acquisition (exécuté en administrateur via pkexec depuis Paramètres › Cartes d'acquisition).
+#   xiii-acquisition camera-virtuelle            installe et charge v4l2loopback (caméra virtuelle /dev/video42)
+#   xiii-acquisition desktop-video <archive>     installe le pilote Blackmagic Desktop Video depuis l'archive officielle
+#   xiii-acquisition retirer-desktop-video
+# Application développée par Matthieu Lamotte.
+set -e
+export DEBIAN_FRONTEND=noninteractive
+entetes() { apt-get install -y dkms "linux-headers-$(uname -r)" || apt-get install -y dkms linux-headers-amd64; }
+case "$1" in
+  camera-virtuelle)
+    apt-get update -qq || true
+    entetes
+    apt-get install -y v4l2loopback-dkms v4l2loopback-utils
+    echo 'options v4l2loopback devices=1 video_nr=42 card_label="Carte d acquisition (OS XIII)" exclusive_caps=1' > /etc/modprobe.d/xiii-v4l2loopback.conf
+    echo v4l2loopback > /etc/modules-load.d/xiii-v4l2loopback.conf
+    modprobe -r v4l2loopback 2>/dev/null || true
+    modprobe v4l2loopback
+    ;;
+  desktop-video)
+    A="$2"; [ -f "$A" ] || { echo "archive introuvable"; exit 2; }
+    T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+    tar -xf "$A" -C "$T"
+    D=$(find "$T" -name "desktopvideo_*_amd64.deb" | head -1)
+    [ -n "$D" ] || { echo "Cette archive ne contient pas le paquet desktopvideo pour Debian (amd64)."; exit 3; }
+    G=$(find "$T" -name "desktopvideo-gui_*_amd64.deb" | head -1)
+    apt-get update -qq || true
+    entetes
+    apt-get install -y "$D" ${G:+"$G"}
+    modprobe blackmagic 2>/dev/null || modprobe blackmagic-io 2>/dev/null || true
+    ;;
+  retirer-desktop-video)
+    apt-get remove -y desktopvideo desktopvideo-gui || true
+    ;;
+  *) echo "usage : $0 camera-virtuelle | desktop-video <archive> | retirer-desktop-video"; exit 1 ;;
+esac

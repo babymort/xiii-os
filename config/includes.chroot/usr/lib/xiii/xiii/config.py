@@ -19,6 +19,10 @@ DEFAUTS = {
     "fond_mode": "fill",
     "verrou_fond": FONDS + "/xiii-connexion.png",
     "barre_alignement": "centre",   # centre | gauche
+    "barre_style": "icones",        # icones | onglets
+    "timecode_source": "",          # entrée audio du timecode LTC
+    "timecode_canal": 0,
+    "decklink_entree": 0, "decklink_mode": "auto", "decklink_pont": False,
     "barre_recherche": True,
     "barre_meteo": True,
     "barre_badge": True,
@@ -63,7 +67,7 @@ DEFAUTS = {
     "police": "IBM Plex Sans",
     "montage_auto": True,
     "ecrans": {},
-    "widgets": ["meteo", "systeme", "duo", "projet", "plan", "conducteur", "media", "notes", "raccourcis"],
+    "widgets": ["meteo", "systeme", "duo", "projet", "plan", "conducteur", "offload", "ndi", "media", "notes", "raccourcis"],
     "visite_faite": False,
 }
 

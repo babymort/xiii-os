@@ -462,3 +462,16 @@ def pare_feu():
         return "ENABLED=yes" in open("/etc/ufw/ufw.conf").read()
     except OSError:
         return None
+
+
+def progres(desktop_id, fraction):
+    """Barre de progression sous l'icône de l'application dans la barre des tâches (None = masquer)."""
+    try:
+        from gi.repository import Gio, GLib as _G
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        props = {"progress-visible": _G.Variant("b", fraction is not None)}
+        if fraction is not None: props["progress"] = _G.Variant("d", max(0.0, min(1.0, float(fraction))))
+        bus.emit_signal(None, "/fr/xiii/progres", "com.canonical.Unity.LauncherEntry", "Update",
+                        _G.Variant("(sa{sv})", ("application://" + desktop_id, props)))
+    except Exception:
+        pass

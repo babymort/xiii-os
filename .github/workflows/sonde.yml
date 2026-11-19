@@ -2,7 +2,7 @@ name: Sonde paquets
 on:
   push:
     branches: [beta]
-    paths: ['.github/workflows/sonde.yml']
+    paths: ['.github/workflows/sonde.yml', 'config/includes.chroot/usr/lib/xiii/xiii/ltc.py']
 jobs:
   sonde:
     runs-on: ubuntu-latest
@@ -17,3 +17,13 @@ jobs:
           labwc --version; grim -h 2>&1 | head -20
           strings /usr/bin/labwc | grep -iE "image_copy_capture|image_capture_source|foreign_toplevel_list|screencopy" | sort -u | head
           find / -name "libgstdecklink*" 2>/dev/null | head; ls /usr/lib/x86_64-linux-gnu/libltc* 2>/dev/null
+  test-ltc:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq libltc11 python3 python3-gi gir1.2-gtk-4.0 >/dev/null
+          cd config/includes.chroot/usr/lib/xiii && python3 -c "
+          import sys; sys.argv=['x','--test']
+          from xiii import ltc; ltc.main()"

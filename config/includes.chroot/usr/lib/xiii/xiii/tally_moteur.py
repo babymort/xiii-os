@@ -520,6 +520,10 @@ class Gestion(http.server.BaseHTTPRequestHandler):
                 self.moteur.forcer(cam, etat); return self.repondre(200, "ok", "text/plain")
             except (KeyError, ValueError):
                 return self.repondre(400, "cam=N&etat=programme|preview|repos|auto", "text/plain")
+        if u.path == "/veille.mp4":
+            f = video_veille()
+            if f: return self.repondre(200, open(f, "rb").read(), "video/mp4")
+            return self.repondre(404, "", "text/plain")
         if u.path == "/api/aide":
             return self.repondre(200, AIDE, "text/plain; charset=utf-8")
         self.repondre(404, "introuvable", "text/plain")
@@ -553,6 +557,18 @@ class Gestion(http.server.BaseHTTPRequestHandler):
             with self.moteur.verrou: self.moteur.clients.pop(ws, None)
             self.moteur.changement()
             self.close_connection = True
+
+
+def video_veille():
+    """Petite vidéo noire en boucle : la lire garde l'écran du téléphone allumé (le verrou d'écran du navigateur exige HTTPS)."""
+    f = os.path.expanduser("~/.cache/xiii/tally-veille.mp4")
+    if os.path.exists(f): return f
+    os.makedirs(os.path.dirname(f), exist_ok=True)
+    import subprocess
+    r = subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=black:s=64x64:r=5", "-f", "lavfi", "-i", "anullsrc=r=8000:cl=mono",
+                        "-t", "20", "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "8k", "-shortest", "-movflags", "+faststart", f],
+                       capture_output=True)
+    return f if r.returncode == 0 and os.path.exists(f) else None
 
 
 class Serveur(socketserver.ThreadingMixIn, http.server.HTTPServer):
@@ -596,7 +612,7 @@ body.programme{background:#d50000}body.preview{background:#00a344}body.repos{bac
 <div id="cam">–</div><div id="nm"></div><div id="st"></div>
 <div id="bar"><button id="b-cam">Caméra</button><button id="b-fs">Plein écran</button></div>
 <div id="pick"><div id="logo">TALLY XIII</div><b style="font-size:21px">Quelle caméra tenez-vous ?</b><div class="g"></div>
-<small style="opacity:.7;max-width:420px">Touchez l'écran pour le plein écran. Désactivez la mise en veille du téléphone pendant le direct : l'écran vibre au passage à l'antenne.</small></div>
+<small style="opacity:.7;max-width:420px">Touchez l'écran : plein écran, et l'écran reste allumé pendant le direct. Il vibre au passage à l'antenne.</small></div>
 <script>
 const $ = id => document.getElementById(id), q = new URLSearchParams(location.search);
 let cam = +(q.get('cam') || localStorage.getItem('tally.xiii.cam') || 0), S = null, last = '', ws = null, vu = 0, wl = null, tBar = 0;
@@ -625,7 +641,16 @@ function connecter() {
   ws.onmessage = e => { try { const m = JSON.parse(e.data); vu = Date.now(); if (m.type === 'etat') { S = m; dessiner(); } } catch (x) {} };
   ws.onclose = () => { ws = null; setTimeout(connecter, 1000); };
 }
-async function veille() { try { if ('wakeLock' in navigator && !wl) { wl = await navigator.wakeLock.request('screen'); wl.addEventListener('release', () => wl = null); } } catch (e) {} }
+let vid = null;
+async function veille() {
+  try { if ('wakeLock' in navigator && !wl && window.isSecureContext) { wl = await navigator.wakeLock.request('screen'); wl.addEventListener('release', () => wl = null); return; } } catch (e) {}
+  // sans HTTPS : une vidéo muette en boucle garde l'écran allumé (Android et iPhone)
+  try {
+    if (!vid) { vid = document.createElement('video'); vid.src = '/veille.mp4'; vid.muted = true; vid.loop = true; vid.setAttribute('playsinline', ''); vid.setAttribute('muted', '');
+      vid.style.cssText = 'position:fixed;width:2px;height:2px;opacity:.01;left:0;top:0;pointer-events:none'; document.body.appendChild(vid); }
+    if (vid.paused) await vid.play();
+  } catch (e) {}
+}
 function plein() { const d = document.documentElement; try { (d.requestFullscreen || d.webkitRequestFullscreen || (() => {})).call(d); } catch (e) {} veille(); }
 function barre() { $('bar').classList.remove('cache'); clearTimeout(tBar); tBar = setTimeout(() => $('bar').classList.add('cache'), 4000); }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { veille(); if (!ws) connecter(); } });

@@ -34,10 +34,23 @@ def vignette(chemin, l, h, couvrir=True, echelle=2):
     p.set_size_request(l, h); p.set_can_shrink(True)
     return p
 
+# classes écrites en Astoria : cette police n'a pas de lettres accentuées → on les retire (« Réglages » → « Reglages »)
+ASTORIA = {"hero-grand", "page-titre", "panneau-titre", "nav-titre", "titre-astoria", "haut-logo", "filigrane", "fil-txt", "grand-titre", "v-titre", "surimp-titre-astoria"}
+
+def sans_accents_astoria(s):
+    s = (s or "").replace("œ", "oe").replace("Œ", "OE").replace("æ", "ae").replace("Æ", "AE")
+    return unicodedata.normalize("NFC", "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"))
+
+def _astoria(l, _p=None):
+    t = l.get_label(); s = sans_accents_astoria(t)
+    if s != t: l.set_label(s)
+
 def label(txt, *classes, xalign=0, wrap=False, ellipsize=False, markup=False, largeur=None, **kw):
     l = Gtk.Label(xalign=xalign, **kw)
+    if ASTORIA & set(classes) and not markup: txt = sans_accents_astoria(txt)
     l.set_markup(txt) if markup else l.set_text(txt)
     for c in classes: l.add_css_class(c)
+    if ASTORIA & set(classes) and not markup: l.connect("notify::label", _astoria)
     if wrap: l.set_wrap(True); l.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
     if ellipsize: l.set_ellipsize(Pango.EllipsizeMode.END)
     if largeur: l.set_max_width_chars(largeur)
