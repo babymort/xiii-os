@@ -317,7 +317,7 @@ class Shell(Gtk.Application):
             v.append(im)
         pr = self.progres.get(a.get_id()) if a else None
         if pr is not None:                                       # progression (somme, téléchargements…)
-            pb = Gtk.ProgressBar(fraction=max(0, min(1, pr))); pb.add_css_class("tb-progres"); v.append(pb)
+            pb = Gtk.ProgressBar(fraction=max(0, min(1, pr)), halign=Gtk.Align.CENTER); pb.set_size_request(26, -1); pb.add_css_class("tb-progres"); v.append(pb)
         else:
             ind = Gtk.Box(halign=Gtk.Align.CENTER); ind.add_css_class("tb-ind")
             if actif: ind.add_css_class("actif")

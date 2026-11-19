@@ -236,8 +236,9 @@ button.hb label {{ font-size: 12.5px; }}
 .tb-ind.actif {{ background: {p['accent']}; min-width: 16px; }}
 .tb-ind.vide {{ background: transparent; }}
 progressbar.tb-progres {{ min-width: 26px; }}
-progressbar.tb-progres trough {{ min-height: 3px; background: alpha({p['texte']}, .15); border-radius: 2px; }}
-progressbar.tb-progres progress {{ min-height: 3px; background: {p['accent']}; border-radius: 2px; box-shadow: 0 0 6px {p['accent']}, 0 0 2px {p['accent']}; }}
+progressbar.tb-progres, progressbar.tb-progres > trough {{ padding: 0; margin: 0; border: none; outline: none; background-image: none; }}
+progressbar.tb-progres > trough {{ min-height: 3px; min-width: 26px; background-color: alpha({p['texte']}, .15); border-radius: 2px; box-shadow: none; }}
+progressbar.tb-progres > trough > progress {{ min-height: 3px; border: none; background-image: none; background-color: {p['accent']}; border-radius: 2px; box-shadow: 0 0 6px alpha({p['accent']}, .9); }}
 .tb.tb-onglet {{ min-width: 150px; padding: 0 10px; }}
 .tb.tb-onglet.actif {{ background: alpha({p['accent']}, .14); }}
 picture.miniature {{ border-radius: {p['rayon_petit']}; border: 1px solid {p['bord']}; }}
