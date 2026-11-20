@@ -2,7 +2,7 @@ name: Sonde paquets
 on:
   push:
     branches: [beta]
-    paths: ['.github/workflows/sonde.yml', 'config/includes.chroot/usr/lib/xiii/xiii/ltc.py']
+    paths: ['.github/workflows/sonde.yml']
 jobs:
   sonde:
     runs-on: ubuntu-latest
@@ -11,7 +11,7 @@ jobs:
       - run: |
           sed -i 's/^Components: main$/Components: main contrib non-free/' /etc/apt/sources.list.d/debian.sources
           apt-get update -qq
-          for p in labwc grim libltc11 python3-numpy v4l2loopback-dkms v4l2loopback-utils gstreamer1.0-plugins-bad fonts-orbitron fonts-press-start-2p fonts-courier-prime gnome-sushi tumbler ffmpegthumbnailer poppler-utils python3-gi-cairo; do
+          for p in retroarch libretro-nestopia libretro-snes9x libretro-mgba libretro-gambatte libretro-genesisplusgx libretro-desmume libretro-beetle-pce-fast libretro-beetle-psx libretro-beetle-vb libretro-beetle-wswan libretro-bsnes-mercury-balanced libretro-mupen64plus libretro-core-info mupen64plus-ui-console mupen64plus-qt dolphin-emu ppsspp ppsspp-sdl mednafen mame stella dosbox dosbox-staging scummvm fs-uae openmsx vice hatari melonds desmume flycast pcsx2 duckstation azahar xemu fbneo libretro-fbneo atari800 fuse-emulator-gtk yabause mgba-qt snes9x-gtk nestopia flatpak gnome-software-plugin-flatpak; do
             v=$(apt-cache policy $p | awk '/Candidat|Candidate/{print $2}'); echo "$p => ${v:-ABSENT}"; done
           DEBIAN_FRONTEND=noninteractive apt-get install -y -qq labwc grim gstreamer1.0-plugins-bad libltc11 >/dev/null 2>&1
           labwc --version; grim -h 2>&1 | head -20
