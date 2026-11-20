@@ -398,13 +398,18 @@ class Shell(Gtk.Application):
         cb = Gtk.CenterBox(); cb.add_css_class("haut"); cb.set_size_request(-1, HH)
         g = boite(False, 4, margin_start=6)
         # secteur 1 : accueil · logo · projet (comme la barre du haut de la suite : 🏠 · logo · document)
-        g.append(self.bouton_survol("house", "Démarrer", lambda: self.basculer("demarrer")))
+        g.append(self.bouton_survol("house", "Démarrer", lambda: self.basculer("demarrer"),
+                                   [("layout-grid", "Toutes les applications", lambda: self.basculer("demarrer-toutes")),
+                                    ("settings", "Réglages du menu Démarrer", lambda: self.parametres("demarrer"))]))
         lg = Gtk.Button(); lg.add_css_class("hb"); lg.set_child(label("XIII", "haut-logo")); lg.set_tooltip_text("À propos d'OS XIII")
         lg.connect("clicked", lambda *_: self.parametres("apropos"))
+        clic_droit(lg, lambda: popover_menu(lg, [("info", "À propos d'OS XIII", lambda: self.parametres("apropos")), ("refresh-cw", "Mises à jour", lambda: self.parametres("maj")),
+                                                 ("gauge", "Santé du PC", lambda: S.detacher(["xiii-bilan", "--sante"]))]))
         g.append(lg)
         self.b_projet = Gtk.Button(); self.b_projet.add_css_class("hb"); self.b_projet.set_tooltip_text("Projet XIII actif")
         pj = boite(False, 6); pj.append(ico("folder-kanban", 14, "c")); pj.append(label(self.cfg.get("projet_actif") or "Choisir un projet", "accent" if self.cfg.get("projet_actif") else "attenue", "petit", "gras")); self.b_projet.set_child(pj)
         self.b_projet.connect("clicked", lambda *_: self.menu_projets())
+        clic_droit(self.b_projet, self.menu_projets)
         g.append(self.b_projet)
         self.l_titre = label("", "haut-titre", ellipsize=True, largeur=60, margin_start=6); g.append(self.l_titre)
         cb.set_start_widget(g)
@@ -414,20 +419,26 @@ class Shell(Gtk.Application):
         self.l_tournage = Gtk.Button(); self.l_tournage.add_css_class("hb"); self.l_tournage.set_tooltip_text("Profil de travail — clic : changer")
         lt = boite(False, 6); lt.append(ico(pr[2], 14, "c")); lt.append(label("Profil " + pr[1], "accent", "petit", "gras")); self.l_tournage.set_child(lt)
         self.l_tournage.connect("clicked", lambda *_: self.menu_profils(self.l_tournage))
+        clic_droit(self.l_tournage, lambda: self.parametres("profils"))
         centre.append(self.l_tournage)
         self.l_tc = label("", "timecode"); centre.append(self.l_tc)
         cb.set_center_widget(centre)
         d = boite(False, 2, margin_end=6)
         # secteur 2 : rechercher · Suite XIII · fichiers · Claude (libellés au survol, comme dans la suite)
         outils = boite(False, 2)
-        outils.append(self.bouton_survol("search", "Rechercher", lambda: self.basculer("demarrer-recherche")))
-        outils.append(self.bouton_survol("layout-grid", "Suite XIII", lambda: S.detacher(["xiii-suite"])))
-        outils.append(self.bouton_survol("folder-open", "Fichiers", lambda: S.detacher(["xiii-fichiers", os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"]) if self.cfg.get("projet_actif") and os.path.isdir(os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"])) else os.path.expanduser("~")])))
+        outils.append(self.bouton_survol("search", "Rechercher", lambda: self.basculer("demarrer-recherche"),
+                                         [("search", "Rechercher (Super + Espace)", lambda: self.basculer("demarrer-recherche")), ("sparkles", "Demander à l'IA", lambda: S.detacher("xiii-ia"))]))
+        outils.append(self.bouton_survol("layout-grid", "Suite XIII", lambda: S.detacher(["xiii-suite"]),
+                                         [("folder-kanban", "DOSSIER du projet", lambda: S.detacher(["xiii-suite", "dossier"])), ("settings", "Réglages de la Suite XIII", lambda: self.parametres("suite"))]))
+        outils.append(self.bouton_survol("folder-open", "Fichiers", lambda: S.detacher(["xiii-fichiers", os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"]) if self.cfg.get("projet_actif") and os.path.isdir(os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"])) else os.path.expanduser("~")]),
+                                         [("house", "Dossier personnel", lambda: S.detacher(["xiii-fichiers", os.path.expanduser("~")])),
+                                          ("hard-drive", "Lecteurs réseau et cloud", lambda: S.detacher("xiii-lecteurs")), ("send", "Transferts XIII", lambda: S.detacher("xiii-transferts"))]))
         # IA en cours (pastille au trait, comme la suite) : volet IA XIII · assistant de synthèse · téléphone
         self.b_ia = Gtk.Button(); self.b_ia.add_css_class("hb"); self.maj_bouton_ia()
         self.b_ia.connect("clicked", lambda *_: S.detacher("xiii-ia")); clic_droit(self.b_ia, lambda: self.menu_ia(self.b_ia)); outils.append(self.b_ia)
-        outils.append(self.bouton_survol("audio-lines", "Synthèse", lambda: S.detacher("xiii-synthese")))
-        outils.append(self.bouton_survol("smartphone", "Téléphone", lambda: S.detacher("xiii-phonebox")))
+        outils.append(self.bouton_survol("audio-lines", "Synthèse", lambda: S.detacher("xiii-synthese"), lambda: [("sparkles", "Choisir l'IA", lambda: self.menu_ia(self.b_ia))]))
+        outils.append(self.bouton_survol("smartphone", "Téléphone", lambda: S.detacher("xiii-phonebox"),
+                                         [("share-2", "Envoyer des fichiers (LocalSend, Transferts)", lambda: S.detacher("xiii-transferts")), ("bluetooth", "Bluetooth", lambda: self.parametres("bluetooth"))]))
         d.append(outils)
         etat = boite(False, 2); etat.add_css_class("haut-secteur"); d.append(etat)
         def hb(nom, page, tip):
@@ -445,6 +456,7 @@ class Shell(Gtk.Application):
         pb = boite(False, 0); pb.add_css_class("pastille-nom"); pb.append(label(nomu.split()[0][:14] if nomu else "Moi")); pn.set_child(pb)
         pn.connect("clicked", lambda *_: popover_menu(pn, [("user", "Votre compte", lambda: self.parametres("compte")), ("palette", "Thème et couleurs", lambda: self.parametres("theme")),
                                                           ("clapperboard", "Profil de travail", lambda: self.menu_profils(pn)), None, ("lock", "Verrouiller", lambda: S.detacher("swaylock -f"))]))
+        clic_droit(pn, lambda: self.parametres("compte"))
         fin.append(pn)
         self.h_alim = Gtk.Button(); self.h_alim.add_css_class("hb"); self.h_alim.set_tooltip_text("Session — clic droit : paramètres")
         self.h_alim.connect("clicked", lambda *_: self.basculer("alim")); clic_droit(self.h_alim, lambda: self.parametres("alimentation"))
@@ -477,7 +489,7 @@ class Shell(Gtk.Application):
                 if k == cur: r.append(ico("check", 16, "c"))
                 it.set_child(r); it.connect("clicked", lambda _x, k=k: (pop.popdown(), config.modifier(mode_bureau=k))); v.append(it)
             pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
-        b.connect("clicked", ouvrir); sel.append(b)
+        b.connect("clicked", ouvrir); clic_droit(b, lambda: ouvrir(b)); sel.append(b)
 
     def appliquer_mode(self, k, premier=False):
         from .modes import PAR_CLE
@@ -556,9 +568,10 @@ class Shell(Gtk.Application):
         popover_menu(ancre, [("sparkles", n + ("  ✓" if self.cfg.get("ia", "claude") == k else ""), lambda k=k: (config.modifier(_histo=False, ia=k), S.detacher(["xiii-ia", "--montrer"])))
                              for k, n, *_ in IAS] + [None, ("app-window", "Claude Desktop (application)", lambda: S.detacher("claude-desktop"))])
 
-    def bouton_survol(self, icone, texte, rappel):
-        """Bouton icône dont le libellé glisse au survol (barre du haut de la suite)."""
-        b = Gtk.Button(); b.add_css_class("hb"); b.set_tooltip_text(texte)
+    def bouton_survol(self, icone, texte, rappel, droit=None):
+        """Bouton icône dont le libellé glisse au survol (barre du haut de la suite). droit : [(icône, texte, action)] du clic droit."""
+        b = Gtk.Button(); b.add_css_class("hb"); b.set_tooltip_text(texte + (" — clic droit : plus d'options" if droit else ""))
+        if droit: clic_droit(b, lambda: popover_menu(b, droit() if callable(droit) else droit))
         bx = boite(False, 0); bx.append(ico(icone, 16))
         rv = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_RIGHT, transition_duration=160 if self.cfg.get("animations", True) else 0)
         rv.set_child(label(texte, "haut-survol")); bx.append(rv); b.set_child(bx)
