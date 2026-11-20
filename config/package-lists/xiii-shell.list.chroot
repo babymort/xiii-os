@@ -26,3 +26,4 @@ timeshift
 esptool
 python3-serial
 libltc11
+gir1.2-manette-0.2

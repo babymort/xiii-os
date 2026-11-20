@@ -245,6 +245,19 @@ class VueMode:
         b.connect("clicked", lambda *_: S.detacher("xiii-console")); v.append(b)
         v.append(label("Vos jeux vont dans le dossier Jeux de votre dossier personnel, une console par sous-dossier.", "petit", "attenue", xalign=0.5))
         self.corps.append(v); GLib.idle_add(lambda: (b.grab_focus(), False)[1])
+        # en mode Gaming, la manette rouvre la console : A (sur cet écran) ou le bouton Accueil (partout)
+        if not getattr(self, "manettes", None):
+            try:
+                from .manette import Manettes
+                self.manettes = Manettes(self.pad)
+            except Exception:
+                self.manettes = None
+
+    def pad(self, n):
+        if self.mode != "gaming" or n not in ("a", "menu", "accueil"): return
+        import subprocess
+        if subprocess.run(["pgrep", "-f", "xiii.console"], capture_output=True).returncode == 0: return   # la console gère elle-même la manette
+        S.detacher("xiii-console")
 
     def lichii(self):
         f = os.path.expanduser("~/.local/share/xiii/lichii/Lichii.AppImage")

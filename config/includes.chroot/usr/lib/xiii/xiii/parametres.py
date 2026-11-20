@@ -1101,6 +1101,7 @@ class Parametres(Gtk.Application):
 
     def p_jeux(self, c, cle):
         from . import jeux
+        self.bloc_console(c)
         vp, ram, vk = jeux.vieux_pc()
         h = boite(False, 16, "hero"); h.append(ico("gamepad-2", 40, "c"))
         v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER)
@@ -1667,6 +1668,29 @@ class Parametres(Gtk.Application):
     def supprimer_compte(self, n):
         confirmer(self.win, "Supprimer le compte « %s » ?" % n, "Ses fichiers personnels seront supprimés. Cette action est définitive.", "Supprimer",
                   lambda: S.en_fond(S.admin, lambda r: (self.toast("Compte supprimé" if r[0] else "Échec"), self.aller("utilisateurs", False)), ["userdel", "-r", n]))
+
+    def bloc_console(self, c):
+        """Console XIII : ouverture, jaquettes ScreenScraper."""
+        from . import scraper
+        c.append(groupe_titre("Console XIII"))
+        c.append(reglage("gamepad-2", "Console XIII", "Toutes vos consoles en plein écran, à la manette (mode Gaming)", droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("xiii-console"))))
+        c.append(reglage("folder", "Dossier des jeux", "~/Jeux — un sous-dossier par console, BIOS dans ~/Jeux/bios", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher(["thunar", os.path.expanduser("~/Jeux")]))))
+        cf = scraper.conf()
+        c.append(groupe_titre("Jaquettes et fiches des jeux"))
+        c.append(info("Sans compte : jaquettes et captures libres (libretro-thumbnails), pour les jeux dont le fichier porte son nom officiel. "
+                      "Avec ScreenScraper : jaquettes, captures, année, genre, éditeur, joueurs et résumé en français, même pour les fichiers mal nommés. "
+                      "ScreenScraper demande un compte gratuit (screenscraper.fr) et des identifiants développeur, à demander sur leur forum."))
+        champs = {}
+        for k, t, secret in (("ssid", "Identifiant ScreenScraper", False), ("sspassword", "Mot de passe ScreenScraper", True),
+                             ("devid", "Identifiant développeur", False), ("devpassword", "Mot de passe développeur", True)):
+            e = Gtk.PasswordEntry(show_peek_icon=True) if secret else Gtk.Entry()
+            e.set_text(cf.get(k, "")); e.set_size_request(260, -1); champs[k] = e
+            c.append(reglage("key-round" if secret else "user", t, None, droite=e))
+        def sauver():
+            scraper.enregistrer_conf({k: e.get_text().strip() for k, e in champs.items()}); self.toast("Identifiants ScreenScraper enregistrés")
+        c.append(reglage("save", "Enregistrer", "Les jaquettes se récupèrent depuis le menu de la Console XIII", droite=bouton("Enregistrer", None, "pilule", rappel=sauver)))
+        c.append(reglage("external-link", "Créer un compte ScreenScraper", "screenscraper.fr", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher(["xdg-open", "https://www.screenscraper.fr/membreinscription.php"]))))
+        c.append(groupe_titre("Steam"))
 
     def mdp(self, u):
         d = Gtk.Window(transient_for=self.win, modal=True, title="Mot de passe", default_width=420); d.add_css_class("parametres")

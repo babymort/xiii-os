@@ -117,6 +117,25 @@ body.liste #carrousel { opacity: 0; transform: translateY(6vh); }
 .btn { display: inline-flex; align-items: center; gap: .6vw; margin: 2vh 1vw 0 0; padding: 1vh 1.6vw; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); font-size: 1.7vh; cursor: pointer; }
 .btn.sel { border-color: var(--acc); color: var(--acc); box-shadow: 0 0 2vh color-mix(in srgb, var(--acc) 40%, transparent); }
 
+/* ---------- jaquettes ---------- */
+.jeu .vign { width: 3.4vh; height: 4.6vh; border-radius: .35vh; object-fit: cover; flex: none; background: rgba(255,255,255,.06); box-shadow: 0 .4vh 1vh rgba(0,0,0,.4); }
+.jeu .vign.vide { display: inline-block; }
+#j-fond { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; filter: blur(.6vh) saturate(1.1); transform: scale(1.06); transition: opacity 500ms; }
+#j-fond.vu { opacity: .28; }
+.fiche { display: flex; gap: 2.4vw; align-items: flex-start; }
+.fiche .cover { width: 15vw; max-height: 44vh; object-fit: contain; border-radius: .8vh; box-shadow: 0 2vh 5vh rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.12); flex: none; }
+.fiche .txt { flex: 1; min-width: 0; }
+.tags { display: flex; flex-wrap: wrap; gap: .6vw; margin-top: 1.6vh; }
+.tags span { font-size: 1.45vh; padding: .4vh .8vw; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); }
+.resume { margin-top: 1.8vh; font-size: 1.65vh; line-height: 1.6; color: var(--att); display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; max-width: 40vw; }
+#eventail { position: absolute; right: 7vw; top: 6vh; width: 36vw; height: 44vh; }
+#eventail img { position: absolute; top: 50%; left: 50%; height: 38vh; max-width: 16vw; object-fit: contain; border-radius: .8vh;
+  box-shadow: 0 2.4vh 5vh rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.14); transition: transform 600ms var(--courbe), opacity 400ms; }
+#scrap { position: fixed; left: 3vw; bottom: 8.4vh; z-index: 7; font-size: 1.4vh; color: var(--att); display: none; align-items: center; gap: .8vw; }
+#scrap.vu { display: flex; }
+#scrap .b { width: 12vw; height: .5vh; border-radius: 9px; background: rgba(255,255,255,.12); overflow: hidden; }
+#scrap .b i { display: block; height: 100%; background: var(--acc); width: 0; transition: width 300ms; }
+
 /* ---------- boîtes : menu, installation ---------- */
 .modal { position: fixed; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.6); backdrop-filter: blur(10px);
   opacity: 0; pointer-events: none; transition: opacity 260ms; }
@@ -159,7 +178,8 @@ body.liste #carrousel { opacity: 0; transform: translateY(6vh); }
 <div id="bas"><div class="g" id="compte"></div><div id="aides"></div></div>
 
 <section id="jeux"><div class="panneau-g"><div class="titre" id="j-titre"></div><div class="sous" id="j-sous"></div><div id="liste"><div class="defile" id="defile"></div></div></div>
-  <div id="j-art"></div><div class="panneau-d" id="j-det"></div></section>
+  <div id="j-fond"></div><div id="j-art"></div><div class="panneau-d" id="j-det"></div></section>
+<div id="scrap"><span id="scrap-t"></span><div class="b"><i id="scrap-b"></i></div></div>
 
 <div class="modal" id="menu"><div class="boite"><h2>Menu</h2><div id="menu-items"></div></div></div>
 <div class="modal" id="install"><div class="boite"><h2 id="i-titre"></h2><p id="i-texte"></p><div id="i-items"></div><div id="prog" style="display:none"><i></i></div></div></div>
@@ -257,17 +277,20 @@ function maj(premier) {
   document.getElementById("infos").innerHTML = `<div class="meta entre"><i></i>${s.fabricant} · ${s.annee}</div><h1 class="entre2">${s.nom}</h1>
     <div class="ligne entre3"><span class="puce acc">${n ? n + (n > 1 ? " jeux" : " jeu") : "Aucun jeu"}</span>
     <span class="puce ${s.installe ? "ok" : "att"}">${s.installe ? "Prêt à jouer" : "Émulateur à installer"}</span></div><div class="rem entre3">${s.remarque || ""}</div>`;
-  document.getElementById("art").innerHTML = `<div class="art-entre" style="width:100%;height:100%">${art(s)}</div>`;
+  const covers = s.jeux.filter(g => g.jaquette).slice(0, 3);
+  document.getElementById("art").innerHTML = covers.length >= 1
+    ? `<div id="eventail" class="art-entre">${covers.map((g, k) => `<img src="${encodeURI(g.jaquette)}" style="transform:translate(-50%,-50%) translateX(${(k - (covers.length - 1) / 2) * 7}vw) rotate(${(k - (covers.length - 1) / 2) * 7}deg) translateY(${Math.abs(k - (covers.length - 1) / 2) * 2}vh);z-index:${k === 1 ? 3 : 1}">`).join("")}</div>`
+    : `<div class="art-entre" style="width:100%;height:100%">${art(s)}</div>`;
   document.getElementById("compte").innerHTML = `${SVG_MANETTE}<span>${n ? n + (n > 1 ? " jeux disponibles" : " jeu disponible") : "Aucun jeu"} · ${i + 1} / ${liste.length}</span>`;
   aides();
 }
 function aides() {
   const A = {
     systemes: [["A", "Choisir", true], ["Y", "Dossier des jeux"], ["≡", "Menu"]],
-    jeux: [["A", "Jouer", true], ["B", "Retour"], ["Y", "Dossier"], ["≡", "Menu"]]
+    jeux: [["A", "Jouer", true], ["B", "Retour"], ["X", "Jaquettes"], ["Y", "Dossier"], ["≡", "Menu"]]
   }[vue] || [];
   document.getElementById("aides").innerHTML = A.map(([k, t, acc]) => `<span class="aide" data-k="${k}"><kbd class="${acc ? "acc" : ""}">${k}</kbd>${t}</span>`).join("");
-  document.querySelectorAll(".aide").forEach(a => a.onclick = () => action({ A: "a", B: "b", Y: "y", "≡": "menu" }[a.dataset.k]));
+  document.querySelectorAll(".aide").forEach(a => a.onclick = () => action({ A: "a", B: "b", X: "x", Y: "y", "≡": "menu" }[a.dataset.k]));
 }
 
 /* ---------- liste des jeux ---------- */
@@ -278,7 +301,9 @@ function ouvrirSysteme() {
   document.getElementById("j-titre").textContent = s.nom;
   document.getElementById("j-sous").textContent = `${s.fabricant} · ${s.annee} · ${s.jeux.length} ${s.jeux.length > 1 ? "jeux" : "jeu"}`;
   const d = document.getElementById("defile"); d.innerHTML = "";
-  s.jeux.forEach((g, k) => { const e = document.createElement("div"); e.className = "jeu"; e.innerHTML = `<span>${esc(g.nom)}</span><span class="t">${g.taille ? taille(g.taille) : ""}</span>`;
+  s.jeux.forEach((g, k) => { const e = document.createElement("div"); e.className = "jeu";
+    const titre = (g.info && g.info.titre) || g.nom;
+    e.innerHTML = `${g.jaquette ? `<img class="vign" loading="lazy" src="${encodeURI(g.jaquette)}">` : (s.id === "steam" || s.id === "pc" ? "" : `<span class="vign vide"></span>`)}<span>${esc(titre)}</span><span class="t">${g.taille ? taille(g.taille) : ""}</span>`;
     e.onclick = () => { if (k === j) lancer(); else { j = k; majJeux(); sonDep(); } }; d.appendChild(e); });
   document.getElementById("j-art").innerHTML = art(s);
   document.getElementById("jeux").classList.add("ouvert"); document.body.classList.add("liste"); majJeux(); aides();
@@ -294,9 +319,17 @@ function majJeux() {
   document.querySelectorAll(".jeu").forEach((e, k) => e.classList.toggle("sel", k === j));
   const h = document.querySelector(".jeu")?.getBoundingClientRect().height || 40, boite = document.getElementById("liste").getBoundingClientRect().height;
   document.getElementById("defile").style.transform = `translateY(${Math.min(0, boite / 2 - h * (j + .5))}px)`;
-  const g = s.jeux[j];
-  det.innerHTML = `<div class="gros entre">${esc(g.nom)}</div><div class="det entre2">${s.nom}${g.taille ? " · " + taille(g.taille) : ""}<br>${g.chemin.startsWith("/") ? esc(g.chemin.replace(/^\/home\/[^/]+/, "~")) : ""}</div>
-    <div class="jouer entre3" onclick="lancer()">▶ Jouer</div>`;
+  const g = s.jeux[j], inf = g.info || {}, titre = inf.titre || g.nom;
+  const fond = document.getElementById("j-fond");
+  if (g.ecran) { fond.style.backgroundImage = `url("${encodeURI(g.ecran)}")`; fond.classList.add("vu"); } else fond.classList.remove("vu");
+  document.getElementById("j-art").style.opacity = g.jaquette || g.ecran ? 0 : "";
+  const tags = [inf.annee, inf.genre, inf.editeur, inf.joueurs ? inf.joueurs + (/^\d+$/.test(inf.joueurs) && inf.joueurs !== "1" ? " joueurs" : /^1$/.test(inf.joueurs) ? " joueur" : "") : ""].filter(Boolean);
+  det.innerHTML = `<div class="fiche">${g.jaquette ? `<img class="cover entre" src="${encodeURI(g.jaquette)}">` : ""}<div class="txt">
+    <div class="gros entre">${esc(titre)}</div>
+    ${tags.length ? `<div class="tags entre2">${tags.map(t => `<span>${esc(t)}</span>`).join("")}</div>` : ""}
+    ${inf.resume ? `<div class="resume entre2">${esc(inf.resume)}</div>` : ""}
+    <div class="det entre2">${s.nom}${g.taille ? " · " + taille(g.taille) : ""}${g.chemin.startsWith("/") ? "<br>" + esc(g.chemin.replace(/^\/home\/[^/]+/, "~")) : ""}</div>
+    <div class="jouer entre3" onclick="lancer()">▶ Jouer</div></div></div>`;
 }
 function fermerJeux() { vue = "systemes"; document.getElementById("jeux").classList.remove("ouvert"); document.body.classList.remove("liste"); aides(); sonRet(); }
 function lancer() { const s = liste[i], g = s.jeux[j]; if (!g) return; sonOk(); envoyer({ a: "lancer", sys: s.id, jeu: g.chemin }); }
@@ -327,7 +360,9 @@ window.installation = (sid, texte, fini, ok) => {
 };
 
 /* ---------- menu ---------- */
-const MENU = () => [["Reprendre", () => fermerMenu()], ["Rechercher de nouveaux jeux", () => envoyer({ a: "rescanner" })],
+const MENU = () => [["Reprendre", () => fermerMenu()], ["Rechercher de nouveaux jeux", () => envoyer({ a: "rescanner", reprise: liste[i] && liste[i].id })],
+  ["Récupérer les jaquettes", () => { envoyer({ a: "scraper" }); fermerMenu(); toast("Récupération des jaquettes…"); }, "ScreenScraper / libretro"],
+  ["Tout re-télécharger", () => { envoyer({ a: "scraper", refaire: true }); fermerMenu(); }, "jaquettes et fiches"],
   ["Ouvrir le dossier des jeux", () => envoyer({ a: "dossier", sys: "" })], ["Dossier des BIOS", () => envoyer({ a: "bios" })],
   [masquerVides ? "Afficher toutes les consoles" : "Masquer les consoles sans jeu", () => { masquerVides = !masquerVides; try { localStorage.setItem("xiii-console-vides", masquerVides ? "1" : "0"); } catch (e) {} fermerMenu(); construire(); }],
   ["Fenêtre / plein écran", () => envoyer({ a: "fenetre" })],
@@ -343,12 +378,15 @@ function action(a) {
   if (enJeuEtat) return;
   if (vue === "systemes") {
     if (a === "g" && i > 0) { i--; maj(); sonDep(); } else if (a === "d" && i < liste.length - 1) { i++; maj(); sonDep(); }
+    else if (a === "pg") { i = Math.max(0, i - 5); maj(); sonDep(); } else if (a === "pd") { i = Math.min(liste.length - 1, i + 5); maj(); sonDep(); }
     else if (a === "a") ouvrirSysteme(); else if (a === "b") ouvrirMenu(); else if (a === "y") envoyer({ a: "dossier", sys: liste[i].id }); else if (a === "menu") ouvrirMenu();
   } else if (vue === "jeux") {
     const n = liste[i].jeux.length;
     if (!n) { if (a === "g" || a === "d") { detSel = 1 - detSel; majJeux(); sonDep(); } else if (a === "a") envoyer(detSel ? { a: "bios" } : { a: "dossier", sys: liste[i].id }); }
     if (a === "h" && j > 0) { j--; majJeux(); sonDep(); } else if (a === "bas" && j < n - 1) { j++; majJeux(); sonDep(); }
     else if (a === "g" && n) { j = Math.max(0, j - 10); majJeux(); sonDep(); } else if (a === "d" && n) { j = Math.min(n - 1, j + 10); majJeux(); sonDep(); }
+    else if ((a === "pg") && n) { j = Math.max(0, j - 10); majJeux(); sonDep(); } else if ((a === "pd") && n) { j = Math.min(n - 1, j + 10); majJeux(); sonDep(); }
+    else if (a === "x") { envoyer({ a: "scraper", sys: liste[i].id }); toast("Recherche des jaquettes de " + liste[i].nom + "…"); }
     else if (a === "a" && n) lancer(); else if (a === "b") fermerJeux(); else if (a === "y") envoyer({ a: "dossier", sys: liste[i].id }); else if (a === "menu") ouvrirMenu();
   } else if (vue === "menu") {
     const m = MENU();
@@ -360,7 +398,7 @@ function action(a) {
   }
 }
 document.addEventListener("keydown", e => {
-  const k = { ArrowLeft: "g", ArrowRight: "d", ArrowUp: "h", ArrowDown: "bas", Enter: "a", " ": "a", Escape: "b", Backspace: "b", Tab: "menu", m: "menu", y: "y", F2: "y" }[e.key];
+  const k = { ArrowLeft: "g", ArrowRight: "d", ArrowUp: "h", ArrowDown: "bas", Enter: "a", " ": "a", Escape: "b", Backspace: "b", Tab: "menu", m: "menu", y: "y", F2: "y", x: "x", PageUp: "pg", PageDown: "pd" }[e.key];
   if (vue === "systemes" && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
   if (k) { e.preventDefault(); action(k); }
 });
@@ -370,11 +408,12 @@ let tSouris; document.addEventListener("mousemove", () => { document.body.classL
 // manette (API Gamepad) : croix / stick, A B Y, Start ; répétition quand on reste appuyé
 const etatPad = {}; let tRep = {};
 function boucleManette(t) {
+  if (CFG.manette_native) return;
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
   for (const p of pads) {
     if (!p) continue;
     const b = k => p.buttons[k] && p.buttons[k].pressed, ax = p.axes || [];
-    const actions = { a: b(0), b: b(1), y: b(3), menu: b(9) || b(8), g: b(14) || ax[0] < -.55, d: b(15) || ax[0] > .55, h: b(12) || ax[1] < -.55, bas: b(13) || ax[1] > .55 };
+    const actions = { a: b(0), b: b(1), x: b(2), y: b(3), menu: b(9) || b(8), pg: b(4), pd: b(5), g: b(14) || ax[0] < -.55, d: b(15) || ax[0] > .55, h: b(12) || ax[1] < -.55, bas: b(13) || ax[1] > .55 };
     for (const [nom, on] of Object.entries(actions)) {
       const cle = p.index + nom;
       if (on && !etatPad[cle]) { action(nom); tRep[cle] = t + 380; }
@@ -385,18 +424,27 @@ function boucleManette(t) {
   requestAnimationFrame(boucleManette);
 }
 requestAnimationFrame(boucleManette);
-window.addEventListener("gamepadconnected", e => toast("Manette connectée : " + e.gamepad.id.split("(")[0].trim()));
+window.addEventListener("gamepadconnected", e => CFG.manette_native || toast("Manette connectée : " + e.gamepad.id.split("(")[0].trim()));
 
 /* ---------- divers ---------- */
 function toast(t) { const e = document.getElementById("toast"); e.textContent = t; e.classList.add("vu"); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove("vu"), 2600); }
-window.toast = toast;
+window.toast = toast; window.action = action;
+window.scrapage = (k, n, t) => { const e = document.getElementById("scrap"); e.classList.toggle("vu", k < n);
+  document.getElementById("scrap-t").textContent = `Jaquettes ${k} / ${n}`; document.getElementById("scrap-b").style.width = (n ? 100 * k / n : 0) + "%"; };
+window.majMedias = (sid, chemin, jq, ec, info) => {
+  const s = SYS.find(x => x.id === sid); if (!s) return; const g = s.jeux.find(x => x.chemin === chemin); if (!g) return;
+  if (jq) g.jaquette = jq; if (ec) g.ecran = ec; if (info) g.info = info;
+  if (liste[i] === s) { if (vue === "jeux") { const el = document.querySelectorAll(".jeu")[s.jeux.indexOf(g)]; if (el && jq) { const v = el.querySelector(".vign"); if (v) v.outerHTML = `<img class="vign" src="${encodeURI(jq)}">`; } if (s.jeux[j] === g) majJeux(); } else maj(); }
+};
 function taille(o) { const u = ["o", "Ko", "Mo", "Go"]; let k = 0; while (o >= 1024 && k < 3) { o /= 1024; k++; } return o.toFixed(k ? 1 : 0).replace(".", ",") + " " + u[k]; }
 function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 function heure() { const d = new Date(); document.getElementById("heure").textContent = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); }
 heure(); setInterval(heure, 10000);
 window.addEventListener("resize", () => maj());
 const depart = SYS.findIndex(s => s.jeux.length && s.id !== "steam" && s.id !== "pc");
-construire(); if (depart > 0) { i = liste.indexOf(SYS[depart]); if (i < 0) i = 0; maj(); }
+construire();
+const rep = CFG.reprise ? liste.findIndex(s => s.id === CFG.reprise) : -1;
+if (rep >= 0) { i = rep; maj(); } else if (depart > 0) { i = liste.indexOf(SYS[depart]); if (i < 0) i = 0; maj(); }
 </script>
 </body>
 </html>

@@ -16,4 +16,8 @@ for p in retroarch libretro-core-info libretro-nestopia libretro-snes9x libretro
 done
 # Flathub pour les émulateurs absents de Debian (PS2, PSP, Dreamcast, 3DS, Xbox, PS3, Wii U), installés à la demande depuis la console
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+# profils de manettes RetroArch (Xbox, PlayStation, Switch, 8BitDo…), branchées et reconnues sans réglage
+mkdir -p /usr/share/libretro/autoconfig
+curl -fsSL --retry 3 https://github.com/libretro/retroarch-joypad-autoconfig/archive/refs/heads/master.tar.gz | tar -xz -C /tmp \
+  && cp -r /tmp/retroarch-joypad-autoconfig-master/udev /usr/share/libretro/autoconfig/ && rm -rf /tmp/retroarch-joypad-autoconfig-master || echo "profils de manettes indisponibles"
 apt-get clean

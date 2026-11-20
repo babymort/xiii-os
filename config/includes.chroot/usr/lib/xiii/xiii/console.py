@@ -137,6 +137,23 @@ def donnees():
                     "jeux": jeux_de(sid, exts), "installe": installe(src), "source": src, "remarque": rem, "dossier": os.path.join(JEUX, sid)})
     return out
 
+def enrichir(d):
+    """Ajoute jaquette, capture et fiche (ScreenScraper / libretro) à chaque jeu."""
+    try:
+        sys.path.insert(0, "/usr/lib/xiii"); from xiii import scraper
+    except Exception:
+        return d
+    for s in d:
+        if s["id"] in ("steam", "pc"): continue
+        fi = scraper.infos(s["id"])
+        for g in s["jeux"]:
+            j, e = scraper.medias(s["id"], g["chemin"])
+            if j: g["jaquette"] = "file://" + j
+            if e: g["ecran"] = "file://" + e
+            info = fi.get(scraper.base(g["chemin"]))
+            if info: g["info"] = info
+    return d
+
 def preparer_dossiers():
     os.makedirs(BIOS, exist_ok=True)
     for sid, nom, fab, an, sup, cols, exts, cmd, src, rem in S:
@@ -150,7 +167,7 @@ def preparer_dossiers():
 class Console(Gtk.Application):
     def __init__(self):
         super().__init__(application_id="fr.xiii.console")
-        self.proc = None
+        self.proc = None; self.manettes = None; self.scrape_en_cours = False
 
     def do_activate(self):
         if getattr(self, "win", None): self.win.present(); return
@@ -160,6 +177,15 @@ class Console(Gtk.Application):
         ucm.connect("script-message-received::xiii", self.message)
         self.vue = WebKit.WebView(user_content_manager=ucm)
         st = self.vue.get_settings(); st.set_property("enable-developer-extras", False)
+        for k in ("allow-file-access-from-file-urls", "allow-universal-access-from-file-urls"):
+            try: st.set_property(k, True)
+            except Exception: pass
+        # manettes natives (libmanette) : fonctionnent même si le moteur web ne gère pas les manettes
+        try:
+            sys.path.insert(0, "/usr/lib/xiii"); from xiii.manette import Manettes
+            self.manettes = Manettes(self.pad, combo=self.quitter_jeu)
+        except Exception:
+            self.manettes = None
         try: st.set_property("enable-webgl", True)
         except Exception: pass
         self.vue.set_background_color(Gdk.RGBA(red=.05, green=.05, blue=.06, alpha=1))
@@ -167,6 +193,55 @@ class Console(Gtk.Application):
         self.charger()
         if "--fenetre" not in sys.argv: self.win.fullscreen()
         self.win.present()
+        GLib.timeout_add_seconds(4, lambda: (self.scraper(silencieux=True), False)[1])   # jaquettes manquantes en arrière-plan
+
+    def pad(self, n):
+        if self.proc and self.proc.poll() is None: return          # en jeu : la manette appartient à l'émulateur
+        n = {"select": "menu", "accueil": "menu", "l": "pg", "r": "pd", "x": "x"}.get(n, n)
+        self.js("action(%s)" % json.dumps(n))
+
+    def quitter_jeu(self):
+        """Select + Start ou bouton Accueil : quitte le jeu en cours (tous les émulateurs) et revient à la console."""
+        if self.proc and self.proc.poll() is None and not getattr(self, "proc_steam", False):   # Steam garde son propre bouton Accueil
+            import signal
+            try: os.killpg(self.proc.pid, signal.SIGTERM)
+            except Exception: pass
+            GLib.timeout_add(2500, self._forcer)
+
+    def _forcer(self):
+        import signal
+        if self.proc and self.proc.poll() is None:
+            try: os.killpg(self.proc.pid, signal.SIGKILL)
+            except Exception: pass
+        return False
+
+    def scraper(self, sid=None, silencieux=False, refaire=False):
+        if self.scrape_en_cours: return
+        try:
+            sys.path.insert(0, "/usr/lib/xiii"); from xiii import scraper as SC
+        except Exception:
+            return
+        lot = []
+        for s in donnees():
+            if s["id"] in ("steam", "pc") or (sid and s["id"] != sid): continue
+            for g in s["jeux"]:
+                if refaire or not SC.medias(s["id"], g["chemin"])[0]: lot.append((s["id"], g["chemin"]))
+        if not lot:
+            if not silencieux: self.js("toast('Toutes les jaquettes sont déjà là')")
+            return
+        self.scrape_en_cours = True
+        def progres(k, n, t):
+            GLib.idle_add(lambda: (self.js("scrapage(%d,%d,%s)" % (k, n, json.dumps(t))), False)[1])
+            if k > 0:
+                sid2, ch = lot[k - 1]; j, e = SC.medias(sid2, ch); info = SC.infos(sid2).get(SC.base(ch))
+                GLib.idle_add(lambda: (self.js("majMedias(%s,%s,%s,%s,%s)" % (json.dumps(sid2), json.dumps(ch), json.dumps("file://" + j if j else None),
+                                                                              json.dumps("file://" + e if e else None), json.dumps(info))), False)[1])
+        def tache():
+            try: n = SC.scraper(lot, progres, refaire=refaire)
+            except Exception: n = -1
+            self.scrape_en_cours = False
+            GLib.idle_add(lambda: (self.js("toast(%s)" % json.dumps("%d jaquette(s) récupérée(s)" % n if n >= 0 else "Récupération des jaquettes impossible")), False)[1])
+        threading.Thread(target=tache, daemon=True).start()
 
     def charger(self):
         try: html = open(HTML, encoding="utf-8").read()
@@ -177,12 +252,14 @@ class Console(Gtk.Application):
             c = config.charger(); p = theme.palette(c); cfg = {"accent": p["accent"], "fond": p["fond"], "demo": bool(os.environ.get("XIII_DEMO"))}
         except Exception:
             cfg = {"accent": "#f0b378", "fond": "#141210"}
-        d = donnees()
+        d = enrichir(donnees())
         if cfg.get("demo"):
             for s in d:
                 if s["id"] in ("megadrive", "snes", "gba", "psx", "n64", "gamegear", "arcade"):
                     s["jeux"] = [{"nom": n, "chemin": "/demo/" + n, "taille": 2_400_000} for n in ("Aventure du pixel", "Course de nuit", "Le donjon perdu", "Pong Royale", "Rétro Rally")]
                     s["installe"] = True
+        cfg["manette_native"] = bool(self.manettes and self.manettes.ok)
+        cfg["reprise"] = getattr(self, "reprise", None)
         html = html.replace("/*DONNEES*/", "window.SYSTEMES = %s; window.CFG = %s;" % (json.dumps(d, ensure_ascii=False), json.dumps(cfg)))
         self.vue.load_html(html, "file:///usr/share/xiii/console/")
 
@@ -197,7 +274,8 @@ class Console(Gtk.Application):
         elif a == "dossier": subprocess.Popen(["thunar", os.path.join(JEUX, m.get("sys") or "")])
         elif a == "bios": subprocess.Popen(["thunar", BIOS])
         elif a == "installer": self.installer(m["sys"])
-        elif a == "rescanner": self.charger()
+        elif a == "rescanner": self.reprise = m.get("reprise"); self.charger()
+        elif a == "scraper": self.scraper(m.get("sys"), refaire=bool(m.get("refaire")))
         elif a == "quitter": self.quit()
         elif a == "bureau":
             try:
@@ -220,6 +298,7 @@ class Console(Gtk.Application):
             if not e: return
             cmd = [c.replace("{rom}", chemin).replace("{dossier}", os.path.dirname(chemin) if sid != "scummvm" else chemin)
                     .replace("{nom}", os.path.splitext(os.path.basename(chemin))[0]).replace("{lichii}", lichii()) for c in e[7]]
+        self.proc_steam = cmd[0] == "steam"
         try:
             self.proc = subprocess.Popen(cmd, start_new_session=True)
         except OSError as ex:
