@@ -307,7 +307,8 @@ function ouvrirInstall(s) {
   vue = "install"; instSel = 0;
   document.getElementById("i-titre").textContent = s.nom;
   document.getElementById("i-texte").textContent = s.source === "lichii" ? "L'émulateur Lichii (expérimental) se télécharge depuis son dépôt GitHub. Jeux, clés et firmware ne sont pas fournis."
-    : "L'émulateur de cette console s'installe depuis Flathub (gratuit, quelques minutes). Jeux et BIOS ne sont pas fournis.";
+    : s.source.startsWith("flatpak:") ? "L'émulateur de cette console s'installe depuis Flathub (gratuit, quelques minutes). Jeux et BIOS ne sont pas fournis."
+    : "L'émulateur de cette console n'est pas présent : il s'installe en une minute (mot de passe administrateur). Jeux et BIOS ne sont pas fournis.";
   document.getElementById("prog").style.display = "none"; itemsInstall(); document.getElementById("install").classList.add("ouvert");
 }
 function itemsInstall() {

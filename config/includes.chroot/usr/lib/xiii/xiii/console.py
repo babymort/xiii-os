@@ -64,6 +64,10 @@ S = [
     ("scummvm", "ScummVM", "Point & clic", 1987, "ordinateur", ("#4a7c59", "#f4d35e"), "scummvm", ["scummvm", "-f", "--path={dossier}", "--auto-detect"], "apt:scummvm", "Un dossier par jeu"),
 ]
 
+PAQUETS = {"core:nestopia": "libretro-nestopia", "core:snes9x": "libretro-snes9x", "core:mgba": "libretro-mgba", "core:gambatte": "libretro-gambatte",
+           "core:genesis_plus_gx": "libretro-genesisplusgx", "core:mednafen_vb": "libretro-beetle-vb", "core:mednafen_wswan": "libretro-beetle-wswan",
+           "mupen64plus": "mupen64plus-ui-console", "x64sc": "vice", "fuse-gtk": "fuse-emulator-gtk", "steam": "steam-installer"}
+
 def flatpak_installe(app):
     try: return subprocess.run(["flatpak", "info", app], capture_output=True, timeout=5).returncode == 0
     except Exception: return False
@@ -254,7 +258,10 @@ class Console(Gtk.Application):
                         if m: etat("Installation : %s %%" % m.group(1))
                     ok = p.wait() == 0
                     etat("Émulateur installé" if ok else "Installation impossible (connexion Internet ?)", True, ok); return
-                etat("Cet émulateur fait partie d'OS XIII : mettez le système à jour.", True, False)
+                paq = [PAQUETS.get(app, app)] + (["retroarch"] if app.startswith("core:") else [])
+                etat("Installation de %s (mot de passe administrateur)…" % paq[0])
+                r = subprocess.run(["pkexec", "sh", "-c", "apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y " + " ".join(paq)], capture_output=True, text=True)
+                etat("Émulateur installé" if r.returncode == 0 else "Installation annulée ou impossible", True, r.returncode == 0)
             except Exception as ex:
                 etat("Erreur : %s" % ex, True, False)
         threading.Thread(target=tache, daemon=True).start()
