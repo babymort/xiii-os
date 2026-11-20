@@ -101,6 +101,16 @@ xiii-ctl widgets; sleep 3; grim /out/f-widgets.png; wtype -k Page_Down; sleep 1;
 for pg in acquisition outilsprod barre; do xiii-parametres --page $pg >> /out/param.log 2>&1 & sleep 4; grim /out/f-p-$pg.png; pkill -f xiii.parametres; sleep 0.5; done
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import theme; [print(k, theme.SKINS[k].get("police") if hasattr(theme,"SKINS") else "") for k in ("cyber","gb","sepia")]' >> /out/f.log 2>&1
 pkill mousepad; pkill imv
+# Saison 2 — S2a
+for st in rond barre minimal; do
+  python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(indic_style='$st')"; sleep 2.5; grim -g "900,0 700x34" /out/s2-indic-$st.png
+done
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(indic_style="icone")'
+xiii-ctl demarrer-recherche; sleep 1.5; wtype "notes"; sleep 2; grim /out/s2-recherche-tout.png; xiii-ctl fermer; sleep 0.5
+xiii-taches >> /out/s2.log 2>&1 & sleep 4; grim /out/s2-taches.png; pkill -f xiii.taches; sleep 0.5
+foot --app-id=fr.xiii.terminal >/dev/null 2>&1 & sleep 2; grim /out/s2-terminal.png; pkill foot; sleep 0.5
+for pg in demarrage connexion utilisateurs; do xiii-parametres --page $pg >> /out/param.log 2>&1 & sleep 4; grim /out/s2-p-$pg.png; pkill -f xiii.parametres; sleep 0.5; done
+cp /usr/share/plymouth/themes/xiii-ascii-matrix/f-040.png /out/s2-ascii-matrix.png 2>/dev/null
 cp /root/.config/xiii/reglages.json /out/ 2>/dev/null
 labwc --exit
 # relance

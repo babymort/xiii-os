@@ -20,6 +20,7 @@ DEFAUTS = {
     "verrou_fond": FONDS + "/xiii-connexion.png",
     "barre_alignement": "centre",   # centre | gauche
     "barre_style": "icones",        # icones | onglets
+    "indic_style": "icone",         # icone | rond | barre | pourcentage | minimal
     "timecode_source": "",          # entrée audio du timecode LTC
     "timecode_canal": 0,
     "decklink_entree": 0, "decklink_mode": "auto", "decklink_pont": False,

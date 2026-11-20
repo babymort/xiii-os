@@ -395,11 +395,9 @@ class Shell(Gtk.Application):
         lg.connect("clicked", lambda *_: self.parametres("apropos"))
         g.append(lg)
         self.b_projet = Gtk.Button(); self.b_projet.add_css_class("hb"); self.b_projet.set_tooltip_text("Projet XIII actif")
-        pj = boite(False, 6); pj.append(ico("folder-kanban", 14, "c")); pj.append(label(self.cfg.get("projet_actif") or "", "accent", "petit", "gras")); self.b_projet.set_child(pj)
-        self.b_projet.connect("clicked", lambda *_: popover_menu(self.b_projet, [
-            ("folder-open", "Ouvrir le dossier du projet", lambda: S.detacher(["thunar", os.path.join(os.path.expanduser("~/XIII"), self.cfg.get("projet_actif", ""))])),
-            ("layout-dashboard", "Widgets du projet", lambda: self.basculer("widgets")), ("settings", "Changer de projet", lambda: self.parametres("projet"))]))
-        self.b_projet.set_visible(bool(self.cfg.get("projet_actif"))); g.append(self.b_projet)
+        pj = boite(False, 6); pj.append(ico("folder-kanban", 14, "c")); pj.append(label(self.cfg.get("projet_actif") or "Choisir un projet", "accent" if self.cfg.get("projet_actif") else "attenue", "petit", "gras")); self.b_projet.set_child(pj)
+        self.b_projet.connect("clicked", lambda *_: self.menu_projets())
+        g.append(self.b_projet)
         self.l_titre = label("", "haut-titre", ellipsize=True, largeur=60, margin_start=6); g.append(self.l_titre)
         cb.set_start_widget(g)
         centre = boite(False, 10)
@@ -441,6 +439,38 @@ class Shell(Gtk.Application):
         cb.set_end_widget(d); self.zone_haut = d
         self.haut.set_child(cb)
 
+    def menu_projets(self):
+        """Sélecteur de projet (en haut à gauche, comme la suite) : changer, créer, ajouter depuis un fichier .xiii."""
+        from . import projets
+        pop = Gtk.Popover(has_arrow=False); pop.set_parent(self.b_projet); pop.set_position(Gtk.PositionType.BOTTOM)
+        v = boite(True, 4, margin_top=8, margin_bottom=8, margin_start=8, margin_end=8); v.set_size_request(300, -1)
+        cur = self.cfg.get("projet_actif", "")
+        v.append(label("Projets", "section"))
+        for p in projets.liste()[:12]:
+            b = Gtk.Button(); b.add_css_class("ligne"); b.add_css_class("plat")
+            bx = boite(False, 8); bx.append(ico("check" if p == cur else "folder", 16, "c" if p == cur else "d")); bx.append(label(p, "gras" if p == cur else "", hexpand=True, ellipsize=True)); b.set_child(bx)
+            b.connect("clicked", lambda _b, p=p: (pop.popdown(), projets.activer(p))); v.append(b)
+        e = Gtk.Entry(placeholder_text="Nouveau projet…"); e.set_icon_from_paintable(Gtk.EntryIconPosition.PRIMARY, theme.icone("plus", 14, ACC["d"]))
+        e.connect("activate", lambda w: (pop.popdown(), projets.activer(w.get_text())) if w.get_text().strip() else None); v.append(e)
+        def depuis_fichier():
+            pop.popdown()
+            d = Gtk.FileDialog(title="Ajouter un projet depuis un fichier .xiii")
+            ff = Gtk.FileFilter(); ff.set_name("Fichiers XIII"); [ff.add_pattern(x) for x in ("*.xiii", "*.xiii.json", "*.json")]
+            st = Gio.ListStore.new(Gtk.FileFilter); st.append(ff); d.set_filters(st)
+            def fini(dlg, res):
+                try: f = dlg.open_finish(res).get_path()
+                except Exception: return
+                n = projets.importer(f)
+                if n: S.detacher(["notify-send", "-a", "Projet XIII", "-i", "folder", "Projet « %s » activé" % n, "Le fichier a été rangé dans 03_Documents."])
+            d.open(None, None, fini)
+        v.append(bouton("Ajouter depuis un fichier .xiii…", "file-plus", "ligne", "plat", taille=16, rappel=depuis_fichier))
+        if cur:
+            v.append(Gtk.Separator())
+            v.append(bouton("Ouvrir le dossier du projet", "folder-open", "ligne", "plat", taille=16, rappel=lambda: (pop.popdown(), S.detacher(["thunar", os.path.join(projets.BASE, cur)]))))
+            v.append(bouton("Widgets du projet", "layout-dashboard", "ligne", "plat", taille=16, rappel=lambda: (pop.popdown(), self.basculer("widgets"))))
+        v.append(bouton("Gérer les projets", "settings", "ligne", "plat", taille=16, rappel=lambda: (pop.popdown(), self.parametres("projet"))))
+        pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
+
     def bouton_survol(self, icone, texte, rappel):
         """Bouton icône dont le libellé glisse au survol (barre du haut de la suite)."""
         b = Gtk.Button(); b.add_css_class("hb"); b.set_tooltip_text(texte)
@@ -469,20 +499,32 @@ class Shell(Gtk.Application):
     def _rendu_icones(self, r):
         if isinstance(r, Exception): return
         et, wifi, btp, bt, btd, (vol, muet), bat = r
-        def met(b, icone, texte=None, role="t"):
-            bx = boite(False, 5); bx.append(ico(icone, 16, role))
-            if texte: bx.append(label(texte))
+        style = self.cfg.get("indic_style", "icone")
+        def met(b, icone, texte=None, role="t", valeur=None):
+            """valeur 0..1 (signal, volume, charge) : dessinée selon le style choisi (Paramètres › Barre du haut)."""
+            bx = boite(False, 5, valign=Gtk.Align.CENTER)
+            if valeur is not None and style == "rond":
+                bx.append(jauge_ronde(valeur, ico(icone, 11, role)))
+            elif valeur is not None and style == "minimal":
+                bx.append(label("%d%%" % round(valeur * 100), "petit", "gras"))
+            else:
+                bx.append(ico(icone, 16, role))
+                if valeur is not None and style == "barre":
+                    pb = Gtk.ProgressBar(fraction=valeur, valign=Gtk.Align.CENTER); pb.add_css_class("indic-barre"); pb.set_size_request(24, -1); bx.append(pb)
+                elif valeur is not None and style == "pourcentage" and not texte:
+                    texte = "%d%%" % round(valeur * 100)
+            if texte and not (valeur is not None and style in ("rond", "minimal", "barre")): bx.append(label(texte))
             b.set_child(bx)
         if et["avion"]: met(self.h_wifi, "plane", role="c")
         elif et["type"] == "ethernet": met(self.h_wifi, "ethernet-port")
-        elif et["type"] == "wifi": met(self.h_wifi, icone_wifi(et["signal"]))
+        elif et["type"] == "wifi": met(self.h_wifi, icone_wifi(et["signal"]), valeur=et["signal"] / 100)
         else: met(self.h_wifi, "wifi-off" if not wifi else "wifi-zero", role="d")
         self.h_bt.set_visible(btp)
         met(self.h_bt, "bluetooth-connected" if any(d["connecte"] for d in btd) else ("bluetooth" if bt else "bluetooth-off"), role="t" if bt else "d")
-        met(self.h_son, icone_volume(vol, muet), "%d%%" % vol if not muet else None)
+        met(self.h_son, icone_volume(vol, muet), "%d%%" % vol if not muet else None, valeur=None if muet else vol / 100)
         self.h_bat.set_visible(True)
         met(self.h_bat, icone_batterie(bat), ("%d%%" % bat["pct"]) if (bat and self.cfg["haut_pourcentage"]) else None,
-            role="c" if bat and bat["pct"] < 15 and not bat["charge"] else "t")
+            role="c" if bat and bat["pct"] < 15 and not bat["charge"] else "t", valeur=bat["pct"] / 100 if bat else None)
         self.h_dnd.set_visible(self.cfg["ne_pas_deranger"])
         self.l_tournage.set_visible(profils.courant(self.cfg)[0] != "normal")
 
@@ -571,6 +613,10 @@ class Shell(Gtk.Application):
         if hasattr(self, "coins"): self.coins.maj()
         if hasattr(self, "bureau"): self.bureau.maj()
         if ancien.get("barre_style") != cfg.get("barre_style"): self.maj_taches()
+        if ancien.get("indic_style") != cfg.get("indic_style"): self.maj_icones()
+        if ancien.get("projet_actif") != cfg.get("projet_actif") and hasattr(self, "b_projet"):
+            pj = boite(False, 6); pj.append(ico("folder-kanban", 14, "c"))
+            pj.append(label(cfg.get("projet_actif") or "Choisir un projet", "accent" if cfg.get("projet_actif") else "attenue", "petit", "gras")); self.b_projet.set_child(pj)
         # icônes teintées : reconstruire
         self.construire_haut(); self.demarrer_timecode(); self.b_cherche.set_child(ico("search", 20)); self.b_vue.set_child(ico("layout-dashboard", 19))
         ov = self.b_cloche.get_child(); ov.set_child(ico("bell", 19))
@@ -720,6 +766,15 @@ class MenuDemarrer:
         self.recherche.set_icon_from_paintable(Gtk.EntryIconPosition.PRIMARY, theme.icone("search", 16, ACC["d"]))
         self.recherche.connect("changed", self.chercher); self.recherche.connect("activate", self.valider)
         w.append(self.recherche)
+        # filtres de recherche (Super + Espace) : Tout · Fichiers · Applications · IA
+        self.mode = "tout"; filt = boite(False, 6); prem = None
+        for cle, nom, ic in (("tout", "Tout", "search"), ("fichiers", "Fichiers", "file"), ("apps", "Applications", "layout-grid"), ("ia", "IA", "sparkles")):
+            t = Gtk.ToggleButton(group=prem); t.add_css_class("fantome"); t.add_css_class("filtre-recherche")
+            bx = boite(False, 6); bx.append(ico(ic, 14, "c")); bx.append(label(nom, "petit")); t.set_child(bx)
+            if not prem: prem = t; t.set_active(True)
+            t.connect("toggled", lambda b, c=cle: b.get_active() and (setattr(self, "mode", c), self.chercher() if self.recherche.get_text().strip() else None))
+            filt.append(t)
+        self.filtres = filt; w.append(filt)
         self.pile = Gtk.Stack(vexpand=True, transition_type=Gtk.StackTransitionType.SLIDE_LEFT_RIGHT if shell.cfg["animations"] else Gtk.StackTransitionType.NONE)
         w.append(self.pile)
         # --- accueil
@@ -874,6 +929,15 @@ class MenuDemarrer:
         if not q:
             self.vue("accueil"); return
         vider(self.res); self._premier = None
+        mode = getattr(self, "mode", "tout")
+        if mode == "ia":
+            brut = self.recherche.get_text().strip()
+            self.res.append(label("Demander à une IA", "section"))
+            for nom, ic, fn in (("Claude", "sparkles", lambda: claude.demander(brut)),
+                                ("ChatGPT", "message-circle", lambda: S.detacher(["xdg-open", "https://chatgpt.com/?q=" + GLib.uri_escape_string(brut, None, False)])),
+                                ("Gemini", "gem", lambda: S.detacher(["xdg-open", "https://gemini.google.com/app?q=" + GLib.uri_escape_string(brut, None, False)]))):
+                self.res.append(bouton("%s : « %s »" % (nom, brut), ic, "ligne", "plat", taille=18, rappel=lambda f=fn: (self.shell.fermer(), f())))
+            self._premier = lambda: (self.shell.fermer(), claude.demander(brut)); self.vue("res"); return
         trouves = [a for a in apps.toutes() if q in sans_accents(a.get_display_name()) or q in sans_accents(a.get_description() or "")
                    or q in sans_accents(" ".join(a.get_keywords() or []) if hasattr(a, "get_keywords") else "")]
         trouves.sort(key=lambda a: (not sans_accents(a.get_display_name()).startswith(q), a.get_display_name()))
@@ -889,6 +953,7 @@ class MenuDemarrer:
                 b.set_tooltip_text("Copier le résultat"); self.res.append(b)
             except Exception:
                 pass
+        if mode == "fichiers": trouves = []
         if trouves:
             self.res.append(label("Applications", "section"))
             for a in trouves[:8]:
@@ -898,7 +963,7 @@ class MenuDemarrer:
                 bx.append(v); b.set_child(bx); b.connect("clicked", lambda _b, a=a: self.lancer(a)); self.res.append(b)
                 if not self._premier: self._premier = lambda a=a: self.lancer(a)
         from .pages_index import INDEX
-        pg = [(cle, t, ic, chemin) for cle, t, ic, chemin, mots in INDEX if q in sans_accents(t + " " + mots)]
+        pg = [(cle, t, ic, chemin) for cle, t, ic, chemin, mots in INDEX if q in sans_accents(t + " " + mots)] if mode in ("tout", "apps") else []
         if pg:
             self.res.append(label("Paramètres", "section"))
             for cle, t, ic, chemin in pg[:6]:
@@ -907,7 +972,7 @@ class MenuDemarrer:
                 v = boite(True, 0); v.append(label(t, "gras")); v.append(label(chemin, "attenue", "petit")); bx.append(v); b.set_child(bx)
                 b.connect("clicked", lambda _b, c=cle: self.shell.parametres(c)); self.res.append(b)
                 if not self._premier: self._premier = lambda c=cle: self.shell.parametres(c)
-        fic = [f for f in apps.recents(30) if q in sans_accents(os.path.basename(f))]
+        fic = [f for f in apps.recents(30) if q in sans_accents(os.path.basename(f))] if mode in ("tout", "fichiers") else []
         if fic:
             self.res.append(label("Fichiers récents", "section"))
             for f in fic[:5]:
@@ -915,10 +980,12 @@ class MenuDemarrer:
                 bx = boite(False, 12); bx.append(gicon_image(apps.icone_fichier(f), 24))
                 v = boite(True, 0); v.append(label(os.path.basename(f))); v.append(label(os.path.dirname(f).replace(os.path.expanduser("~"), "~"), "attenue", "petit", ellipsize=True)); bx.append(v)
                 b.set_child(bx); b.connect("clicked", lambda _b, f=f: (self.shell.fermer(), apps.ouvrir_fichier(f))); self.res.append(self.avec_apercu(b, f))
-        if len(q) >= 3 and not S.DEMO:
+        if len(q) >= (2 if mode == "fichiers" else 3) and not S.DEMO and mode in ("tout", "fichiers"):
             maison = os.path.expanduser("~")
-            trouves_f = [l for l in S.out(["plocate", "-i", "-l", "40", "--", self.recherche.get_text().strip()], 2).splitlines()
-                         if l.startswith(maison + "/") and "/." not in l[len(maison):] and l not in fic][:6]
+            tout_pc = mode == "fichiers"          # filtre Fichiers : tout le PC (disques et clés montés compris)
+            trouves_f = [l for l in S.out(["plocate", "-i", "-l", "200" if tout_pc else "40", "--", self.recherche.get_text().strip()], 2).splitlines()
+                         if (l.startswith(maison + "/") and "/." not in l[len(maison):] or tout_pc and l.startswith(("/media/", "/mnt/", "/run/media/", "/srv/")))
+                         and l not in fic][:20 if tout_pc else 6]
             if trouves_f:
                 self.res.append(label("Fichiers", "section"))
                 for f in trouves_f:
@@ -926,6 +993,9 @@ class MenuDemarrer:
                     bx = boite(False, 12); bx.append(gicon_image(apps.icone_fichier(f), 24))
                     v = boite(True, 0); v.append(label(os.path.basename(f))); v.append(label(os.path.dirname(f).replace(maison, "~"), "attenue", "petit", ellipsize=True)); bx.append(v)
                     b.set_child(bx); b.connect("clicked", lambda _b, f=f: (self.shell.fermer(), apps.ouvrir_fichier(f))); self.res.append(self.avec_apercu(b, f))
+        if mode != "tout":
+            if self.res.get_first_child() is None: self.res.append(label("Aucun résultat.", "attenue"))
+            self.vue("res"); return
         self.res.append(label("Web et assistant", "section"))
         brut0 = self.recherche.get_text().strip()
         self.res.append(bouton("Demander à Claude : « %s »" % brut0, "sparkles", "ligne", "plat", taille=18,
@@ -940,6 +1010,19 @@ class MenuDemarrer:
     def valider(self, *_):
         if self.recherche.get_text().strip() and getattr(self, "_premier", None):
             self._premier()
+
+def jauge_ronde(valeur, centre=None, taille=20):
+    """Petite jauge circulaire (style « rond » des indicateurs)."""
+    o = Gtk.Overlay(); da = Gtk.DrawingArea(); da.set_size_request(taille, taille)
+    def dessin(a, cr, w, h):
+        import math
+        c = a.get_color(); acc = Gdk.RGBA(); acc.parse(ACC.get("c", "#f0b378"))
+        r = min(w, h) / 2 - 1.5; cr.set_line_width(2.2)
+        cr.set_source_rgba(c.red, c.green, c.blue, .22); cr.arc(w / 2, h / 2, r, 0, 2 * math.pi); cr.stroke()
+        cr.set_source_rgba(acc.red, acc.green, acc.blue, 1); cr.arc(w / 2, h / 2, r, -math.pi / 2, -math.pi / 2 + 2 * math.pi * max(0, min(1, valeur))); cr.stroke()
+    da.set_draw_func(dessin); o.set_child(da)
+    if centre: o.add_overlay(centre)
+    return o
 
 def main():
     os.environ.pop("LD_PRELOAD", None)   # la bibliothèque est chargée ; ne pas la transmettre aux applis lancées

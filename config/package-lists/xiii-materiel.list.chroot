@@ -57,3 +57,5 @@ udiskie
 libnotify-bin
 swayidle
 swaylock
+fprintd
+libpam-fprintd

@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <actions>
 <action>
+	<icon>utilities-terminal</icon>
+	<name>Ouvrir dans le terminal</name>
+	<submenu></submenu>
+	<unique-id>xiii-terminal-1</unique-id>
+	<command>foot --app-id=fr.xiii.terminal -D %f</command>
+	<description>Terminal XIII dans ce dossier</description>
+	<range></range>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
 	<icon>view-reveal-symbolic</icon>
 	<name>Aperçu rapide</name>
 	<submenu></submenu>

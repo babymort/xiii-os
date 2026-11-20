@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Terminal XIII
+GenericName=Terminal
+Comment=Ligne de commande aux couleurs du thème — jamais obligatoire sur OS XIII
+Exec=foot --app-id=fr.xiii.terminal --title="Terminal XIII"
+Icon=utilities-terminal
+Categories=System;TerminalEmulator;X-XIII;
+Keywords=terminal;console;shell;bash;commande;invite;
+StartupWMClass=fr.xiii.terminal
+Actions=nouvelle;
+[Desktop Action nouvelle]
+Name=Nouvelle fenêtre
+Exec=foot --app-id=fr.xiii.terminal

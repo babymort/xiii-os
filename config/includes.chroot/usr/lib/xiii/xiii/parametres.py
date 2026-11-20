@@ -1,7 +1,7 @@
 # OS XIII — Paramètres (aussi complets que ceux de Windows 11, aux couleurs de la Suite XIII).
 # Lancement : xiii-parametres [--page clé]
 # Application développée par Matthieu Lamotte.
-import os, sys, re, glob, json, shutil, subprocess, pwd, time, datetime, threading, urllib.request, urllib.parse
+import os, sys, re, glob, json, shutil, subprocess, pwd, time, datetime, threading, urllib.request, urllib.parse, grp, shlex
 import xml.etree.ElementTree as ET
 import gi
 gi.require_version("Gtk", "4.0")
@@ -57,6 +57,9 @@ def rc_valeur(chemin, attrs=None, defaut=None):
     return (n.text or "").strip() or defaut
 
 # ================================================================================================ application
+NOMS_DOIGTS = {"right-index-finger": "Index droit", "left-index-finger": "Index gauche", "right-thumb": "Pouce droit", "left-thumb": "Pouce gauche",
+               "right-middle-finger": "Majeur droit", "left-middle-finger": "Majeur gauche"}
+
 class Parametres(Gtk.Application):
     def __init__(self):
         super().__init__(application_id="fr.xiii.Parametres", flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
@@ -1414,6 +1417,9 @@ class Parametres(Gtk.Application):
         c.append(reglage("clock", "Afficher les secondes", "", droite=interrupteur(cfg["haut_secondes"], lambda on: self.regler(haut_secondes=on))))
         c.append(reglage("clock", "Format 24 heures", "", droite=interrupteur(cfg["horloge_24h"], lambda on: self.regler(horloge_24h=on))))
         c.append(reglage("battery-full", "Pourcentage de batterie", "", droite=interrupteur(cfg["haut_pourcentage"], lambda on: self.regler(haut_pourcentage=on))))
+        c.append(reglage("wifi", "Style des indicateurs", "Wi-Fi, son et batterie : icône, rond (jauge), barre, pourcentage ou minimal",
+                         droite=deroulant([("icone", "Icône"), ("rond", "Rond"), ("barre", "Barre"), ("pourcentage", "Pourcentage"), ("minimal", "Minimal")],
+                                          cfg.get("indic_style", "icone"), lambda v: self.regler(indic_style=v))))
         c.append(reglage("film", "Horloge timecode", "HH:MM:SS:II au centre de la barre", droite=interrupteur(cfg.get("timecode", False), lambda on: self.regler(timecode=on))))
         c.append(info("Clic gauche sur une icône de la barre du haut : réglage rapide. Clic droit : la page complète des paramètres."))
 
@@ -1439,6 +1445,22 @@ class Parametres(Gtk.Application):
         cur = S.out(["plymouth-set-default-theme"]) or "xiii"
         c.append(reglage("clapperboard", "Animation actuelle", cur, droite=bouton("Changer / importer", None, "pilule", rappel=lambda: S.detacher("xiii-demarrage"))))
         c.append(info("Importez une vidéo ou un GIF : il devient votre animation de démarrage."))
+        from .ascii_boot import VARIANTES
+        c.append(groupe_titre("Logo XIII en ASCII"))
+        g = Gtk.FlowBox(max_children_per_line=3, min_children_per_line=2, selection_mode=Gtk.SelectionMode.NONE, column_spacing=10, row_spacing=10, homogeneous=True)
+        for nom, titre, desc in VARIANTES:
+            th = "xiii-ascii-" + nom; d = "/usr/share/plymouth/themes/" + th
+            imgs = sorted(glob.glob(d + "/f-*.png"))
+            carte = boite(True, 6, "carte")
+            if imgs:
+                pic = Gtk.Picture.new_for_filename(imgs[len(imgs) * 2 // 3]); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(220, 124); pic.add_css_class("miniature"); carte.append(pic)
+            carte.append(label(titre + ("  ✓" if cur == th else ""), "gras")); carte.append(label(desc, "petit", "attenue", wrap=True))
+            carte.append(bouton("Actuelle" if cur == th else "Utiliser", None, "pilule" if cur == th else "fantome",
+                                rappel=lambda th=th: (self.toast("Application de l'animation… (une minute)"),
+                                                      S.en_fond(S.admin, lambda r: (self.toast("Animation appliquée au prochain démarrage" if r[0] else "Annulé"), self.aller("demarrage", False)),
+                                                                ["xiii-demarrage-appliquer", th]))))
+            g.append(carte)
+        c.append(g)
 
     # ================================================================== APPLICATIONS
     def p_apps(self, c, cle):
@@ -1558,7 +1580,93 @@ class Parametres(Gtk.Application):
                          droite=interrupteur(auto, lambda on: S.en_fond(S.admin, lambda r: self.toast("Enregistré"),
                                                                        ("printf '[Seat:*]\\nautologin-user=%s\\nautologin-session=xiii\\n' > /etc/lightdm/lightdm.conf.d/60-autologin.conf" % u) if on
                                                                        else "rm -f /etc/lightdm/lightdm.conf.d/60-autologin.conf"))))
+        sans = False
+        try: sans = S.out(["passwd", "-S", u]).split()[1] == "NP"
+        except Exception: pass
+        c.append(reglage("lock-open", "Sans mot de passe", "Ouvrir la session et déverrouiller sans mot de passe (déconseillé sur un portable)",
+                         droite=interrupteur(sans, lambda on: S.en_fond(S.admin, lambda r: self.toast("Compte sans mot de passe" if on else "Choisissez un mot de passe"),
+                                                                      ["passwd", "-d", u]) if on else self.mdp(u))))
         c.append(reglage("timer", "Verrouillage automatique", "", clic=lambda: self.aller("alimentation")))
+        # empreinte digitale
+        c.append(groupe_titre("Empreinte digitale"))
+        lecteur = S.DEMO or (shutil.which("fprintd-list") and "no devices" not in S.out(["fprintd-list", u], 4).lower() and S.out(["fprintd-list", u], 4).strip() != "")
+        if not shutil.which("fprintd-enroll"):
+            c.append(info("Le service d'empreinte (fprintd) n'est pas installé."))
+        elif not lecteur:
+            c.append(info("Aucun lecteur d'empreinte détecté sur ce PC."))
+        else:
+            doigts = [l.split("-", 1)[1].strip() if "-" in l else l.strip() for l in S.out(["fprintd-list", u], 4).splitlines() if l.strip().startswith("-")]
+            c.append(reglage("fingerprint", "Empreintes enregistrées", ", ".join(NOMS_DOIGTS.get(d, d) for d in doigts) or "Aucune",
+                             droite=bouton("Ajouter un doigt", None, "pilule", rappel=lambda: self.empreinte(u))))
+            if doigts:
+                c.append(reglage("trash-2", "Effacer mes empreintes", "", droite=bouton("Effacer", None, "plat", "danger",
+                                 rappel=lambda: S.en_fond(lambda: S.sh(["fprintd-delete", u]), lambda r: self.aller("connexion", False)))))
+            c.append(info("L'empreinte sert à la connexion, au déverrouillage et aux demandes administrateur."))
+
+    def empreinte(self, u):
+        d = Gtk.Window(transient_for=self.win, modal=True, title="Empreinte digitale", default_width=420); d.add_css_class("parametres")
+        v = boite(True, 12, margin_top=20, margin_bottom=20, margin_start=24, margin_end=24)
+        v.append(label("Ajouter une empreinte", "page-titre"))
+        choix = list(NOMS_DOIGTS.items()); etat = {"doigt": "right-index-finger"}
+        v.append(deroulant([(k, n) for k, n in choix], etat["doigt"], lambda x: etat.__setitem__("doigt", x)))
+        im = ico("fingerprint", 72, "d"); v.append(im)
+        msg = label("Choisissez le doigt, puis « Commencer ».", "attenue", wrap=True, xalign=0.5); v.append(msg)
+        pb = Gtk.ProgressBar(); v.append(pb)
+        r = boite(False, 8, halign=Gtk.Align.END)
+        def lancer():
+            import subprocess
+            p = subprocess.Popen(["fprintd-enroll", "-f", etat["doigt"], u], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            n = [0]
+            def lire(src, cond):
+                l = p.stdout.readline()
+                if not l: return False
+                if "enroll-stage-passed" in l: n[0] += 1; pb.set_fraction(min(1, n[0] / 8)); msg.set_text("Encore… levez puis reposez le doigt.")
+                elif "enroll-retry" in l or "enroll-swipe-too-short" in l or "finger-not-centered" in l: msg.set_text("Recommencez : doigt bien à plat, au centre.")
+                elif "enroll-completed" in l: pb.set_fraction(1); msg.set_text("Empreinte enregistrée ✓"); GLib.timeout_add(1200, lambda: (d.close(), self.aller("connexion", False), False)[2])
+                elif "enroll-failed" in l or "error" in l.lower(): msg.set_text("Échec de l'enregistrement. Réessayez.")
+                return True
+            GLib.io_add_watch(p.stdout, GLib.IO_IN | GLib.IO_HUP, lire)
+            msg.set_text("Posez le doigt sur le lecteur.")
+        r.append(bouton("Fermer", None, "fantome", rappel=d.close)); r.append(bouton("Commencer", None, "pilule", rappel=lancer)); v.append(r)
+        d.set_child(v); d.present()
+
+    def p_utilisateurs(self, c, cle):
+        moi = pwd.getpwuid(os.getuid()).pw_name
+        admins = set(grp.getgrnam("sudo").gr_mem) if "sudo" in [g.gr_name for g in grp.getgrall()] else set()
+        L = [u for u in pwd.getpwall() if 1000 <= u.pw_uid < 60000 and u.pw_shell not in ("/usr/sbin/nologin", "/bin/false")] if not S.DEMO else []
+        c.append(info("Chaque personne a son compte : ses fichiers, ses réglages, son thème, son mot de passe. Les comptes apparaissent sur l'écran de connexion."))
+        for u in L:
+            nom = u.pw_gecos.split(",")[0] or u.pw_name
+            r = reglage("user", nom, "%s · %s" % (u.pw_name, "administrateur" if u.pw_name in admins else "standard") + (" · vous" if u.pw_name == moi else ""),
+                        droite=None if u.pw_name == moi else bouton("Supprimer", None, "plat", "danger", rappel=lambda n=u.pw_name: self.supprimer_compte(n)))
+            c.append(r)
+        c.append(reglage("user-plus", "Ajouter un compte", "Pour un membre de la famille, de l'équipe, ou un compte invité", droite=bouton("Ajouter", None, "pilule", rappel=self.nouveau_compte)))
+
+    def nouveau_compte(self):
+        d = Gtk.Window(transient_for=self.win, modal=True, title="Nouveau compte", default_width=440); d.add_css_class("parametres")
+        v = boite(True, 10, margin_top=20, margin_bottom=20, margin_start=24, margin_end=24)
+        v.append(label("Nouveau compte", "page-titre"))
+        nom = Gtk.Entry(placeholder_text="Nom complet"); ident = Gtk.Entry(placeholder_text="Identifiant (minuscules, sans espace)")
+        a = Gtk.PasswordEntry(show_peek_icon=True, placeholder_text="Mot de passe (vide = sans mot de passe)")
+        adm = Gtk.CheckButton(label="Administrateur (peut installer des logiciels et changer les réglages du système)")
+        def auto(*_):
+            if not ident.get_text() or getattr(ident, "_auto", False):
+                ident.set_text(re.sub(r"[^a-z0-9]", "", sans_accents(nom.get_text().lower().split(" ")[0]))[:24]); ident._auto = True
+        nom.connect("changed", auto)
+        msg = label("", "attenue", "petit")
+        for w in (nom, ident, a, adm, msg): v.append(w)
+        def ok(*_):
+            i = ident.get_text().strip()
+            if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", i): msg.set_text("Identifiant invalide."); return
+            cmd = "useradd -m -s /bin/bash -c %s -G audio,video,plugdev,netdev,bluetooth,kvm,dialout%s %s" % (shlex.quote(nom.get_text().strip() or i), ",sudo" if adm.get_active() else "", i)
+            cmd += " && " + ("printf '%%s:%%s\\n' %s %s | chpasswd" % (i, shlex.quote(a.get_text())) if a.get_text() else "passwd -d " + i)
+            S.en_fond(S.admin, lambda r: (d.close(), self.toast("Compte créé" if r[0] else "Échec : " + r[1][-80:]), self.aller("utilisateurs", False)), cmd)
+        r = boite(False, 8, halign=Gtk.Align.END); r.append(bouton("Annuler", None, "fantome", rappel=d.close)); r.append(bouton("Créer", None, "pilule", rappel=ok)); v.append(r)
+        d.set_child(v); d.present()
+
+    def supprimer_compte(self, n):
+        confirmer(self.win, "Supprimer le compte « %s » ?" % n, "Ses fichiers personnels seront supprimés. Cette action est définitive.", "Supprimer",
+                  lambda: S.en_fond(S.admin, lambda r: (self.toast("Compte supprimé" if r[0] else "Échec"), self.aller("utilisateurs", False)), ["userdel", "-r", n]))
 
     def mdp(self, u):
         d = Gtk.Window(transient_for=self.win, modal=True, title="Mot de passe", default_width=420); d.add_css_class("parametres")

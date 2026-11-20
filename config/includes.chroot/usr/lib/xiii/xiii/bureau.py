@@ -76,10 +76,44 @@ class Bureau:
         apps.ouvrir_fichier(p)
 
     def menu_icone(self, w, p):
-        popover_menu(w, [("folder-open", "Ouvrir", lambda: self.ouvrir(p)),
-                         ("folder", "Afficher dans le dossier", lambda: S.detacher(["thunar", self.dossier])),
-                         ("copy", "Copier le chemin", lambda: Gdk.Display.get_default().get_clipboard().set_text(p)), None,
-                         ("trash-2", "Mettre à la corbeille", lambda: Gio.File.new_for_path(p).trash(None))])
+        """Menu clic droit d'un fichier, comme sur Windows / Mac."""
+        uri = Gio.File.new_for_path(p).get_uri()
+        items = [("folder-open", "Ouvrir", lambda: self.ouvrir(p))]
+        if os.path.isfile(p):
+            items.append(("eye", "Aperçu rapide", lambda: S.detacher(["xiii-apercu", p])))
+            try:
+                ct = Gio.content_type_guess(p, None)[0]
+                for a in Gio.AppInfo.get_recommended_for_type(ct)[:4]:
+                    items.append(("app-window", "Ouvrir avec " + a.get_display_name(), lambda a=a: a.launch([Gio.File.new_for_path(p)], None)))
+            except Exception:
+                pass
+        items += [None,
+                  ("scissors", "Couper", lambda: self.presse_papiers(p, couper=True)),
+                  ("copy", "Copier", lambda: self.presse_papiers(p)),
+                  ("text-cursor-input", "Renommer", lambda: self.renommer(p)),
+                  ("archive", "Compresser (.zip)", lambda: S.detacher(["sh", "-c", 'cd "$1" && zip -qr "$2.zip" "$2"', "-", os.path.dirname(p), os.path.basename(p)])),
+                  ("send", "Envoyer à DOSSIER XIII", lambda: S.detacher(["xiii-suite", "--dossier", p])), None,
+                  ("folder", "Afficher dans le dossier", lambda: S.detacher(["thunar", self.dossier])),
+                  ("link", "Copier le chemin", lambda: Gdk.Display.get_default().get_clipboard().set_text(p)),
+                  ("trash-2", "Mettre à la corbeille", lambda: Gio.File.new_for_path(p).trash(None)), None,
+                  ("info", "Propriétés", lambda: S.detacher(["dbus-send", "--session", "--dest=org.xfce.FileManager", "--type=method_call", "/org/xfce/FileManager",
+                                                            "org.xfce.FileManager.DisplayFileProperties", "string:" + uri, "string:", "string:"]))]
+        popover_menu(w, items)
+
+    def presse_papiers(self, p, couper=False):
+        """Copier / couper au format des gestionnaires de fichiers (collable dans Fichiers)."""
+        uri = Gio.File.new_for_path(p).get_uri()
+        gnome = ("cut" if couper else "copy") + "\n" + uri
+        prov = Gdk.ContentProvider.new_union([
+            Gdk.ContentProvider.new_for_bytes("x-special/gnome-copied-files", GLib.Bytes.new(gnome.encode())),
+            Gdk.ContentProvider.new_for_bytes("text/uri-list", GLib.Bytes.new((uri + "\r\n").encode())),
+            Gdk.ContentProvider.new_for_value(p)])
+        Gdk.Display.get_default().get_clipboard().set_content(prov)
+
+    def renommer(self, p):
+        from .parametres import demander
+        demander(None, "Renommer", "Nouveau nom", os.path.basename(p),
+                 lambda n: os.rename(p, os.path.join(os.path.dirname(p), n)) if n and "/" not in n and not os.path.exists(os.path.join(os.path.dirname(p), n)) else None)
 
     def menu_bureau(self, g, n, x, y):
         self.shell.fermer()
@@ -90,14 +124,19 @@ class Bureau:
         ancre = Gtk.Box(); ancre.set_size_request(1, 1)
         self.grille.get_parent().add_overlay(ancre); ancre.set_halign(Gtk.Align.START); ancre.set_valign(Gtk.Align.START)
         ancre.set_margin_start(int(x)); ancre.set_margin_top(int(y))
-        pop = popover_menu(ancre, [("folder", "Nouveau dossier", nouveau_dossier),
+        def nouveau_texte():
+            i = 1; f = os.path.join(self.dossier, "Nouveau document.txt")
+            while os.path.exists(f): i += 1; f = os.path.join(self.dossier, "Nouveau document %d.txt" % i)
+            open(f, "w").close()
+        pop = popover_menu(ancre, [("folder", "Nouveau dossier", nouveau_dossier), ("file-text", "Nouveau document texte", nouveau_texte),
+                                   ("refresh-cw", "Actualiser", self.remplir), None,
                                    ("layout-dashboard", "Vue des tâches", lambda: self.shell.basculer("vue")),
                                    ("layout-panel-left", "Disposer les fenêtres", lambda: self.shell.basculer("dispositions")), None,
                                    ("image", "Changer de fond d'écran", lambda: self.shell.parametres("fond")),
                                    ("monitor", "Paramètres d'affichage", lambda: self.shell.parametres("ecran")),
                                    ("palette", "Personnaliser", lambda: self.shell.parametres("perso")), None,
                                    ("folder-open", "Ouvrir le dossier Bureau", lambda: S.detacher(["thunar", self.dossier])),
-                                   ("square-terminal", "Terminal", lambda: S.detacher(["foot", "-D", self.dossier]))])
+                                   ("square-terminal", "Ouvrir dans le terminal", lambda: S.detacher(["foot", "--app-id=fr.xiii.terminal", "-D", self.dossier]))])
         pop.connect("closed", lambda *_: GLib.idle_add(lambda: (ancre.get_parent() and ancre.get_parent().remove_overlay(ancre), False)[1]))
 
     def depot(self, cible, valeur, x, y):

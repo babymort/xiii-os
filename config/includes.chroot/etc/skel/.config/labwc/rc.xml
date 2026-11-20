@@ -73,7 +73,9 @@
     <keybind key="W-w"><action name="Execute" command="xiii-ctl widgets" /></keybind>
     <keybind key="W-c"><action name="Execute" command="claude-desktop" /></keybind>
     <keybind key="W-S-c"><action name="Execute" command="xiii-claude-code" /></keybind>
-    <keybind key="W-Return"><action name="Execute" command="foot" /></keybind>
+    <keybind key="W-Return"><action name="Execute" command="foot --app-id=fr.xiii.terminal" /></keybind>
+    <keybind key="C-A-t"><action name="Execute" command="foot --app-id=fr.xiii.terminal" /></keybind>
+    <keybind key="C-S-Escape"><action name="Execute" command="xiii-taches" /></keybind>
     <keybind key="W-e"><action name="Execute" command="thunar" /></keybind>
     <keybind key="XF86AudioRaiseVolume"><action name="Execute" command="wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+" /></keybind>
     <keybind key="XF86AudioLowerVolume"><action name="Execute" command="wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-" /></keybind>
