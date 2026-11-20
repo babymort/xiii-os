@@ -220,8 +220,12 @@ class VueMode:
     def maj_backup(self):
         if self.mode != "backup" or not self.backup: return
         B = self.backup
-        vider(self.zone_supports)
         sup = B.supports()
+        # rien n'est redessiné tant que rien ne change (pas de clignotement, moins de processeur)
+        sig = repr(([(x["chemin"], x["utilise"] // 10 ** 7) for x in sup], [(t["etat"], round(t.get("fraction", 0), 3), t.get("texte")) for t in B.transferts[-8:]], B.auto))
+        if sig == getattr(self, "_sig_backup", None): return
+        self._sig_backup = sig
+        vider(self.zone_supports)
         if not sup: self.zone_supports.append(label("Branchez une carte, un disque ou un SSD : il apparaît ici" + (" et le déchargement démarre seul." if B.auto else "."), "attenue"))
         for s in sup:
             r = boite(False, 10, "reglage"); r.append(ico("memory-stick" if s["amovible"] else "hard-drive", 22, "c"))

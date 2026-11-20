@@ -208,7 +208,9 @@ class Tally(Gtk.Application):
         v = boite(True, 2)
         hd = boite(False, 6); hd.append(label(str(k), "tuile-num", hexpand=True))
         tels = c["telephones"]
-        hd.append(label(("📱 %d" % tels) if tels else "", "petit", valign=Gtk.Align.START)); v.append(hd)
+        if tels:
+            t = boite(False, 3, valign=Gtk.Align.START); t.append(ico("smartphone", 13)); t.append(label(str(tels), "petit")); hd.append(t)
+        v.append(hd)
         v.append(label(c["nom"] or "Caméra %d" % k, "tuile-nom", ellipsize=True))
         v.append(label({"programme": "● ANTENNE", "preview": "PREVIEW", "repos": " "}[etat], "tuile-etat"))
         if k in self.moteur.forces: v.append(label("forcé à la main", "petit"))

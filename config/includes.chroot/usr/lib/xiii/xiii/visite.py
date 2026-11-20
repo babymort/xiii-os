@@ -74,7 +74,7 @@ class Visite:
         bas = boite(False, 8, margin_top=6)
         self.case = Gtk.CheckButton(label="Ne plus afficher", active=True); bas.append(self.case); bas.append(Gtk.Box(hexpand=True))
         if self.i < len(self.L) - 1: bas.append(bouton("Passer la visite", None, "plat", rappel=lambda: self.fin(False)))
-        if self.i > 0: bas.append(bouton(None, "chevron-left", "fantome", taille=14, rappel=self.precedent))
+        if self.i > 0: bas.append(bouton(None, "chevron-left", "fantome", taille=14, tip="Étape précédente", rappel=self.precedent))
         dernier = self.i == len(self.L) - 1
         bas.append(bouton("Terminer" if dernier else "Suivant", None, "pilule", rappel=self.suivant))
         self.bulle.append(bas)

@@ -61,7 +61,7 @@ class Somme(Gtk.Application):
         self.cop = Gtk.Entry(text=self.cibles[1] if len(self.cibles) > 1 else "", hexpand=True, placeholder_text="Copie à comparer (optionnel)")
         for e, t in ((self.src, "Source"), (self.cop, "Copie")):
             r = boite(False, 10, "reglage"); r.append(label(t, "reglage-titre")); r.append(e)
-            r.append(bouton(None, "folder-open", "plat", rappel=lambda e=e: self.choisir(e))); v.append(r)
+            r.append(bouton(None, "folder-open", "plat", tip="Choisir un dossier", rappel=lambda e=e: self.choisir(e))); v.append(r)
         self.algo = Gtk.DropDown(model=Gtk.StringList.new([a[1] for a in ALGOS]))
         r = boite(False, 10, "reglage"); r.append(label("Algorithme", "reglage-titre", hexpand=True)); r.append(self.algo); v.append(r)
         self.go = bouton("Lancer la vérification", None, "pilule", rappel=self.lancer); self.go.set_halign(Gtk.Align.END); v.append(self.go)

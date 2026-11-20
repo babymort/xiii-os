@@ -980,7 +980,7 @@ class Parametres(Gtk.Application):
             try: f = dlg.save_finish(res)
             except GLib.Error: return
             json.dump({"format": "xiii-theme", "version": 1, "theme": tp}, open(f.get_path(), "w"), ensure_ascii=False, indent=2)
-            self.toast("Thème exporté — importable dans la Suite XIII (⚙️ › Affichage › Thème perso)")
+            self.toast("Thème exporté — importable dans la Suite XIII (Réglages › Affichage › Thème perso)")
         d.save(self.win, None, fini)
 
     def p_fond(self, c, cle):

@@ -133,7 +133,7 @@ class Tableau:
         c = boite(True, 10, "carte")
         c.set_size_request(-1, 190)
         h = boite(False, 8); h.append(ico(ic, 16, "c")); h.append(label(titre, "gras", hexpand=True))
-        if page: h.append(bouton(None, "chevron-right", "plat", taille=14, role="d", rappel=page))
+        if page: h.append(bouton(None, "chevron-right", "plat", taille=14, role="d", rappel=page, tip="Ouvrir"))
         c.append(h); c.append(corps)
         return c
 
@@ -297,9 +297,9 @@ class Tableau:
         titre = label("Rien en lecture", "gras", ellipsize=True); artiste = label("Lancez un lecteur (navigateur, mpv…)", "attenue", "petit", ellipsize=True)
         v.append(titre); v.append(artiste)
         r = boite(False, 8, halign=Gtk.Align.CENTER, margin_top=6)
-        bp = bouton(None, "play", "fantome", taille=18)
+        bp = bouton(None, "play", "fantome", taille=18, tip="Lecture / pause")
         for ic, cmd in (("skip-back", "previous"), (None, "play-pause"), ("skip-forward", "next")):
-            b = bp if ic is None else bouton(None, ic, "plat", taille=18)
+            b = bp if ic is None else bouton(None, ic, "plat", taille=18, tip="Précédent" if ic == "skip-back" else "Suivant")
             b.connect("clicked", lambda _b, c=cmd: (S.detacher(["playerctl", c]), GLib.timeout_add(400, lambda: (self._media_maj(), False)[1])))
             r.append(b)
         v.append(r)

@@ -481,7 +481,7 @@ def carte_notif(n, shell, volet=False):
     h = boite(False, 6)
     h.append(label(n.titre or n.app, "notif-titre", wrap=True, hexpand=True))
     if volet: h.append(label(depuis(n.heure), "attenue", "petit"))
-    h.append(bouton(None, "x", "plat", taille=12, role="d", rappel=lambda: shell.serveur.fermer(n.id)))
+    h.append(bouton(None, "x", "plat", taille=12, role="d", tip="Fermer la notification", rappel=lambda: shell.serveur.fermer(n.id)))
     v.append(h)
     if n.corps:
         l = label("", "notif-corps", wrap=True)

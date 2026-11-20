@@ -4,6 +4,9 @@
 # • D'appareil à appareil (open source) : croc et Magic Wormhole (code à dicter), PairDrop / LocalSend
 # Application développée par Matthieu Lamotte.
 import os, sys, json, re, socket, secrets, shutil, subprocess, threading, mimetypes, http.client, urllib.parse, html, zipfile, io, time
+# icône de dossier au trait (comme les icônes Lucide de l'OS) pour la page de partage ouverte sur les téléphones
+DOSSIER_SVG = ('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f0b378" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
+               'style="vertical-align:-3px;margin-right:8px"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>')
 import http.server, socketserver
 import gi
 gi.require_version("Gtk", "4.0")
@@ -84,7 +87,7 @@ class Partage:
                 if os.path.isdir(p):
                     L = sorted(os.listdir(p), key=lambda x: (not os.path.isdir(os.path.join(p, x)), x.lower()))
                     lignes = "".join('<a class="f" href="%s%s">%s<span>%s</span></a>' % (urllib.parse.quote(x), "/" if os.path.isdir(os.path.join(p, x)) else "",
-                                     ("📁 " if os.path.isdir(os.path.join(p, x)) else "") + html.escape(x), "" if os.path.isdir(os.path.join(p, x)) else S.humain(os.path.getsize(os.path.join(p, x))))
+                                     (DOSSIER_SVG if os.path.isdir(os.path.join(p, x)) else "") + html.escape(x), "" if os.path.isdir(os.path.join(p, x)) else S.humain(os.path.getsize(os.path.join(p, x))))
                                      for x in L if not x.startswith("."))
                     depot = ('<form method="post" enctype="multipart/form-data"><input type="file" name="f" multiple required><button>Déposer</button></form>' if moi.depot else "")
                     page_ = ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'><title>Partage XIII</title>"

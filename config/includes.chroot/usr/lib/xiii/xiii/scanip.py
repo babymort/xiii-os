@@ -156,7 +156,7 @@ class Scanner(Gtk.Application):
             col = boite(True, 0, hexpand=True); col.append(label(a.get("nom") or a["ip"], "gras")); col.append(label("%s · %s" % (a["ip"], a.get("mac", "").upper()), "petit", "attenue")); r.append(col)
             etat = label("…", "petit", "attenue"); r.append(etat)
             S.en_fond(lambda ip=a["ip"]: N.ping(ip), lambda ok, e=etat: e.set_text("● en ligne" if ok is True else "○ hors ligne"))
-            m = bouton(None, "ellipsis", "plat", rappel=None); m.connect("clicked", lambda b, a=a: popover_menu(b, self.actions(a) + [("trash-2", "Retirer des favoris", lambda a=a: self.retirer(a))])); r.append(m)
+            m = bouton(None, "ellipsis", "plat", rappel=None, tip="Actions"); m.connect("clicked", lambda b, a=a: popover_menu(b, self.actions(a) + [("trash-2", "Retirer des favoris", lambda a=a: self.retirer(a))])); r.append(m)
             self.v_fav.append(r)
 
     def retirer(self, a):

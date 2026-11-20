@@ -73,6 +73,22 @@ def lum(h):
 def sur_accent(a):
     return "#1a1a1a" if lum(a) > .55 else "#ffffff"
 
+def contraste(a, b):
+    """Rapport de contraste WCAG entre deux couleurs #rrggbb."""
+    def L(h):
+        f = lambda c: c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+        r, g, b = (x / 255 for x in hex_rgb(h)); return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
+    x, y = sorted((L(a), L(b)), reverse=True); return (x + 0.05) / (y + 0.05)
+
+def lisible(c, fond, mini=4.5):
+    """Assombrit (fond clair) ou éclaircit (fond sombre) la couleur jusqu'à un contraste lisible sur le fond."""
+    if not (c.startswith("#") and fond.startswith("#")): return c
+    vers = "#000000" if lum(fond) > .5 else "#ffffff"
+    for i in range(21):
+        x = melange(c, vers, i * .05)
+        if contraste(x, fond) >= mini: return x
+    return vers
+
 def rgba(h, a):
     r, g, b = hex_rgb(h); return "rgba(%d,%d,%d,%s)" % (r, g, b, a)
 
@@ -121,7 +137,11 @@ def palette(cfg):
     p = dict(theme=t, fond=s["fond"], panneau=rgba(s["panneau"], al) if not s["panneau"].startswith("rgba") else s["panneau"], panneau_plein=s["panneau"],
              carte=s["carte"], carte2=s["carte2"], texte=s["texte"], attenue=s["attenue"] if not contraste else s["texte"], bord=s["bord"] if not contraste else rgba(s["texte"] if s["texte"].startswith("#") else "#888888", .55),
              survol=rgba("#000000" if clair else "#ffffff", .06), ombre="rgba(60,40,20,0.18)" if clair else "rgba(0,0,0,0.50)",
-             accent_texte=(melange(A, "#000000", .42) if clair and lum(A) > .5 else A), clair=clair)
+             accent_texte=lisible(A, s["carte"] if s["carte"].startswith("#") else s["fond"]), clair=clair)
+    # textes atténués toujours lisibles (ZZ : Régie nuit, Game Boy, Pellicule étaient sous le seuil)
+    if p["attenue"].startswith("#"):
+        for f in (s["panneau"], s["carte2"], s["carte"]):
+            if f.startswith("#"): p["attenue"] = lisible(p["attenue"], f)
     p.update(accent=A, accent_survol=melange(A, "#ffffff", 0.18), sur_accent=sur_accent(A), sobre=bool(s.get("plat")), verre=verre,
              rayon="%dpx" % s["r"], rayon_petit="%dpx" % max(0, s["r"] // 2 + (1 if s["r"] else 0)),
              lueur="none" if not verre else "0 0 48px alpha(%s,0.12)" % A,
@@ -176,7 +196,7 @@ label {{ color: {p['texte']}; }}
 .onglet-mode {{ border-radius: 999px; padding: 6px 16px; background: transparent; border: none; }}
 .onglet-mode.actif {{ background: {p['accent']}; }}
 .onglet-mode.actif label {{ color: {p['sur_accent']}; }}
-.timecode-geant {{ font-family: "IBM Plex Mono", monospace; font-size: 42px; font-weight: 700; color: {p['accent']}; }}
+.timecode-geant {{ font-family: "IBM Plex Mono", monospace; font-size: 42px; font-weight: 700; color: {p['accent_texte']}; }}
 .carte-jeu {{ background: {p['panneau_verre'] if p['verre'] else p['carte']}; border: 2px solid {p['bord']}; border-radius: 22px; padding: 24px; transition: all 160ms ease; }}
 .carte-jeu:hover, .carte-jeu:focus-visible {{ border-color: {p['accent']}; box-shadow: 0 0 24px alpha({p['accent']}, .45); }}
 .sel-mode {{ background: alpha({p['texte']}, .06); border-radius: 999px; padding: 2px; }}

@@ -363,7 +363,7 @@ class Shell(Gtk.Application):
                     for f in fs:
                         c = boite(True, 6, "carte"); c.set_size_request(220, -1)
                         h = boite(False, 8); h.append(gicon_image(a.get_icon(), 16) if a else ico("app-window", 16)); h.append(label(f.titre or nom, "petit", "gras", hexpand=True, ellipsize=True, largeur=28))
-                        h.append(bouton(None, "x", "plat", taille=12, role="d", rappel=lambda f=f: (self.fenetres.fermer(f), pop.popdown()))); c.append(h)
+                        h.append(bouton(None, "x", "plat", taille=12, role="d", tip="Fermer la fenêtre", rappel=lambda f=f: (self.fenetres.fermer(f), pop.popdown()))); c.append(h)
                         mp = self.miniatures.chemin(f) if hasattr(self, "miniatures") else None
                         if mp:
                             pic = Gtk.Picture.new_for_filename(mp); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(220, 124); pic.add_css_class("miniature"); c.append(pic)

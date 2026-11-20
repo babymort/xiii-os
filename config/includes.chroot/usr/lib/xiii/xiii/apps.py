@@ -22,7 +22,13 @@ CACHES = {"lxpolkit.desktop", "blueman-adapters.desktop", "nm-applet.desktop", "
           "vim.desktop", "htop.desktop", "debian-uxterm.desktop", "debian-xterm.desktop", "mpv-dmenu.desktop",
           "display-im6.q16.desktop", "foot-server.desktop", "footclient.desktop", "thunar-bulk-rename.desktop",
           "thunar-settings.desktop", "thunar-volman-settings.desktop", "xdg-desktop-portal-wlr.desktop", "lightdm-gtk-greeter-settings.desktop",
-          "calamares.desktop", "calamares-install-debian.desktop", "wine.desktop", "wine-notepad.desktop", "wine-winecfg.desktop", "wine-uninstaller.desktop", "winetricks.desktop"}
+          "calamares.desktop", "calamares-install-debian.desktop", "wine.desktop", "wine-notepad.desktop", "wine-winecfg.desktop", "wine-uninstaller.desktop", "winetricks.desktop",
+          # ZZ — doublons d'une app ou d'une page XIII (restent utilisables par « Ouvrir avec » et les Paramètres)
+          "thunar.desktop", "nm-connection-editor.desktop", "blueman-manager.desktop", "org.pulseaudio.pavucontrol.desktop", "pavucontrol.desktop",
+          "system-config-printer.desktop", "org.gnome.DejaDup.desktop", "timeshift-gtk.desktop", "gnome-disk-image-mounter.desktop",
+          "gnome-disk-image-writer.desktop", "imv-dir.desktop", "qv4l2.desktop", "qvidcap.desktop", "nano.desktop", "lstopo.desktop",
+          "org.freedesktop.IBus.Panel.Emojier.desktop", "org.freedesktop.IBus.Panel.Extension.Gtk3.desktop", "yelp.desktop", "cups.desktop",
+          "io.github.ilya_zlobintsev.LACT.desktop"}
 
 IA = {"com.anthropic.Claude.desktop", "xiii-claude-code.desktop"}
 
