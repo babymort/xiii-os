@@ -3,7 +3,7 @@ name: Vérification ZZ (fin de saison)
 on:
   push:
     branches: [beta]
-    paths: ['tests/zz.sh', '.github/workflows/zz.yml']
+    paths: ['tests/zz.sh', '.github/workflows/zz.yml', 'config/includes.chroot/usr/lib/xiii/**']
   workflow_dispatch:
 permissions:
   contents: write
