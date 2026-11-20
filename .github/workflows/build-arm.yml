@@ -3,7 +3,8 @@ name: Build ARM OS XIII (PC ARM + Raspberry Pi)
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, beta]
+    paths: ['.github/workflows/build-arm.yml', 'tools/image-raspi.sh', 'auto/config']
   schedule:
     - cron: "17 3 * * 1"
 
