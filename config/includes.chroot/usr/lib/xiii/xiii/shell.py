@@ -464,10 +464,11 @@ class Shell(Gtk.Application):
         self.vue_mode.appliquer(k)
         self.bureau.w.set_visible(k == "classique" and bool(self.cfg.get("icones_bureau", True)))
         prof = PAR_CLE[k][4]
-        if not premier:
-            if prof and profils.courant(self.cfg)[0] != prof: config.modifier(profil=prof)
-            elif not prof and profils.courant(self.cfg)[0] in ("tournage", "jeu") and self.cfg.get("profil_par_mode"): config.modifier(profil="normal")
-            if prof: config.modifier(_histo=False, profil_par_mode=True)
+        avant = getattr(self, "_mode_prec", None); self._mode_prec = k
+        if not premier and avant != k:
+            # le profil suit le mode : Tournage (Fiction, Multicam), Jeu (Gaming), retour à Normal en quittant ces modes
+            if prof: config.modifier(profil=prof)
+            elif avant and PAR_CLE.get(avant, (0, 0, 0, 0, None))[4]: config.modifier(profil="normal", mode_tournage=False)
         if k in ("fiction", "multicam") and not self.cfg.get("timecode"): config.modifier(_histo=False, timecode=True)
 
     def menu_projets(self):
