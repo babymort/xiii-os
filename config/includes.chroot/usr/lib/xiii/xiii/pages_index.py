@@ -27,6 +27,7 @@ PAGES = [
     ("interfaces", "Interfaces et adresses IP", "network", "reseau", "IP fixe ou automatique par connexion, sortie Internet, test de la régie", "ip fixe statique dhcp interface rj45 usb regie masque passerelle ping scanner appareils atem"),
     ("iface", "Réglage de l'interface", "network", "interfaces", "Adresse IP, rôle Internet", "ip fixe dhcp"),
     ("profilsreseau", "Profils réseau", "bookmark", "reseau", "Réglages par lieu appliqués en un clic", "profil lieu regie bureau reseau"),
+    ("tailscale", "Tailscale", "shield", "reseau", "Réseau privé entre vos appareils, partout", "tailscale vpn reseau prive acces distance nas maison exit node"),
     ("duo", "XIII Duo", "network", "reseau", "Plusieurs liens ensemble : secours, répartition, Plexo", "agregation plexo double bande passante secours repartition 4g partage"),
     ("perso", "Personnalisation", "palette", None, "Thème, couleurs, fond, barre des tâches", "personnaliser apparence"),
     ("theme", "Thème et couleurs", "palette", "perso", "Sombre, clair, sobre, couleur d'accent", "couleur accent sombre clair sobre transparence"),

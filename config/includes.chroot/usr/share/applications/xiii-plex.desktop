@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Plex
+Comment=Vos films, séries et musiques depuis votre serveur Plex
+Exec=xiii-plex
+Icon=xiii-plex
+Categories=AudioVideo;Video;X-XIII;
+Keywords=plex;films;series;media;serveur;
+StartupWMClass=fr.xiii.plex

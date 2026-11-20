@@ -1332,6 +1332,44 @@ class Parametres(Gtk.Application):
             for d in exist:
                 c.append(reglage("folder", d, None, droite=bouton("Actif" if d == cur else "Activer", None, "pilule" if d == cur else "fantome", rappel=lambda d=d: activer(d))))
 
+    def p_tailscale(self, c, cle):
+        """Tailscale à la souris : connexion, appareils, sortie Internet."""
+        if not shutil.which("tailscale"):
+            c.append(info("Tailscale n'est pas installé.")); c.append(reglage("download", "Installer Tailscale", "Centre de logiciels XIII", droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("xiii-logiciels")))); return
+        try: st = json.loads(S.out(["tailscale", "status", "--json"], 6) or "{}")
+        except Exception: st = {}
+        etat = st.get("BackendState", "Stopped"); moi = st.get("Self") or {}
+        h = boite(False, 16, "hero"); h.append(ico("shield", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label("Tailscale", "hero-grand"))
+        v.append(label({"Running": "Connecté · " + ", ".join(moi.get("TailscaleIPs", [])[:1]), "NeedsLogin": "Connexion au compte nécessaire", "Stopped": "Arrêté"}.get(etat, etat), "attenue")); h.append(v); c.append(h)
+        u = pwd.getpwuid(os.getuid()).pw_name
+        def connecter():
+            self.toast("Connexion à Tailscale…")
+            def t():
+                S.admin(["tailscale", "set", "--operator=" + u])
+                p = subprocess.run(["tailscale", "up", "--timeout=8s"], capture_output=True, text=True, timeout=20)
+                m = re.search(r"https://login\.tailscale\.com/\S+", p.stdout + p.stderr)
+                return m.group(0) if m else None
+            S.en_fond(t, lambda url: (S.detacher(["xdg-open", url]) if isinstance(url, str) else None, GLib.timeout_add_seconds(8, lambda: (self.aller("tailscale", False), False)[1])))
+        if etat == "Running":
+            c.append(reglage("power", "Tailscale actif", "Ce PC est joignable par vos autres appareils", droite=interrupteur(True, lambda on: S.en_fond(lambda: subprocess.run(["tailscale", "down"]), lambda r: self.aller("tailscale", False)) if not on else None)))
+            pairs = list((st.get("Peer") or {}).values())
+            c.append(groupe_titre("Vos appareils (%d)" % len(pairs)))
+            for p_ in sorted(pairs, key=lambda x: not x.get("Online")):
+                c.append(reglage("monitor" if p_.get("OS") in ("linux", "windows", "macOS") else "smartphone", p_.get("HostName", "?"),
+                                 "%s · %s · %s" % (", ".join(p_.get("TailscaleIPs", [])[:1]), p_.get("OS", ""), "en ligne" if p_.get("Online") else "hors ligne"),
+                                 droite=bouton("Copier l'IP", None, "fantome", rappel=lambda ip=(p_.get("TailscaleIPs") or [""])[0]: Gdk.Display.get_default().get_clipboard().set_text(ip))))
+            sorties = [p_ for p_ in pairs if p_.get("ExitNodeOption")]
+            if sorties:
+                c.append(reglage("globe", "Sortie Internet par un autre appareil", "Comme un VPN : votre trafic passe par cet appareil",
+                                 droite=deroulant([("", "Aucune")] + [((p_.get("TailscaleIPs") or [""])[0], p_.get("HostName")) for p_ in sorties], "",
+                                                  lambda ip: S.en_fond(lambda: subprocess.run(["tailscale", "set", "--exit-node=" + ip]), lambda r: self.toast("Sortie Internet modifiée")))))
+            c.append(reglage("share-2", "Proposer ce PC comme sortie Internet", "Vos appareils peuvent passer par la connexion de ce PC",
+                             droite=interrupteur(False, lambda on: S.en_fond(lambda: subprocess.run(["tailscale", "set", "--advertise-exit-node=" + ("true" if on else "false")]), None))))
+        else:
+            c.append(reglage("log-in", "Se connecter à Tailscale", "Le navigateur s'ouvre pour vous connecter (Google, Microsoft, GitHub, Apple…)", droite=bouton("Connecter", None, "pilule", rappel=connecter)))
+        c.append(reglage("external-link", "Console Tailscale", "Gérer les appareils et les accès", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher(["xdg-open", "https://login.tailscale.com/admin/machines"]))))
+
     def p_acquisition(self, c, cle):
         from . import acquisition as A
         bm = A.cartes_blackmagic() if not S.DEMO else ["Blackmagic Design DeckLink Mini Recorder 4K"]

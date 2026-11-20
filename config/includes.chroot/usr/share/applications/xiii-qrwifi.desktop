@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=QR Wi-Fi XIII
+Comment=QR code d un réseau Wi-Fi à imprimer ou partager
+Exec=xiii-qrwifi
+Icon=xiii-qrwifi
+Categories=Network;X-XIII;
+Keywords=qr;wifi;code;invites;mot de passe;
+StartupWMClass=fr.xiii.qrwifi

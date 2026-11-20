@@ -138,6 +138,11 @@ xiii-ia >> /out/s2d.log 2>&1 & sleep 8; grim /out/s2d-ia.png; pkill -f xiii.ia; 
 xiii-synthese >> /out/s2d.log 2>&1 & sleep 3; grim /out/s2d-synthese.png; pkill -f xiii.synthese; sleep 0.5
 xiii-store-github >> /out/s2d.log 2>&1 & sleep 9; grim /out/s2d-store.png; pkill -f xiii.store_github; sleep 0.5
 xiii-blackmagic >> /out/s2d.log 2>&1 & sleep 3; grim /out/s2d-blackmagic.png; pkill -f xiii.blackmagic; sleep 0.5
+# Phase 12 — logiciels
+xiii-logiciels >> /out/p12.log 2>&1 & sleep 6; grim /out/p12-logiciels.png; pkill -f xiii.logiciels; sleep 0.5
+xiii-qrwifi >> /out/p12.log 2>&1 & sleep 3; grim /out/p12-qrwifi.png; pkill -f xiii.qrwifi; sleep 0.5
+xiii-debit >> /out/p12.log 2>&1 & sleep 3; grim /out/p12-debit.png; pkill -f xiii.debit; sleep 0.5
+xiii-parametres --page tailscale >> /out/param.log 2>&1 & sleep 4; grim /out/p12-tailscale.png; pkill -f xiii.parametres; sleep 0.5
 cp /usr/share/plymouth/themes/xiii-ascii-matrix/f-040.png /out/s2-ascii-matrix.png 2>/dev/null
 cp /root/.config/xiii/reglages.json /out/ 2>/dev/null
 labwc --exit

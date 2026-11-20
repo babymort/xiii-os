@@ -131,6 +131,12 @@ class Blackmagic(Gtk.Application):
         if not b:
             self.ligne(v, "download", "Installer Companion", "Dernière version Linux depuis GitHub (bitfocus/companion)", bouton("Installer", None, "pilule", rappel=lambda: self.installer_companion(v)))
             return
+        auto = os.path.join(GLib.get_user_config_dir(), "autostart", "companion.desktop")
+        def auto_(on):
+            os.makedirs(os.path.dirname(auto), exist_ok=True)
+            if on: open(auto, "w").write("[Desktop Entry]\nType=Application\nName=Companion\nExec=%s\nX-GNOME-Autostart-enabled=true\n" % b)
+            elif os.path.exists(auto): os.unlink(auto)
+        cb = Gtk.CheckButton(label="Lancer Companion à l'ouverture de session", active=os.path.exists(auto)); cb.connect("toggled", lambda w: auto_(w.get_active())); v.append(cb)
         import socket
         try: socket.create_connection(("127.0.0.1", 8000), timeout=.3).close(); actif = True
         except OSError: actif = False

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Centre de logiciels XIII
+GenericName=Logithèque
+Comment=Installer, ouvrir et retirer des logiciels : sélection XIII, Flathub, GitHub
+Exec=xiii-logiciels
+Icon=system-software-install
+Categories=System;PackageManager;X-XIII;
+Keywords=logiciels;store;installer;applications;flathub;flatpak;magasin;logitheque;
+StartupWMClass=fr.xiii.logiciels

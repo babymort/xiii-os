@@ -1,0 +1,3 @@
+#!/bin/sh
+# OS XIII — Plex : l'application web de Plex dans sa propre fenêtre (Chromium en mode application)
+exec chromium --app=https://app.plex.tv/desktop --class=fr.xiii.plex --user-data-dir="$HOME/.config/xiii-plex" "$@"

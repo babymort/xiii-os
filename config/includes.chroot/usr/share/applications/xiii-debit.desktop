@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Test de débit XIII
+Comment=Mesurer le débit entre deux PC (iperf3)
+Exec=xiii-debit
+Icon=xiii-debit
+Categories=Network;X-XIII;
+Keywords=iperf;debit;vitesse;reseau;bande passante;
+StartupWMClass=fr.xiii.debit

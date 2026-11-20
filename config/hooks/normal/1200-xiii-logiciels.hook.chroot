@@ -1,0 +1,38 @@
+#!/bin/sh
+# Phase 12 — logiciels libres préinstallés (chacun facultatif) ; le reste s'installe en un clic depuis le Centre de logiciels XIII
+export DEBIAN_FRONTEND=noninteractive
+echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections
+for p in chromium chromium-l10n wireshark iperf3 kismet remmina input-leap; do apt-get install -y --no-install-recommends "$p" || echo "absent : $p"; done
+# Tailscale (dépôt officiel)
+if curl -fsSL https://pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg -o /usr/share/keyrings/tailscale-archive-keyring.gpg; then
+  curl -fsSL https://pkgs.tailscale.com/stable/debian/trixie.tailscale-keyring.list -o /etc/apt/sources.list.d/tailscale.list
+  apt-get update -qq && apt-get install -y tailscale || echo "Tailscale : non installé"
+  systemctl enable tailscaled 2>/dev/null || true
+fi
+# LocalSend, Sunshine : dernières versions Linux publiées sur GitHub (.deb)
+python3 - <<'PY'
+import json, urllib.request, re, subprocess, os
+def deb(depot, prefere=()):
+    try:
+        rel = json.load(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/%s/releases/latest" % depot, headers={"User-Agent": "OS-XIII"}), timeout=30))
+        A = [a for a in rel["assets"] if a["name"].endswith(".deb") and re.search(r"amd64|x86[-_]64|x64", a["name"], re.I)]
+        for p in prefere:
+            B = [a for a in A if p in a["name"].lower()]
+            if B: A = B
+        if not A: print(depot, ": pas de .deb"); return
+        f = "/tmp/" + A[0]["name"]; urllib.request.urlretrieve(A[0]["browser_download_url"], f)
+        subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", f], check=True); os.unlink(f); print(depot, rel["tag_name"], "installé")
+    except Exception as e:
+        print(depot, ": non installé", e)
+deb("localsend/localsend")
+deb("LizardByte/Sunshine", ("debian", "trixie"))
+PY
+# Parsec (paquet de l'éditeur)
+curl -fsSL -o /tmp/parsec.deb https://builds.parsec.app/package/parsec-linux.deb && apt-get install -y /tmp/parsec.deb; rm -f /tmp/parsec.deb
+# comptes créés par l'installateur : capture Wireshark autorisée
+for f in /etc/calamares/modules/users.conf /usr/share/calamares/modules/users.conf; do
+  [ -f "$f" ] || continue
+  grep -qE '^\s*-\s*wireshark\s*$' "$f" && continue
+  awk '{print} /^defaultGroups:/{getline n; m=n; sub(/-.*/,"",m); print m "- wireshark"; print n}' "$f" > "$f.xiii" && mv "$f.xiii" "$f"
+done
+apt-get clean
