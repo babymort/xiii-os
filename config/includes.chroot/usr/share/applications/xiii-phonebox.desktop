@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=PhoneBox
+Comment=Le téléphone relié au PC : widgets, médias, notifications
+Exec=xiii-phonebox
+Icon=smartphone
+Categories=Utility;X-XIII;
+Keywords=telephone;android;phonebox;compagnon;

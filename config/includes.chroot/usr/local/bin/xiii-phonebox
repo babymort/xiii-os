@@ -1,0 +1,10 @@
+#!/bin/sh
+# OS XIII — PhoneBox : démarre l'agent (s'il ne tourne pas) puis ouvre sa page de réglages (appairage du téléphone par QR code).
+B=$(find /opt/phonebox -type f -perm -u+x \( -iname 'phonebox*' -o -iname 'PhoneBox*' \) 2>/dev/null | grep -vi 'setup\|\.so' | head -1)
+if [ -z "$B" ]; then notify-send -a PhoneBox -i smartphone "PhoneBox n'est pas installé" "Store GitHub › ersinkoc/phonebox"; exec xiii-store-github ersinkoc/phonebox; fi
+pgrep -f "$B" >/dev/null || (cd "$(dirname "$B")" && setsid "$B" >/dev/null 2>&1 &)
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  P=$(ss -ltnpH 2>/dev/null | grep -i phonebox | sed -E 's/.*:([0-9]+) .*/\1/' | head -1)
+  [ -n "$P" ] && break; sleep 1
+done
+[ -n "$P" ] && exec xdg-open "http://127.0.0.1:$P/" || notify-send -a PhoneBox -i smartphone "PhoneBox démarré" "Ouvrez l'application sur le téléphone pour l'appairer."

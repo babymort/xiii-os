@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=IA XIII
+Comment=Claude, ChatGPT, Gemini, OpenJarvis dans un volet (Super + J)
+Exec=xiii-ia --montrer
+Icon=xiii-ia
+Categories=Utility;X-XIII;
+Keywords=ia;claude;chatgpt;gemini;openjarvis;assistant;intelligence artificielle;
+StartupWMClass=fr.xiii.ia

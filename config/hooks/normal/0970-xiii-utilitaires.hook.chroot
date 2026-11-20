@@ -1,0 +1,27 @@
+#!/bin/sh
+# Saison 2 — S2d : IA XIII, Assistant de synthèse (Vosk hors ligne, français), PhoneBox, Store GitHub, Blackmagic XIII
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-pip unzip adb ffmpeg curl || true
+# Reconnaissance vocale hors ligne (Vosk) + petit modèle français (~40 Mo)
+pip3 install --break-system-packages --no-cache-dir vosk || echo "vosk indisponible"
+mkdir -p /usr/share/vosk
+if curl -fsSL --retry 3 -o /tmp/vosk-fr.zip https://alphacephei.com/vosk/models/vosk-model-small-fr-0.22.zip; then
+  unzip -q /tmp/vosk-fr.zip -d /tmp/vosk && mv /tmp/vosk/vosk-model-small-fr-0.22 /usr/share/vosk/fr && rm -rf /tmp/vosk /tmp/vosk-fr.zip
+else echo "modèle vocal français indisponible"; fi
+# PhoneBox (github.com/ersinkoc/phonebox) : compagnon téléphone ↔ PC, dernière version Linux
+python3 - <<'PY' || echo "PhoneBox : non installé"
+import json, urllib.request, re, os, tarfile, zipfile, stat
+rel = json.load(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/ersinkoc/phonebox/releases/latest", headers={"User-Agent": "OS-XIII"}), timeout=30))
+A = [a for a in rel["assets"] if re.search(r"linux", a["name"], re.I) and re.search(r"x64|amd64|x86_64", a["name"], re.I) and not a["name"].endswith((".sha256", ".sig", ".asc"))]
+print("PhoneBox", rel["tag_name"], [a["name"] for a in A])
+a = A[0]; f = "/tmp/" + a["name"]; urllib.request.urlretrieve(a["browser_download_url"], f)
+d = "/opt/phonebox"; os.makedirs(d, exist_ok=True)
+if f.endswith(".zip"): zipfile.ZipFile(f).extractall(d)
+elif re.search(r"\.tar\.(gz|xz)$|\.tgz$", f): tarfile.open(f).extractall(d)
+else: os.replace(f, os.path.join(d, "phonebox"))
+for r, _, fs in os.walk(d):
+    for x in fs:
+        p = os.path.join(r, x)
+        if open(p, "rb").read(4) == b"\x7fELF": os.chmod(p, os.stat(p).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+open(d + "/VERSION", "w").write(rel["tag_name"])
+PY
+apt-get clean

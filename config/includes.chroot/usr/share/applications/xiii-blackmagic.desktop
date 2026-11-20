@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Blackmagic XIII
+Comment=ATEM, Videohub, HyperDeck, DeckLink, Resolve, caméras, Stream Deck, Companion, NDI
+Exec=xiii-blackmagic
+Icon=xiii-blackmagic
+Categories=AudioVideo;X-XIII;
+Keywords=blackmagic;atem;videohub;hyperdeck;decklink;resolve;companion;stream deck;ndi;regie;
+StartupWMClass=fr.xiii.blackmagic

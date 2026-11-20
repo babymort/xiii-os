@@ -418,7 +418,11 @@ class Shell(Gtk.Application):
         outils.append(self.bouton_survol("search", "Rechercher", lambda: self.basculer("demarrer-recherche")))
         outils.append(self.bouton_survol("layout-grid", "Suite XIII", lambda: S.detacher(["xiii-suite"])))
         outils.append(self.bouton_survol("folder-open", "Fichiers", lambda: S.detacher(["xiii-fichiers", os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"]) if self.cfg.get("projet_actif") and os.path.isdir(os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"])) else os.path.expanduser("~")])))
-        outils.append(self.bouton_survol("sparkles", "Claude", lambda: S.detacher("claude-desktop")))
+        # IA en cours (pastille au trait, comme la suite) : volet IA XIII · assistant de synthèse · téléphone
+        self.b_ia = Gtk.Button(); self.b_ia.add_css_class("hb"); self.maj_bouton_ia()
+        self.b_ia.connect("clicked", lambda *_: S.detacher("xiii-ia")); clic_droit(self.b_ia, lambda: self.menu_ia(self.b_ia)); outils.append(self.b_ia)
+        outils.append(self.bouton_survol("audio-lines", "Synthèse", lambda: S.detacher("xiii-synthese")))
+        outils.append(self.bouton_survol("smartphone", "Téléphone", lambda: S.detacher("xiii-phonebox")))
         d.append(outils)
         etat = boite(False, 2); etat.add_css_class("haut-secteur"); d.append(etat)
         def hb(nom, page, tip):
@@ -515,6 +519,22 @@ class Shell(Gtk.Application):
             v.append(bouton("Widgets du projet", "layout-dashboard", "ligne", "plat", taille=16, rappel=lambda: (pop.popdown(), self.basculer("widgets"))))
         v.append(bouton("Gérer les projets", "settings", "ligne", "plat", taille=16, rappel=lambda: (pop.popdown(), self.parametres("projet"))))
         pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
+
+    def maj_bouton_ia(self):
+        from .ia_base import pastille, PAR_CLE
+        k = self.cfg.get("ia", "claude"); k = k if k in PAR_CLE else "claude"
+        bx = boite(False, 6); bx.append(pastille(k, 18))
+        rv = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_RIGHT, transition_duration=160)
+        rv.set_child(label(PAR_CLE[k][1], "haut-survol")); bx.append(rv); self.b_ia.set_child(bx)
+        self.b_ia.set_tooltip_text("%s — clic : volet IA (Super + J) · clic droit : changer d'IA" % PAR_CLE[k][1])
+        mv = Gtk.EventControllerMotion(); mv.connect("enter", lambda *_: rv.set_reveal_child(True)); mv.connect("leave", lambda *_: rv.set_reveal_child(False))
+        if getattr(self, "_mv_ia", None): self.b_ia.remove_controller(self._mv_ia)
+        self._mv_ia = mv; self.b_ia.add_controller(mv)
+
+    def menu_ia(self, ancre):
+        from .ia_base import IAS
+        popover_menu(ancre, [("sparkles", n + ("  ✓" if self.cfg.get("ia", "claude") == k else ""), lambda k=k: (config.modifier(_histo=False, ia=k), S.detacher(["xiii-ia", "--montrer"])))
+                             for k, n, *_ in IAS] + [None, ("app-window", "Claude Desktop (application)", lambda: S.detacher("claude-desktop"))])
 
     def bouton_survol(self, icone, texte, rappel):
         """Bouton icône dont le libellé glisse au survol (barre du haut de la suite)."""
@@ -659,6 +679,7 @@ class Shell(Gtk.Application):
         if hasattr(self, "bureau"): self.bureau.maj()
         if ancien.get("barre_style") != cfg.get("barre_style"): self.maj_taches()
         if ancien.get("indic_style") != cfg.get("indic_style"): self.maj_icones()
+        if ancien.get("ia") != cfg.get("ia") and hasattr(self, "b_ia"): self.maj_bouton_ia()
         if ancien.get("mode_bureau") != cfg.get("mode_bureau") and hasattr(self, "vue_mode"):
             self.appliquer_mode(cfg.get("mode_bureau", "classique"))
             if hasattr(self, "sel_mode"): self.remplir_selecteur()

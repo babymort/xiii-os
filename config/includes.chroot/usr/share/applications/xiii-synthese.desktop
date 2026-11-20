@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Assistant de synthèse
+Comment=Enregistrer, transcrire et résumer une réunion, un brief ou une interview
+Exec=xiii-synthese
+Icon=audio-input-microphone
+Categories=AudioVideo;Office;X-XIII;
+Keywords=synthese;resume;transcription;reunion;micro;interview;vosk;
+StartupWMClass=fr.xiii.synthese

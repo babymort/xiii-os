@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Store GitHub
+Comment=Chercher et installer des logiciels depuis GitHub en un clic
+Exec=xiii-store-github %U
+Icon=system-software-install
+Categories=System;PackageManager;X-XIII;
+Keywords=github;store;installer;logiciel;depot;appimage;deb;
+StartupWMClass=fr.xiii.storegithub
