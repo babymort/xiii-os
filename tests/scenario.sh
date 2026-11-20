@@ -133,7 +133,7 @@ xiii-scanip >> /out/s2c.log 2>&1 & sleep 3; wtype -k Return; sleep 3; grim /out/
 xiii-lecteurs >> /out/s2c.log 2>&1 & sleep 3; grim /out/s2c-lecteurs.png; pkill -f xiii.lecteurs; sleep 0.5
 xiii-transferts /root/XIII/Concert-Dome/03_Documents/conducteur.txt >> /out/s2c.log 2>&1 & sleep 3; grim /out/s2c-transferts.png; pkill -f xiii.transferts; sleep 0.5
 # Saison 2 — S2d : IA, synthèse, store GitHub, Blackmagic
-grim -g "0,0 1600 34" /out/s2d-barre.png
+grim -g "0,0 1600x34" /out/s2d-barre.png
 xiii-ia >> /out/s2d.log 2>&1 & sleep 8; grim /out/s2d-ia.png; pkill -f xiii.ia; sleep 0.5
 xiii-synthese >> /out/s2d.log 2>&1 & sleep 3; grim /out/s2d-synthese.png; pkill -f xiii.synthese; sleep 0.5
 xiii-store-github >> /out/s2d.log 2>&1 & sleep 9; grim /out/s2d-store.png; pkill -f xiii.store_github; sleep 0.5

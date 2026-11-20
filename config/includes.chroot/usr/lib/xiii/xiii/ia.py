@@ -130,4 +130,5 @@ class IA(Gtk.Application):
         S.detacher(["notify-send", "-a", "IA XIII", "-i", "edit-paste", "Texte prêt pour " + nom, "Il est dans la zone de saisie (sinon : Ctrl + V)."])
 
 def main():
+    os.environ.pop("LD_PRELOAD", None)     # chargé ; ne pas le transmettre au navigateur et aux applis ouvertes
     sys.exit(IA().run(sys.argv))
