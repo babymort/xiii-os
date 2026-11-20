@@ -21,6 +21,7 @@ DEFAUTS = {
     "barre_alignement": "centre",   # centre | gauche
     "barre_style": "icones",        # icones | onglets
     "indic_style": "icone",
+    "fichiers_vue": "windows",      # windows | mac | arbre
     "mode_bureau": "classique",     # classique | production | fiction | multicam | backup | gaming
     "mode_epingles": {}, "backup_destination": "", "backup_nom": "", "backup_auto": False, "backup_algo": "xxh64",         # icone | rond | barre | pourcentage | minimal
     "timecode_source": "",          # entrée audio du timecode LTC

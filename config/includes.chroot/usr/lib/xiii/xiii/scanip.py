@@ -35,6 +35,7 @@ class Scanner(Gtk.Application):
         self.volet.ajouter("analyse", "radar", "Analyse", self.p_analyse())
         self.volet.ajouter("favoris", "star", "Favoris", self.p_favoris(), rappel=self.remplir_favoris)
         self.win.set_child(self.volet.racine); self.volet.aller("analyse"); self.win.present()
+        GLib.timeout_add(400, lambda: (self.analyser(), False)[1])      # première analyse dès l'ouverture
 
     # -------------------------------------------------------------- analyse
     def p_analyse(self):

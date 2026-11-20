@@ -68,7 +68,7 @@ class Fichiers(Gtk.Application):
         racine = boite(False, 0)
         # ---- volet gauche (onglets, comme la Suite XIII)
         self.volet = boite(True, 2, "volet", "nav"); self.volet.set_size_request(220, -1)
-        sc = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER); sc.set_child(self.volet)
+        sc = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER); sc.set_child(self.volet); sc.set_hexpand(False)
         racine.append(sc); racine.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
         # ---- droite
         d = boite(True, 0, hexpand=True)

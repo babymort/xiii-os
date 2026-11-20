@@ -26,7 +26,7 @@ class Volet:
     """Volet d'onglets à gauche + pile de pages à droite."""
     def __init__(self, titre, sous=None):
         self.racine = boite(False, 0)
-        self.nav = boite(True, 2, "volet", "nav")
+        self.nav = boite(True, 2, "volet", "nav"); self.nav.set_hexpand(False); self.nav.set_size_request(230, -1)
         self.nav.append(label(titre, "titre-astoria", margin_bottom=2, margin_start=6))
         if sous: self.nav.append(label(sous, "petit", "attenue", margin_start=6, margin_bottom=10, wrap=True, largeur=26))
         self.liste = boite(True, 2); self.nav.append(self.liste)
