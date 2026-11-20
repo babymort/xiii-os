@@ -1,0 +1,88 @@
+xiii-os login: ==XIII-MESURE-DEBUT==
+bureau prêt après : 91 s (mesure à +75 s)
+processeur :  Intel Core 2 Duo P9xxx (Penryn Class Core 2) · 2 cœur(s)
+édition : leger · {"version": "20261120-beta-528e7cd", "branche": "beta", "commit": "528e7cd", "date": "2026-11-20", "edition": "leger"}
+--- mémoire
+               total       utilisé      libre     partagé tamp/cache   disponible
+Mem:             967         418         124          35         595         548
+Échange:         483           0         483
+Filename				Type		Size		Used		Priority
+/dev/zram0                              partition	495152		512		100
+MÉMOIRE UTILISÉE AU REPOS : 419 Mo (sur 967 Mo ; disponible 548 Mo)
+PSS total des processus : 286 Mo
+    71.5 Mo  python:xiii.shell
+    45.0 Mo  labwc
+    37.6 Mo  python:xiii.bienvenue
+    12.5 Mo  lxpolkit
+    10.2 Mo  NetworkManager
+     6.9 Mo  python:xiii-duo
+     6.4 Mo  pipewire ×2
+     6.1 Mo  init
+     6.0 Mo  udisksd
+     5.3 Mo  wireplumber
+     5.1 Mo  python:-
+     5.0 Mo  systemd
+     4.7 Mo  nmcli
+     4.7 Mo  systemd-udevd
+     4.2 Mo  dbus-daemon ×3
+     3.5 Mo  systemd-journald
+     3.4 Mo  gnome-keyring-daemon
+     3.4 Mo  polkitd
+     3.2 Mo  wpa_supplicant
+     2.9 Mo  gvfs-udisks2-volume-monitor
+     2.9 Mo  lightdm ×2
+     2.7 Mo  -bash
+     2.4 Mo  pipewire-pulse
+     2.4 Mo  systemd-logind
+     1.9 Mo  gvfs-afc-volume-monitor
+     1.9 Mo  (sd-pam)
+     1.8 Mo  gvfsd
+     1.5 Mo  swaybg
+--- démarrage
+Startup finished in 2.639s (kernel) + 11.639s (userspace) = 14.279s 
+graphical.target reached after 11.629s in userspace.
+5.971s ldconfig.service
+5.174s live-config.service
+2.763s blueman-mechanism.service
+1.245s console-setup.service
+1.221s NetworkManager-wait-online.service
+1.190s NetworkManager.service
+1.122s accounts-daemon.service
+1.101s systemd-random-seed.service
+1.036s udisks2.service
+ 923ms dev-sr0.device
+ 713ms systemd-logind.service
+ 653ms lm-sensors.service
+--- services actifs : 24
+  accounts-daemon.service
+  acpid.service
+  avahi-daemon.service
+  cron.service
+  dbus.service
+  earlyoom.service
+  getty@tty1.service
+  lightdm.service
+  NetworkManager.service
+  nfs-blkmap.service
+  polkit.service
+  power-profiles-daemon.service
+  rpcbind.service
+  rtkit-daemon.service
+  serial-getty@ttyS0.service
+  switcheroo-control.service
+  systemd-journald.service
+  systemd-logind.service
+  systemd-udevd.service
+  udisks2.service
+  user@1000.service
+  wpa_supplicant.service
+  xiii-duo.service
+  xiii-mesure.service
+--- services en échec
+--- graphique
+00:02.0 VGA compatible controller [0300]: Device [1234:1111] (rev 02)
+	Subsystem: Red Hat, Inc. Device [1af4:1100]
+	Kernel driver in use: bochs-drm
+	Kernel modules: bochs
+--- erreurs du bureau (journal xiii-shell)
+==XIII-MESURE-FIN==
