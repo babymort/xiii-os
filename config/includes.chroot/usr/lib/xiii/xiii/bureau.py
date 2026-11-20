@@ -35,7 +35,7 @@ class Bureau:
         self.remplir(); self.maj()
 
     def maj(self):
-        self.w.set_visible(bool(self.shell.cfg.get("icones_bureau", True)))
+        self.w.set_visible(bool(self.shell.cfg.get("icones_bureau", True)) and self.shell.cfg.get("mode_bureau", "classique") == "classique")
 
     def remplir(self):
         vider(self.grille)

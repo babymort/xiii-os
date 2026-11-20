@@ -110,6 +110,12 @@ xiii-ctl demarrer-recherche; sleep 1.5; wtype "notes"; sleep 2; grim /out/s2-rec
 xiii-taches >> /out/s2.log 2>&1 & sleep 4; grim /out/s2-taches.png; pkill -f xiii.taches; sleep 0.5
 foot --app-id=fr.xiii.terminal >/dev/null 2>&1 & sleep 2; grim /out/s2-terminal.png; pkill foot; sleep 0.5
 for pg in demarrage connexion utilisateurs; do xiii-parametres --page $pg >> /out/param.log 2>&1 & sleep 4; grim /out/s2-p-$pg.png; pkill -f xiii.parametres; sleep 0.5; done
+# Saison 2 — S2b : modes d'utilisation
+mkdir -p /media/demo/CARTE_A001/DCIM && head -c 3000000 /dev/urandom > /media/demo/CARTE_A001/DCIM/A001C001.MXF
+for m in production fiction multicam backup gaming; do
+  python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(mode_bureau='$m')"; sleep 4; grim /out/s2b-$m.png
+done
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(mode_bureau="classique")'; sleep 2; grim /out/s2b-classique.png
 cp /usr/share/plymouth/themes/xiii-ascii-matrix/f-040.png /out/s2-ascii-matrix.png 2>/dev/null
 cp /root/.config/xiii/reglages.json /out/ 2>/dev/null
 labwc --exit

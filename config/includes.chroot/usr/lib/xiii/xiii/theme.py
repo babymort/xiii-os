@@ -167,6 +167,21 @@ label {{ color: {p['texte']}; }}
 .titre-astoria {{ font-family: Astoria, "Archivo Black", sans-serif; color: {p['accent_texte']}; }}
 .accent {{ color: {p['accent_texte']}; }}
 .gras {{ font-weight: 600; }}
+.vue-mode {{ background: alpha({p['fond']}, .72); }}
+.grand-titre {{ font-size: 26px; font-weight: 700; }}
+.tuile-mode {{ background: {p['panneau_verre'] if p['verre'] else p['carte']}; border: 1px solid {p['bord']}; border-radius: {p['rayon']}; padding: 18px 10px; min-height: 110px; transition: background 150ms ease, border-color 150ms ease; }}
+.tuile-mode:hover, .tuile-mode:focus-visible {{ background: alpha({p['accent']}, .16); border-color: {p['accent']}; }}
+.tuile-plus {{ border-style: dashed; background: transparent; }}
+.onglets-mode {{ background: alpha({p['texte']}, .05); border-radius: 999px; padding: 4px; }}
+.onglet-mode {{ border-radius: 999px; padding: 6px 16px; background: transparent; border: none; }}
+.onglet-mode.actif {{ background: {p['accent']}; }}
+.onglet-mode.actif label {{ color: {p['sur_accent']}; }}
+.timecode-geant {{ font-family: "IBM Plex Mono", monospace; font-size: 42px; font-weight: 700; color: {p['accent']}; }}
+.carte-jeu {{ background: {p['panneau_verre'] if p['verre'] else p['carte']}; border: 2px solid {p['bord']}; border-radius: 22px; padding: 24px; transition: all 160ms ease; }}
+.carte-jeu:hover, .carte-jeu:focus-visible {{ border-color: {p['accent']}; box-shadow: 0 0 24px alpha({p['accent']}, .45); }}
+.sel-mode {{ background: alpha({p['texte']}, .06); border-radius: 999px; padding: 2px; }}
+.sel-mode button {{ border-radius: 999px; padding: 2px 8px; min-height: 22px; }}
+.sel-mode button.actif {{ background: alpha({p['accent']}, .22); }}
 .section {{ font-weight: 600; font-size: 12.5px; color: {p['attenue']}; margin-top: 6px; }}
 button {{ transition: {p['anim']}; }}
 button.pilule {{ background: {p['pilule']}; color: {p['sur_accent']}; border-radius: {'999px' if p['rayon'] != '0px' else '0'}; padding: 6px 18px; font-weight: 700; border: none; box-shadow: {p['pilule_lueur']}; }}

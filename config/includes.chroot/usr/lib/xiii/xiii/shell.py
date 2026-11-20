@@ -130,6 +130,8 @@ class Shell(Gtk.Application):
         self.aligner_menu()
         self.vue_taches = vues.VueTaches(self); self.dispositions = vues.Dispositions(self); self.coins = vues.Coins(self)
         self.bureau = Bureau(self)
+        from .modes import VueMode
+        self.vue_mode = VueMode(self); self.appliquer_mode(self.cfg.get("mode_bureau", "classique"), premier=True)
 
     def aligner_menu(self):
         w = self.panneaux["demarrer"][0]
@@ -401,6 +403,7 @@ class Shell(Gtk.Application):
         self.l_titre = label("", "haut-titre", ellipsize=True, largeur=60, margin_start=6); g.append(self.l_titre)
         cb.set_start_widget(g)
         centre = boite(False, 10)
+        centre.append(self.selecteur_modes())
         pr = profils.courant(self.cfg)
         self.l_tournage = Gtk.Button(); self.l_tournage.add_css_class("hb"); self.l_tournage.set_tooltip_text("Profil de travail — clic : changer")
         lt = boite(False, 6); lt.append(ico(pr[2], 14, "c")); lt.append(label("Profil " + pr[1], "accent", "petit", "gras")); self.l_tournage.set_child(lt)
@@ -438,6 +441,34 @@ class Shell(Gtk.Application):
         self.boutons_panneaux.setdefault("alim", []).append(self.h_alim); self.h_alim.set_child(ico("power", 16, "c")); fin.append(self.h_alim)
         cb.set_end_widget(d); self.zone_haut = d
         self.haut.set_child(cb)
+
+    def selecteur_modes(self):
+        """Modes d'utilisation (en haut au centre) : icônes, libellé du mode actif."""
+        from .modes import MODES
+        self.sel_mode = boite(False, 2, "sel-mode"); self.remplir_selecteur()
+        return self.sel_mode
+
+    def remplir_selecteur(self):
+        from .modes import MODES
+        sel = self.sel_mode; vider(sel)
+        cur = self.cfg.get("mode_bureau", "classique")
+        for k, nom, ic, desc, _p in MODES:
+            b = Gtk.Button(); b.add_css_class("plat"); b.set_tooltip_text("%s — %s" % (nom, desc))
+            bx = boite(False, 5); bx.append(ico(ic, 14, "c" if k == cur else "t"))
+            if k == cur: b.add_css_class("actif"); bx.append(label(nom, "petit", "gras", "accent"))
+            b.set_child(bx); b.connect("clicked", lambda _b, k=k: config.modifier(mode_bureau=k)); sel.append(b)
+
+    def appliquer_mode(self, k, premier=False):
+        from .modes import PAR_CLE
+        k = k if k in PAR_CLE else "classique"
+        self.vue_mode.appliquer(k)
+        self.bureau.w.set_visible(k == "classique" and bool(self.cfg.get("icones_bureau", True)))
+        prof = PAR_CLE[k][4]
+        if not premier:
+            if prof and profils.courant(self.cfg)[0] != prof: config.modifier(profil=prof)
+            elif not prof and profils.courant(self.cfg)[0] in ("tournage", "jeu") and self.cfg.get("profil_par_mode"): config.modifier(profil="normal")
+            if prof: config.modifier(_histo=False, profil_par_mode=True)
+        if k in ("fiction", "multicam") and not self.cfg.get("timecode"): config.modifier(_histo=False, timecode=True)
 
     def menu_projets(self):
         """Sélecteur de projet (en haut à gauche, comme la suite) : changer, créer, ajouter depuis un fichier .xiii."""
@@ -614,6 +645,9 @@ class Shell(Gtk.Application):
         if hasattr(self, "bureau"): self.bureau.maj()
         if ancien.get("barre_style") != cfg.get("barre_style"): self.maj_taches()
         if ancien.get("indic_style") != cfg.get("indic_style"): self.maj_icones()
+        if ancien.get("mode_bureau") != cfg.get("mode_bureau") and hasattr(self, "vue_mode"):
+            self.appliquer_mode(cfg.get("mode_bureau", "classique"))
+            if hasattr(self, "sel_mode"): self.remplir_selecteur()
         if ancien.get("projet_actif") != cfg.get("projet_actif") and hasattr(self, "b_projet"):
             pj = boite(False, 6); pj.append(ico("folder-kanban", 14, "c"))
             pj.append(label(cfg.get("projet_actif") or "Choisir un projet", "accent" if cfg.get("projet_actif") else "attenue", "petit", "gras")); self.b_projet.set_child(pj)
