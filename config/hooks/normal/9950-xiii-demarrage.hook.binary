@@ -1,0 +1,78 @@
+#!/bin/sh
+# OS XIII — menu de démarrage de la clé aux couleurs XIII (GRUB en UEFI, isolinux en BIOS) et démarrage automatique après 5 s.
+set -e
+B=.; [ -d binary/boot ] && B=binary
+A=""; for d in "$B/xiii-boot" config/includes.binary/xiii-boot ../config/includes.binary/xiii-boot; do [ -f "$d/splash-grub.png" ] && { A=$d; break; }; done
+echo "[xiii] menu de démarrage : binaire=$B images=${A:-introuvables}"
+find "$B/boot/grub" "$B/isolinux" -maxdepth 2 -type f \( -name '*.cfg' -o -name '*.txt' -o -name '*.png' -o -name '*.svg' \) 2>/dev/null | sed 's/^/[xiii]   /'
+
+# ---- GRUB (UEFI, et BIOS si GRUB sert aussi)
+for f in $(find "$B/boot/grub" -maxdepth 2 -name '*.cfg' 2>/dev/null); do
+  sed -i -e 's/Live system (\([a-z0-9]*\) fail-safe mode)/OS XIII — démarrage sans échec/' \
+         -e 's/Live system (\([a-z0-9]*\))/Démarrer OS XIII/' \
+         -e 's/Graphical Debian Installer/Installateur Debian (graphique)/' \
+         -e 's/"Utilities\.\.\."/"Outils…"/' \
+         -e 's/^\(\s*\)set timeout=.*/\1set timeout=5/' "$f"
+done
+G="$B/boot/grub/grub.cfg"
+if [ -f "$G" ] && ! grep -q '^set timeout=' "$G"; then sed -i '1i set timeout=5\nset timeout_style=menu' "$G"; fi
+T=$(find "$B/boot/grub" -name theme.txt 2>/dev/null | head -1)
+if [ -n "$T" ] && [ -n "$A" ]; then
+  cp "$A/splash-grub.png" "$(dirname "$T")/xiii-fond.png"
+  cat > "$T" <<'TH'
+# OS XIII — thème du menu de démarrage
+desktop-image: "xiii-fond.png"
+desktop-color: "#141210"
+title-text: ""
++ boot_menu {
+  left = 22%
+  top = 56%
+  width = 56%
+  height = 30%
+  item_color = "#c9c3bb"
+  selected_item_color = "#f0b378"
+  item_height = 30
+  item_padding = 6
+  item_spacing = 4
+}
++ label {
+  left = 0
+  top = 92%
+  width = 100%
+  align = "center"
+  color = "#6d675f"
+  text = "Entrée : démarrer   ·   e : options   ·   Application développée par Matthieu Lamotte"
+}
++ progress_bar {
+  id = "__timeout__"
+  left = 30%
+  top = 50%
+  width = 40%
+  height = 3
+  fg_color = "#f0b378"
+  bg_color = "#35302b"
+  border_color = "#35302b"
+  text = ""
+}
+TH
+  for s in $(find "$B/boot/grub" -name 'splash.png' 2>/dev/null); do cp "$A/splash-grub.png" "$s"; done
+fi
+
+# ---- isolinux (BIOS)
+I="$B/isolinux"
+if [ -d "$I" ]; then
+  for f in "$I"/*.cfg; do
+    [ -f "$f" ] || continue
+    sed -i -e 's/^\(\s*\)timeout .*/\1timeout 50/' \
+           -e 's/menu label \^\?Live system (\([a-z0-9]*\) fail-safe mode)/menu label OS XIII - demarrage sans echec/' \
+           -e 's/menu label \^\?Live system (\([a-z0-9]*\))/menu label ^Demarrer OS XIII/' \
+           -e 's/menu color title\s.*/menu color title 1;36;44 #fff0b378 #00000000 none/' \
+           -e 's/menu color sel\s.*/menu color sel 7;37;40 #ff141210 #fff0b378 none/' \
+           -e 's/menu color unsel\s.*/menu color unsel 37;44 #ffc9c3bb #00000000 none/' \
+           -e 's/menu title .*/menu title OS XIII/' "$f"
+  done
+  grep -qs '^timeout' "$I/isolinux.cfg" || echo "timeout 50" >> "$I/isolinux.cfg"
+  [ -n "$A" ] && [ -f "$I/splash.png" ] && cp "$A/splash-isolinux.png" "$I/splash.png"
+fi
+rm -rf "$B/xiii-boot"
+echo "[xiii] grub.cfg :"; sed 's/^/[xiii]   /' "$G" 2>/dev/null | head -40

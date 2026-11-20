@@ -93,6 +93,7 @@ jobs:
           - { nom: "PC 2008 (Core 2, 1 Go)", edition: leger, cpu: Penryn, smp: 2, ram: 1024, uefi: false }
           - { nom: "PC 2012 (Core i 2e gen, 2 Go)", edition: leger, cpu: SandyBridge, smp: 2, ram: 2048, uefi: false }
           - { nom: "PC 2012 UEFI (édition légère)", edition: leger, cpu: SandyBridge, smp: 2, ram: 2048, uefi: true }
+          - { nom: "PC 2010 BIOS, menu de démarrage", edition: leger, cpu: Nehalem, smp: 2, ram: 2048, uefi: false, cd: true }
           - { nom: "PC récent (4 Go, complète)", edition: complete, cpu: host, smp: 4, ram: 4096, uefi: false }
     steps:
       - name: KVM et QEMU
@@ -116,14 +117,16 @@ jobs:
             # vrai démarrage UEFI depuis le menu GRUB de l'ISO (sans mesure : seulement les captures)
             cp /usr/share/OVMF/OVMF_VARS_4M.fd vars.fd
             qemu-system-x86_64 $COMMUN -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd -drive if=pflash,format=raw,file=vars.fd &
+          elif [ "${{ matrix.cd }}" = true ]; then
+            # vrai démarrage BIOS depuis le menu isolinux de l'ISO (captures seulement)
+            qemu-system-x86_64 $COMMUN &
           else
             qemu-system-x86_64 $COMMUN -kernel vmlinuz -initrd initrd.img \
               -append "boot=live components quiet splash locales=fr_FR.UTF-8 keyboard-layouts=fr timezone=Europe/Paris username=xiii hostname=xiii-os console=tty1 console=ttyS0,115200 xiii.mesure=arret" &
           fi
           Q=$!
           capture() { echo "screendump $1.ppm" | socat - unix-connect:mon.sock >/dev/null 2>&1; sleep 2; pnmtopng "$1.ppm" > "$1.png" 2>/dev/null && rm -f "$1.ppm"; }
-          [ "${{ matrix.uefi }}" = true ] && (sleep 25; echo "sendkey ret" | socat - unix-connect:mon.sock >/dev/null 2>&1) &
-          for t in 20 45 120 200 300; do
+          for t in 7 13 20 45 120 200 300; do
             while [ $SECONDS -lt $t ]; do kill -0 $Q 2>/dev/null || break 2; sleep 2; done
             capture "ecran-${t}s"
           done
