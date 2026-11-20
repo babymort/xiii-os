@@ -29,6 +29,7 @@ class Bureau:
         ov.set_measure_overlay(self.grille, False)
         w.set_child(ov)
         g = Gtk.GestureClick(button=3); g.connect("pressed", self.menu_bureau); fond.add_controller(g)
+        g1 = Gtk.GestureClick(button=1); g1.connect("pressed", lambda *_: self.shell.fermer() if self.shell.ouvert else None); fond.add_controller(g1)
         dt = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY); dt.connect("drop", self.depot); ov.add_controller(dt)
         self.mon = Gio.File.new_for_path(self.dossier).monitor_directory(Gio.FileMonitorFlags.NONE, None)
         self.mon.connect("changed", lambda *_: GLib.timeout_add(300, lambda: (self.remplir(), False)[1]))
@@ -116,7 +117,8 @@ class Bureau:
                  lambda n: os.rename(p, os.path.join(os.path.dirname(p), n)) if n and "/" not in n and not os.path.exists(os.path.join(os.path.dirname(p), n)) else None)
 
     def menu_bureau(self, g, n, x, y):
-        self.shell.fermer()
+        if self.shell.ouvert or self.shell.voile.get_visible():      # un menu était ouvert : ce clic sert seulement à le fermer
+            self.shell.fermer(); return
         def nouveau_dossier():
             i = 1; d = os.path.join(self.dossier, "Nouveau dossier")
             while os.path.exists(d): i += 1; d = os.path.join(self.dossier, "Nouveau dossier %d" % i)

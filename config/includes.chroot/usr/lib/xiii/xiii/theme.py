@@ -420,7 +420,7 @@ def fond_theme(cfg):
     if t in FONDS_XIII and cfg.get("accent", "#f0b378").lower() == "#f0b378":
         return FONDS_XIII[t]
     p = palette(cfg)
-    cle = "%s-%s-%s" % (t, p["fond"].lstrip("#"), p["accent"].lstrip("#"))
+    cle = "%s-%s-%s-centre" % (t, p["fond"].lstrip("#"), p["accent"].lstrip("#"))
     f = os.path.join(FONDS_GENERES, cle + ".png")
     if os.path.exists(f): return f
     try:
@@ -430,7 +430,7 @@ def fond_theme(cfg):
         fr, fg, fb = (v / 255 for v in hex_rgb(p["fond"])); ar, ag, ab = (v / 255 for v in hex_rgb(p["accent"]))
         cr.set_source_rgb(fr, fg, fb); cr.paint()
         if not p["sobre"] or p["verre"]:
-            g = cairo.RadialGradient(W * .78, H * .8, 0, W * .78, H * .8, W * .55)
+            g = cairo.RadialGradient(W * .5, H * .5, 0, W * .5, H * .5, W * .5)
             g.add_color_stop_rgba(0, ar, ag, ab, .16 if not p["clair"] else .12); g.add_color_stop_rgba(1, ar, ag, ab, 0)
             cr.set_source(g); cr.paint()
         if p["arcenciel"]:
@@ -441,9 +441,10 @@ def fond_theme(cfg):
             for y in range(0, H, 4): cr.rectangle(0, y, W, 1)
             cr.fill()
         logo = cairo.ImageSurface.create_from_png("/usr/share/xiii/logos/xiii-orange.png")
-        lw = W * .072; k = lw / logo.get_width()
-        cr.save(); cr.translate(W * .778, H * .738); cr.scale(k, k)
-        cr.set_source_rgba(ar, ag, ab, .9 if p["sobre"] and not p["verre"] else .85); cr.mask_surface(logo, 0, 0); cr.restore()
+        # logo XIII entier, au centre de l'écran, en filigrane
+        lh = H * .46; k = lh / logo.get_height(); lw = logo.get_width() * k
+        cr.save(); cr.translate((W - lw) / 2, (H - lh) / 2); cr.scale(k, k)
+        cr.set_source_rgba(ar, ag, ab, .22 if not p["clair"] else .18); cr.mask_surface(logo, 0, 0); cr.restore()
         os.makedirs(FONDS_GENERES, exist_ok=True); s.write_to_png(f)
         return f
     except Exception:

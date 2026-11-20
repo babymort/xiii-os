@@ -102,7 +102,8 @@ class Shell(Gtk.Application):
         T, B, Lf, R = LS.Edge.TOP, LS.Edge.BOTTOM, LS.Edge.LEFT, LS.Edge.RIGHT
         # fond cliquable qui ferme les panneaux
         self.voile = Gtk.Window(application=self); couche(self.voile, LS.Layer.TOP, (T, B, Lf, R), ns="xiii-voile", exclusif=-1)
-        g = Gtk.GestureClick(); g.connect("pressed", lambda *_: self.fermer()); self.voile.add_controller(g)
+        # clic (n'importe quel bouton) en dehors d'un menu ou d'un panneau : il se ferme, rien d'autre ne s'ouvre
+        g = Gtk.GestureClick(button=0); g.connect("pressed", lambda gg, *_: (gg.set_state(Gtk.EventSequenceState.CLAIMED), self.fermer())); self.voile.add_controller(g)
         self.voile.set_child(Gtk.Box())
         # barre des tâches
         self.barre = Gtk.Window(application=self); couche(self.barre, LS.Layer.TOP, (B, Lf, R), ns="xiii-barre", exclusif="auto")
@@ -168,6 +169,10 @@ class Shell(Gtk.Application):
             return
         if nom == "demarrer-toutes":
             self.ouvrir("demarrer"); self.menu.vue("toutes"); return
+        if nom == "demarrer-categorie":      # vérifications automatiques : première catégorie de « Toutes les applications »
+            self.ouvrir("demarrer"); c = apps.par_categorie()
+            if c: self.menu.ouvrir_cat(c[0][1], c[0][3])
+            return
         if self.ouvert == nom: self.fermer()
         else: self.ouvrir(nom)
 
@@ -943,7 +948,7 @@ class MenuDemarrer:
         cv = boite(True, 10)
         h = boite(False, 6); h.append(bouton("Catégories", "chevron-left", "fantome", taille=14, rappel=lambda: self.vue("toutes")))
         self.titre_cat = label("", "panneau-titre", hexpand=True, xalign=0.5); h.append(self.titre_cat); h.append(Gtk.Box(width_request=100)); cv.append(h)
-        self.grille_une = self.flow(self.COLS); cv.append(defilant(self.grille_une)); self.pile.add_named(cv, "cat")
+        self.grille_une = self.flow(self.COLS); sc_une = defilant(self.grille_une); sc_une.set_vexpand(True); cv.append(sc_une); self.pile.add_named(cv, "cat")
         # --- résultats
         self.res = boite(True, 4); self.pile.add_named(defilant(self.res), "res")
         # --- pied
