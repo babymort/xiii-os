@@ -6,4 +6,13 @@ for p in rclone fuse3 smbclient cifs-utils nfs-common avahi-utils ieee-data croc
 done
 # FUSE : montages rclone accessibles à l'utilisateur
 grep -q '^user_allow_other' /etc/fuse.conf 2>/dev/null || echo user_allow_other >> /etc/fuse.conf
+# croc (absent de Debian) : paquet officiel publié sur GitHub
+python3 - <<'PY' || echo "croc : non installé"
+import json, urllib.request, re, subprocess
+ar = subprocess.run(["dpkg", "--print-architecture"], capture_output=True, text=True).stdout.strip()
+rel = json.load(urllib.request.urlopen(urllib.request.Request("https://api.github.com/repos/schollz/croc/releases/latest", headers={"User-Agent": "OS-XIII"}), timeout=30))
+a = next(x for x in rel["assets"] if x["name"].endswith(".deb") and re.search(r"Linux-64bit|amd64|x86_64" if ar == "amd64" else r"Linux-ARM64|arm64|aarch64", x["name"], re.I))
+f = "/tmp/" + a["name"]; urllib.request.urlretrieve(a["browser_download_url"], f)
+subprocess.run(["apt-get", "install", "-y", f], check=True); print("croc", rel["tag_name"])
+PY
 apt-get clean
