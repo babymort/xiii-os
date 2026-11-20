@@ -69,9 +69,11 @@ if [ -d "$I" ]; then
            -e 's/menu color title\s.*/menu color title 1;36;44 #fff0b378 #00000000 none/' \
            -e 's/menu color sel\s.*/menu color sel 7;37;40 #ff141210 #fff0b378 none/' \
            -e 's/menu color unsel\s.*/menu color unsel 37;44 #ffc9c3bb #00000000 none/' \
-           -e 's/menu title .*/menu title OS XIII/' -e 's/menu label \^\?Utilities\.\.\./menu label Outils/' "$f"
+           -e '/menu title /d' -e 's/menu label \^\?Utilities.*/menu label Outils/' "$f"
   done
   grep -qs '^timeout' "$I/isolinux.cfg" || echo "timeout 50" >> "$I/isolinux.cfg"
+  # menu sous le logo, messages en français (syslinux n'affiche pas les accents)
+  [ -f "$I/stdmenu.cfg" ] && printf 'menu vshift 15\nmenu autoboot Demarrage automatique dans # s...\nmenu tabmsg Entree : demarrer   -   Tab : options\n' >> "$I/stdmenu.cfg"
   [ -n "$A" ] && [ -f "$I/splash.png" ] && cp "$A/splash-isolinux.png" "$I/splash.png"
 fi
 rm -rf "$B/xiii-boot"
