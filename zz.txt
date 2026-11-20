@@ -1,0 +1,179 @@
+== Applications
+OK        xiii-bilan
+OK        xiii-blackmagic
+OK        xiii-console
+OK        xiii-debit
+OK        xiii-demarrage
+OK        xiii-fichiers
+OK        xiii-ia
+OK        xiii-lecteurs
+OK        xiii-logiciels
+OK        xiii-qrwifi
+OK        xiii-retour
+OK        xiii-scanip
+OK        xiii-somme
+OK        xiii-store-github
+OK        xiii-suite
+OK        xiii-synthese
+OK        xiii-taches
+OK        xiii-tally
+OK        xiii-timecode
+OK        xiii-transferts
+OK        xiii-windows
+OK        xiii-bienvenue
+OK        xiii-phonebox
+== Pages des Paramètres
+OK        Paramètres › accueil
+OK        Paramètres › systeme
+OK        Paramètres › ecran
+OK        Paramètres › son
+OK        Paramètres › notifications
+OK        Paramètres › alimentation
+OK        Paramètres › stockage
+OK        Paramètres › multitache
+OK        Paramètres › profils
+OK        Paramètres › historique
+OK        Paramètres › apropos
+OK        Paramètres › appareils
+OK        Paramètres › bluetooth
+OK        Paramètres › imprimantes
+OK        Paramètres › souris
+OK        Paramètres › clavier
+OK        Paramètres › webcam
+OK        Paramètres › autoplay
+OK        Paramètres › reseau
+OK        Paramètres › wifi
+OK        Paramètres › ethernet
+OK        Paramètres › vpn
+OK        Paramètres › partage
+OK        Paramètres › interfaces
+OK        Paramètres › iface
+OK        Paramètres › profilsreseau
+OK        Paramètres › tailscale
+OK        Paramètres › duo
+OK        Paramètres › perso
+OK        Paramètres › theme
+OK        Paramètres › fond
+OK        Paramètres › verrou
+OK        Paramètres › barre
+OK        Paramètres › demarrer
+OK        Paramètres › widgets
+OK        Paramètres › bureau
+OK        Paramètres › haut
+OK        Paramètres › polices
+OK        Paramètres › curseur
+OK        Paramètres › demarrage
+OK        Paramètres › applications
+OK        Paramètres › apps
+OK        Paramètres › defaut
+OK        Paramètres › autostart
+OK        Paramètres › comptes
+OK        Paramètres › compte
+OK        Paramètres › connexion
+OK        Paramètres › utilisateurs
+OK        Paramètres › heurelangue
+OK        Paramètres › heure
+OK        Paramètres › langue
+OK        Paramètres › accessibilite
+OK        Paramètres › texte
+OK        Paramètres › effets
+OK        Paramètres › securite
+OK        Paramètres › parefeu
+OK        Paramètres › confidentialite
+OK        Paramètres › jeux
+OK        Paramètres › sauvegarde
+OK        Paramètres › claude
+OK        Paramètres › maj
+OK        Paramètres › xiii
+OK        Paramètres › suite
+OK        Paramètres › ndi
+OK        Paramètres › acquisition
+OK        Paramètres › projet
+OK        Paramètres › outilsprod
+OK        Paramètres › meteo
+== Thèmes (bureau + Paramètres + menu Démarrer)
+OK        Thème sombre
+OK        Thème clair
+OK        Thème sobre
+OK        Thème sobrec
+OK        Thème w2k
+OK        Thème xp
+OK        Thème mac9
+OK        Thème cyber
+OK        Thème term
+OK        Thème gb
+OK        Thème regie
+OK        Thème soleil
+OK        Thème rainbow
+OK        Thème sepia
+== Bureau
+OK        xiii-shell (aucune erreur Python)
+== Menu « Toutes les applications » (doublons ?)
+/usr/lib/xiii/xiii/apps.py:4: PyGIWarning: Gdk was imported without specifying a version first. Use gi.require_version('Gdk', '4.0') before import to ensure that the right version gets loaded.
+  from gi.repository import Gio, GLib, Gdk
+          Animation de démarrage  (xiii-demarrage.desktop)
+          Applications Windows  (xiii-windows.desktop)
+          Assistant de synthèse  (xiii-synthese.desktop)
+          BACKUPO XIII  (xiii-suite-backupo.desktop)
+          Bilan matériel XIII  (xiii-bilan.desktop)
+          Blackmagic XIII  (xiii-blackmagic.desktop)
+          CADRO XIII  (xiii-suite-cadro.desktop)
+          CALL SHEETO XIII  (xiii-suite-callsheeto.desktop)
+          CASTO XIII  (xiii-suite-casto.desktop)
+          Centre de logiciels XIII  (xiii-logiciels.desktop)
+          Claude  (com.anthropic.Claude.desktop)
+          Claude Code  (xiii-claude-code.desktop)
+          CONDUCO XIII  (xiii-suite-conduco.desktop)
+          Console XIII  (xiii-console.desktop)
+          CONTRÔLE XIII  (xiii-suite-controle.desktop)
+          DECOUP TECHNICO XIII  (xiii-suite-decoup.desktop)
+          DEVISO XIII  (xiii-suite-deviso.desktop)
+          Disks  (org.gnome.DiskUtility.desktop)
+          DOSSIER XIII  (xiii-suite-dossier.desktop)
+          ENCODO XIII  (xiii-suite-encodo.desktop)
+          Fichiers  (xiii-fichiers.desktop)
+          Firefox ESR  (firefox-esr.desktop)
+          Gestionnaire des tâches  (xiii-taches.desktop)
+          GRAPHICO XIII  (xiii-suite-graphico.desktop)
+          IA XIII  (xiii-ia.desktop)
+          Lecteurs réseau  (xiii-lecteurs.desktop)
+          LUDO XIII  (xiii-suite-ludo.desktop)
+          LUMO XIII  (xiii-suite-lumo.desktop)
+          MATOS XIII  (xiii-suite-matos.desktop)
+          MELANGO XIII  (xiii-suite-melango.desktop)
+          MODE TOURNAGE XIII  (xiii-suite-jour.desktop)
+          MOODO XIII  (xiii-suite-moodo.desktop)
+          Mousepad  (org.xfce.mousepad.desktop)
+          mpv  (mpv.desktop)
+          NDI XIII  (xiii-ndi.desktop)
+          PACKINGO XIII  (xiii-suite-packingo.desktop)
+          Paramètres  (xiii-parametres.desktop)
+          PhoneBox  (xiii-phonebox.desktop)
+          Pilotes XIII  (xiii-pilotes.desktop)
+          PLANNO XIII  (xiii-suite-calendrier.desktop)
+          PLANO XIII  (xiii-suite-plano.desktop)
+          Plex  (xiii-plex.desktop)
+          POSTO XIII  (xiii-suite-posto.desktop)
+          QR Wi-Fi XIII  (xiii-qrwifi.desktop)
+          REPERO XIII  (xiii-suite-repero.desktop)
+          RESSOURCO XIII  (xiii-suite-ressourco.desktop)
+          Retour plateau  (xiii-retour.desktop)
+          RUNO XIII  (xiii-suite-runo.desktop)
+          Santé du PC  (xiii-sante.desktop)
+          Scanner IP XIII  (xiii-scanip.desktop)
+          SCRIPTO XIII  (xiii-suite-scripto.desktop)
+          SONO XIII  (xiii-suite-sono.desktop)
+          SOUSTITRO XIII  (xiii-suite-soustitro.desktop)
+          Store GitHub  (xiii-store-github.desktop)
+          STORYBOARDO XIII  (xiii-suite-storyboardo.desktop)
+          Suite XIII  (xiii-suite-accueil.desktop)
+          SYNO XIII  (xiii-suite-syno.desktop)
+          Tally XIII  (xiii-tally.desktop)
+          Terminal XIII  (xiii-terminal.desktop)
+          Test de débit XIII  (xiii-debit.desktop)
+          Test webcam  (xiii-webcam.desktop)
+          Timecode LTC  (xiii-timecode.desktop)
+          Transferts XIII  (xiii-transferts.desktop)
+          TRANSPORTO XIII  (xiii-suite-transporto.desktop)
+          Vérification d'offload  (xiii-somme.desktop)
+== Fin

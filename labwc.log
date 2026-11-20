@@ -1,0 +1,2 @@
+dbus-daemon[8448]: [session uid=0 pid=8448 pidfd=5] Activating service name='ca.desrt.dconf' requested by ':1.2' (uid=0 pid=8484 comm="gsettings set org.gnome.desktop.interface gtk-them" label="docker-default (enforce)")
+dbus-daemon[8448]: [session uid=0 pid=8448 pidfd=5] Successfully activated service 'ca.desrt.dconf'

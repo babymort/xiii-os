@@ -1,0 +1,3 @@
+/usr/lib/xiii/xiii/theme.py:5: PyGIWarning: Gdk was imported without specifying a version first. Use gi.require_version('Gdk', '4.0') before import to ensure that the right version gets loaded.
+  from gi.repository import GLib, Gdk, GdkPixbuf
+/root/.local/share/xiii/fonds-themes/verrou-5c54507fd2.png
