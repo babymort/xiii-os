@@ -145,6 +145,20 @@ xiii-debit >> /out/p12.log 2>&1 & sleep 3; grim /out/p12-debit.png; pkill -f xii
 xiii-parametres --page tailscale >> /out/param.log 2>&1 & sleep 4; grim /out/p12-tailscale.png; pkill -f xiii.parametres; sleep 0.5
 # Phase 13 — mises à jour
 xiii-parametres --page maj >> /out/param.log 2>&1 & sleep 4; grim /out/p13-maj.png; pkill -f xiii.parametres; sleep 0.5
+# Phase 14 / 14b — vieux PC, pilotes graphiques, passerelles projet
+python3 - <<'P' >> /out/p14.log 2>&1
+import sys; sys.path.insert(0, "/usr/lib/xiii")
+from xiii import projets, config
+projets.activer("Concert-Dome")
+projets.ecrire_fiche("Concert-Dome", {"title": "Concert-Dome", "genre": "live", "debut": "2026-11-27", "fin": "2026-11-29", "lieu": "Le Dôme, Marseille", "client": "France 3"})
+print(projets.resume("Concert-Dome"))
+config.modifier(mode_bureau="production")
+P
+sleep 3; grim /out/p14-production.png
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(mode_bureau="classique")'; sleep 2
+xiii-parametres --page effets >> /out/param.log 2>&1 & sleep 4; grim /out/p14-effets.png; pkill -f xiii.parametres; sleep 0.5
+xiii-parametres --page apropos >> /out/param.log 2>&1 & sleep 4; grim /out/p14-apropos.png; pkill -f xiii.parametres; sleep 0.5
+xiii-bilan --pilotes >> /out/p14.log 2>&1 & sleep 7; grim /out/p14-pilotes.png; pkill -f xiii-bilan; sleep 0.5
 cp /usr/share/plymouth/themes/xiii-ascii-matrix/f-040.png /out/s2-ascii-matrix.png 2>/dev/null
 cp /root/.config/xiii/reglages.json /out/ 2>/dev/null
 labwc --exit

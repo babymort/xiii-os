@@ -4,6 +4,10 @@ msg=""
 if lspci | grep -qi nvidia && ! lsmod | grep -q '^nvidia '; then
   p=$(nvidia-detect 2>/dev/null | grep -oE 'nvidia-[a-z0-9-]*driver' | head -1); [ -n "$p" ] && msg="Carte NVIDIA détectée : le pilote $p améliorera les performances."
 fi
+# AMD / Intel / autre : affichage calculé par le processeur = pilote graphique manquant
+if command -v glxinfo >/dev/null && glxinfo -B 2>/dev/null | grep -qiE 'renderer.*(llvmpipe|softpipe)' && ! lspci | grep -qiE 'vga.*(vmware|virtualbox|qemu|red hat|bochs)'; then
+  msg="${msg:+$msg\n}La carte graphique n'est pas accélérée : un pilote ou un firmware manque."
+fi
 n=$(dmesg 2>/dev/null | grep -ciE 'Direct firmware load for .* failed')
 [ "${n:-0}" -gt 0 ] && msg="${msg:+$msg\n}$n firmware(s) manquant(s) pour votre matériel."
 [ -z "$msg" ] && exit 0

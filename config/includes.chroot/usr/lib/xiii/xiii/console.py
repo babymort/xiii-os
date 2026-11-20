@@ -337,6 +337,10 @@ class Console(Gtk.Application):
                         if m: etat("Installation : %s %%" % m.group(1))
                     ok = p.wait() == 0
                     etat("Émulateur installé" if ok else "Installation impossible (connexion Internet ?)", True, ok); return
+                if app in ("steam", "steam-installer"):
+                    etat("Installation de Steam (mot de passe administrateur)…")
+                    r = subprocess.run(["pkexec", "/usr/local/bin/xiii-installer-steam"], capture_output=True, text=True)
+                    etat("Steam installé" if r.returncode == 0 else "Installation annulée ou impossible", True, r.returncode == 0); return
                 paq = [PAQUETS.get(app, app)] + (["retroarch"] if app.startswith("core:") else [])
                 etat("Installation de %s (mot de passe administrateur)…" % paq[0])
                 r = subprocess.run(["pkexec", "sh", "-c", "apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y " + " ".join(paq)], capture_output=True, text=True)

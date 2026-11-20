@@ -5,10 +5,18 @@ on:
     branches: [main, beta]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   iso:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        # complete : tout préinstallé · leger : vieux PC, ISO sous 2 Go (Steam, émulateurs, Chromium… s'installent à la demande)
+        edition: [complete, leger]
     container:
       image: debian:trixie
       options: --privileged
@@ -23,6 +31,9 @@ jobs:
         run: |
           mkdir -p config/includes.chroot/usr/share/xiii
           printf '{"version": "%s", "branche": "%s", "commit": "%s", "date": "%s"}\n' "$(date +%Y%m%d)-${GITHUB_REF_NAME}-${GITHUB_SHA::7}" "${GITHUB_REF_NAME}" "${GITHUB_SHA::7}" "$(date +%F)" > config/includes.chroot/usr/share/xiii/VERSION.json
+          mkdir -p config/includes.chroot/etc/xiii
+          echo "${{ matrix.edition }}" > config/includes.chroot/etc/xiii/edition
+          sed -i 's/}$/, "edition": "${{ matrix.edition }}"}/' config/includes.chroot/usr/share/xiii/VERSION.json
           cat config/includes.chroot/usr/share/xiii/VERSION.json
           mkdir -p config/includes.chroot/var/lib/xiii
           python3 -c "import hashlib,json,glob,os; print(json.dumps({'scripts': {os.path.basename(f): hashlib.sha256(open(f,'rb').read()).hexdigest() for f in glob.glob('config/hooks/normal/*.hook.chroot') if b'xiii-maj: relancer' in open(f,'rb').read()}}))" > config/includes.chroot/var/lib/xiii/maj.json || true
@@ -30,23 +41,109 @@ jobs:
         run: lb config
       - name: Construction de l'ISO
         run: lb build
+      - name: Poids de l'ISO (paquets et dossiers les plus lourds)
+        shell: bash
+        run: |
+          ls -l binary/live/filesystem.squashfs || true
+          echo "== 60 paquets les plus lourds (Mo installés)"
+          chroot chroot dpkg-query -W -f='${Installed-Size}\t${Package}\n' | sort -rn | head -60 | awk '{printf "%7.1f  %s\n", $1/1024, $2}'
+          echo "== dossiers"
+          du -xsm chroot/usr/lib/* chroot/usr/share/* chroot/opt/* chroot/var/lib/* chroot/usr/local/* 2>/dev/null | sort -rn | head -40
       - name: Nommage
         shell: bash
         run: |
           V=$(date +%Y%m%d)-${GITHUB_REF_NAME}-${GITHUB_SHA::7}
-          mv *.iso "OS-XIII-$V.iso"
-          sha256sum OS-XIII-*.iso > SHA256SUMS
-          ls -lh OS-XIII-*.iso
+          N=OS-XIII; [ "${{ matrix.edition }}" = leger ] && N=OS-XIII-Leger
+          mv *.iso "$N-$V.iso"
+          sha256sum $N-*.iso > SHA256SUMS
+          ls -lh $N-*.iso
+          echo "### $N : $(du -h $N-*.iso | cut -f1)" >> $GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v5
         with:
-          name: OS-XIII-${{ github.ref_name }}
+          name: ${{ matrix.edition == 'leger' && 'OS-XIII-Leger' || 'OS-XIII' }}-${{ github.ref_name }}
           path: |
-            OS-XIII-*.iso
+            OS-XIII*.iso
             SHA256SUMS
           retention-days: 14
       - uses: actions/upload-artifact@v5
         if: always()
         with:
-          name: build-log-${{ github.ref_name }}
+          name: build-log-${{ matrix.edition }}-${{ github.ref_name }}
           path: build.log
           if-no-files-found: ignore
+
+  # Essais sur machines virtuelles de plusieurs générations : démarrage, mémoire au repos, services, erreurs, capture d'écran
+  essai:
+    needs: iso
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { nom: "PC 2008 (Core 2, 1 Go)", edition: leger, cpu: Penryn, smp: 2, ram: 1024, uefi: false }
+          - { nom: "PC 2012 (Core i 2e gen, 2 Go)", edition: leger, cpu: SandyBridge, smp: 2, ram: 2048, uefi: false }
+          - { nom: "PC 2012 UEFI (édition légère)", edition: leger, cpu: SandyBridge, smp: 2, ram: 2048, uefi: true }
+          - { nom: "PC récent (4 Go, complète)", edition: complete, cpu: host, smp: 4, ram: 4096, uefi: false }
+    steps:
+      - name: KVM et QEMU
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+          sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86 ovmf socat netpbm xorriso >/dev/null
+      - uses: actions/download-artifact@v5
+        with:
+          name: ${{ matrix.edition == 'leger' && 'OS-XIII-Leger' || 'OS-XIII' }}-${{ github.ref_name }}
+      - name: Démarrage et mesure
+        shell: bash
+        run: |
+          ISO=$(ls OS-XIII*.iso | head -1); echo "ISO : $ISO"
+          xorriso -indev "$ISO" -ls /live 2>/dev/null
+          K=$(xorriso -indev "$ISO" -find /live -name 'vmlinuz*' 2>/dev/null | tr -d "'" | head -1)
+          I=$(xorriso -indev "$ISO" -find /live -name 'initrd*' 2>/dev/null | tr -d "'" | head -1)
+          xorriso -osirrox on -indev "$ISO" -extract "$K" vmlinuz -extract "$I" initrd.img >/dev/null 2>&1
+          COMMUN="-enable-kvm -cpu ${{ matrix.cpu }} -smp ${{ matrix.smp }} -m ${{ matrix.ram }} -vga std -display none -no-reboot -cdrom $ISO -serial file:serie.log -monitor unix:mon.sock,server,nowait -nic user,model=e1000"
+          if [ "${{ matrix.uefi }}" = true ]; then
+            # vrai démarrage UEFI depuis le menu GRUB de l'ISO (sans mesure : seulement les captures)
+            cp /usr/share/OVMF/OVMF_VARS_4M.fd vars.fd
+            qemu-system-x86_64 $COMMUN -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd -drive if=pflash,format=raw,file=vars.fd &
+          else
+            qemu-system-x86_64 $COMMUN -kernel vmlinuz -initrd initrd.img \
+              -append "boot=live components quiet splash locales=fr_FR.UTF-8 keyboard-layouts=fr timezone=Europe/Paris username=xiii hostname=xiii-os console=tty1 console=ttyS0,115200 xiii.mesure=arret" &
+          fi
+          Q=$!
+          capture() { echo "screendump $1.ppm" | socat - unix-connect:mon.sock >/dev/null 2>&1; sleep 2; pnmtopng "$1.ppm" > "$1.png" 2>/dev/null && rm -f "$1.ppm"; }
+          [ "${{ matrix.uefi }}" = true ] && (sleep 25; echo "sendkey ret" | socat - unix-connect:mon.sock >/dev/null 2>&1) &
+          for t in 20 45 120 200 300; do
+            while [ $SECONDS -lt $t ]; do kill -0 $Q 2>/dev/null || break 2; sleep 2; done
+            capture "ecran-${t}s"
+          done
+          while kill -0 $Q 2>/dev/null && [ $SECONDS -lt 720 ]; do sleep 5; done
+          kill $Q 2>/dev/null || true
+          echo "## ${{ matrix.nom }}" >> $GITHUB_STEP_SUMMARY
+          if grep -q '==XIII-MESURE-FIN==' serie.log; then
+            sed -n '/==XIII-MESURE-DEBUT==/,/==XIII-MESURE-FIN==/p' serie.log | tr -d '\r' | tee mesure.txt
+            { echo '```'; cat mesure.txt; echo '```'; } >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Pas de mesure (UEFI : captures seulement, ou démarrage incomplet)" | tee -a $GITHUB_STEP_SUMMARY
+            tail -c 6000 serie.log | tr -d '\r' || true
+          fi
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: essai-${{ strategy.job-index }}-${{ matrix.edition }}
+          path: |
+            ecran-*.png
+            mesure.txt
+            serie.log
+          retention-days: 14
+      - name: Publier les captures (branche essai-N)
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p /tmp/out && cp ecran-*.png mesure.txt /tmp/out/ 2>/dev/null || true
+          tail -c 20000 serie.log > /tmp/out/serie-fin.log 2>/dev/null || true
+          echo "${{ matrix.nom }} · ${{ github.sha }}" > /tmp/out/LISEZMOI.txt
+          cd /tmp/out && git init -q -b essai && git config user.name "CI XIII" && git config user.email "ci@xiii.local"
+          git add -A && git commit -qm "Essai ${{ matrix.nom }}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" essai:essai-${{ strategy.job-index }}

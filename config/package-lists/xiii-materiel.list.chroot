@@ -60,4 +60,6 @@ fprintd
 libpam-fprintd
 #if ARCHITECTURES amd64
 intel-media-va-driver
+# vieux PC Intel (Core 2 → Skylake) : décodage vidéo matériel
+i965-va-driver
 #endif

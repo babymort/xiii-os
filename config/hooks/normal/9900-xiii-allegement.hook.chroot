@@ -1,0 +1,58 @@
+#!/bin/sh
+# xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
+# Phase 14 — vieux PC : mémoire compressée, protection contre le gel, services lancés seulement quand on s'en sert
+set -e
+apt-get update -qq
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends zram-tools earlyoom || true
+
+# 1. zram : la moitié de la mémoire en espace d'échange compressé (zstd), prioritaire sur le disque
+if [ -f /etc/default/zramswap ]; then
+  cat > /etc/default/zramswap <<'Z'
+# OS XIII — mémoire compressée
+ALGO=zstd
+PERCENT=50
+PRIORITY=100
+Z
+  systemctl enable zramswap.service 2>/dev/null || true
+fi
+
+# 2. earlyoom : quand la mémoire est presque pleine, ferme l'onglet ou le jeu le plus gourmand au lieu de geler le PC
+if [ -f /etc/default/earlyoom ]; then
+  cat > /etc/default/earlyoom <<'O'
+# OS XIII — jamais le bureau, d'abord les navigateurs, jeux et émulateurs
+EARLYOOM_ARGS="-r 0 -m 4 -s 8 -n --avoid '^(labwc|Xwayland|lightdm|xiii-shell|python3|pipewire|wireplumber|systemd|dbus-.*|NetworkManager)$' --prefer '^(WebKitWebProces|chromium|chrome|firefox-esr|Web Content|Isolated Web Co|retroarch|dolphin-emu|steam|wine.*|.*\.exe)$'"
+O
+  systemctl enable earlyoom.service 2>/dev/null || true
+fi
+
+# 3. journal limité (vieux disques, petites cartes SD)
+mkdir -p /etc/systemd/journald.conf.d
+printf '[Journal]\nSystemMaxUse=64M\nRuntimeMaxUse=32M\nMaxRetentionSec=2week\n' > /etc/systemd/journald.conf.d/10-xiii.conf
+
+# 4. services à la demande : rien ne tourne pour un matériel ou une fonction qu'on n'utilise pas
+#    (une seule fois : une mise à jour ne rééteint pas un service que l'utilisateur a allumé)
+mkdir -p /var/lib/xiii
+if [ ! -e /var/lib/xiii/.services-alleges ]; then
+off() { for u in "$@"; do systemctl disable "$u" 2>/dev/null || true; done; }
+# imprimantes : CUPS démarre à la première impression (socket), pas au démarrage
+off cups.service cups-browsed.service
+systemctl enable cups.socket cups.path 2>/dev/null || true
+# modems 3G/4G : ModemManager seulement si une clé est branchée (règle udev ci-dessous)
+off ModemManager.service
+# tâches planifiées de Debian remplacées par la mise à jour d'OS XIII (Paramètres › Mises à jour)
+off apt-daily.timer apt-daily-upgrade.timer man-db.timer e2scrub_all.timer
+# outils réseau et de streaming lancés par leur application quand on les ouvre
+off kismet.service tailscaled.service sunshine.service input-leap.service iperf3.service smartmontools.service rsync.service ssh.service
+# disques : TRIM hebdomadaire pour les SSD
+systemctl enable fstrim.timer 2>/dev/null || true
+touch /var/lib/xiii/.services-alleges
+fi
+mkdir -p /etc/udev/rules.d
+cat > /etc/udev/rules.d/77-xiii-modem.rules <<'M'
+# OS XIII — ModemManager démarre quand un modem (clé 4G, carte WWAN) apparaît
+ACTION=="add", SUBSYSTEM=="tty", ENV{ID_MM_CANDIDATE}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}+="ModemManager.service"
+ACTION=="add", SUBSYSTEM=="wwan", TAG+="systemd", ENV{SYSTEMD_WANTS}+="ModemManager.service"
+ACTION=="add", SUBSYSTEM=="usbmisc", KERNEL=="cdc-wdm*", TAG+="systemd", ENV{SYSTEMD_WANTS}+="ModemManager.service"
+M
+# Bluetooth : le service ne démarre que si une carte Bluetooth existe (déjà le cas avec bluetooth.target), l'applet aussi
+apt-get clean

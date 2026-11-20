@@ -83,7 +83,13 @@ class VueMode:
         h.append(ico(ic, 34, "c"))
         v = boite(True, 0, hexpand=True); v.append(label(nom, "grand-titre", "titre-astoria")); v.append(label(desc, "attenue")); h.append(v)
         pj = self.shell.cfg.get("projet_actif")
-        if pj: h.append(bouton(pj, "folder-kanban", "fantome", rappel=lambda: self.shell.menu_projets()))
+        if pj:
+            from . import projets
+            pv = boite(True, 2, valign=Gtk.Align.CENTER)
+            pv.append(bouton(pj, "folder-kanban", "fantome", rappel=lambda: self.shell.menu_projets()))
+            r = projets.resume(pj)     # fiche venue de la Suite : dates de tournage, lieu, client
+            if r: pv.append(label(r, "petit", "attenue", xalign=1, ellipsize=True, largeur=48))
+            h.append(pv)
         if droite: h.append(droite)
         self.corps.append(h)
 

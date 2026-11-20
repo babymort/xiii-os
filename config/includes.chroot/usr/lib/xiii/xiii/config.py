@@ -15,6 +15,7 @@ DEFAUTS = {
     "accent": "#f0b378",
     "transparence": True,
     "animations": True,
+    "vieux_pc": False, "allegement_fait": False,     # mode léger : effets coupés, icônes moins souvent relues
     "fond": FONDS + "/xiii-sombre.png",
     "fond_mode": "fill",
     "verrou_fond": FONDS + "/xiii-connexion.png",

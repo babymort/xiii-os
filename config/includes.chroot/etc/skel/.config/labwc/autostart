@@ -4,10 +4,10 @@ lxpolkit >/dev/null 2>&1 &
 # Trousseau (connexion Claude mémorisée) et lien OS XIII ↔ Claude Desktop au premier démarrage
 gnome-keyring-daemon --start --components=secrets >/dev/null 2>&1 &
 python3 -c 'import sys; sys.path.insert(0, "/usr/lib/xiii"); from xiii import claude; claude.premier_lancement()' >/dev/null 2>&1 &
-blueman-applet >/dev/null 2>&1 &
+# applet Bluetooth (appairage avec code) seulement si le PC a une carte Bluetooth
+[ -n "$(ls /sys/class/bluetooth 2>/dev/null)" ] && blueman-applet >/dev/null 2>&1 &
 wl-paste --watch cliphist store >/dev/null 2>&1 &
-# Profils réseau appliqués automatiquement selon le Wi-Fi rejoint
-python3 -c 'import sys; sys.path.insert(0, "/usr/lib/xiii"); from xiii import reseau; reseau.surveiller()' >/dev/null 2>&1 &
+# Profils réseau appliqués automatiquement selon le Wi-Fi rejoint : surveillés par xiii-shell (plus de processus à part)
 (sleep 8; xiii-verif-pilotes) >/dev/null 2>&1 &
 # Session live : écran d'accueil (Essayer / Installer)
 [ -d /run/live/medium ] && (sleep 3; xiii-bienvenue) >/dev/null 2>&1 &

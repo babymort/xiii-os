@@ -66,6 +66,68 @@ FW = {"iwlwifi":"firmware-iwlwifi","rtl":"firmware-realtek","rtw":"firmware-real
       "amdgpu":"firmware-amd-graphics","radeon":"firmware-amd-graphics","i915":"firmware-intel-graphics","xe/":"firmware-intel-graphics",
       "mediatek":"firmware-mediatek","mt7":"firmware-mediatek","intel/sof":"firmware-sof-signed","nvidia":"firmware-nvidia-graphics"}
 
+def graphiques():
+    """Une ligne par carte graphique : (titre, bon ?, explication, paquets conseillés)."""
+    R = []
+    cartes, cur = [], None
+    for l in sh("lspci -nnk").splitlines():
+        if not l.startswith(("\t", " ")):
+            cur = None
+            m = re.match(r"\S+ (VGA compatible controller|3D controller|Display controller) \[\w+\]: (.*?) \[([0-9a-f]{4}):([0-9a-f]{4})\]", l)
+            if m: cur = {"nom": m.group(2), "vendeur": m.group(3), "pilote": ""}; cartes.append(cur)
+        elif cur is not None and "Kernel driver in use" in l:
+            cur["pilote"] = l.split(":", 1)[1].strip()
+    if not cartes: return R
+    rendu = sh("glxinfo -B 2>/dev/null | grep -i 'OpenGL renderer'").split(":", 1)[-1].strip()
+    logiciel = "llvmpipe" in rendu.lower() or "softpipe" in rendu.lower()
+    va = sh("vainfo 2>&1")
+    va_ok = "VAProfile" in va and "VAEntrypointVLD" in va
+    inst = set(sh("dpkg-query -W -f='${Package}\\n'").split())
+    hybride = len(cartes) > 1
+    for c in cartes:
+        v, nom, pil = c["vendeur"], re.sub(r"\s*\(rev \w+\)", "", c["nom"]), c["pilote"]
+        P, txt, ok = set(), [], True
+        if v == "8086":                                                                  # Intel
+            marque = "Intel"
+            if pil in ("i915", "xe"): txt.append("pilote %s du noyau" % pil)
+            elif pil == "gma500_gfx": txt.append("ancienne puce GMA : affichage simple, pas d'accélération 3D"); ok = None
+            else: txt.append("aucun pilote chargé"); ok = False; P.add("firmware-intel-graphics")
+            if not va_ok:
+                # Broadwell (2014) et plus récents : intel-media ; plus anciens (Core 2 → Skylake) : i965
+                P.update(p for p in ("intel-media-va-driver", "i965-va-driver") if p not in inst)
+        elif v in ("1002", "1022"):                                                      # AMD / ATI
+            marque = "AMD"
+            if pil == "amdgpu": txt.append("pilote amdgpu (Vulkan disponible)")
+            elif pil == "radeon": txt.append("pilote radeon (cartes anciennes : OpenGL, sans Vulkan)")
+            else: txt.append("aucun pilote chargé"); ok = False
+            P.update(p for p in ("firmware-amd-graphics", "mesa-va-drivers", "mesa-vulkan-drivers") if p not in inst)
+        elif v == "10de":                                                                # NVIDIA
+            marque = "NVIDIA"
+            nd = sh("nvidia-detect 2>/dev/null")
+            paq = re.findall(r"(nvidia-[a-z0-9-]*driver[a-z0-9-]*|nvidia-tesla-[0-9]+-driver)", nd)
+            if pil == "nvidia": txt.append("pilote NVIDIA officiel actif")
+            elif paq:
+                txt.append("pilote libre « nouveau » : le pilote officiel %s sera bien plus rapide (jeux, montage)" % paq[0]); ok = False
+                P.update([paq[0], "linux-headers-" + ("amd64" if os.uname().machine == "x86_64" else "arm64"), "firmware-nvidia-graphics"])
+            elif pil == "nouveau":
+                txt.append("pilote libre « nouveau » (le pilote officiel ne gère plus cette carte ancienne)"); ok = None
+            else: txt.append("aucun pilote chargé"); ok = False
+        elif v in ("15ad", "1234", "1af4", "80ee", "1b36"):
+            marque = "Machine virtuelle"; txt.append("carte virtuelle (%s)" % (pil or "sans pilote")); ok = None
+        else:
+            marque = "Carte graphique"; txt.append("pilote " + (pil or "absent")); ok = bool(pil)
+        if logiciel and ok is not False and not hybride and v not in ("15ad", "1234", "1af4", "80ee", "1b36"):
+            txt.append("affichage calculé par le processeur (llvmpipe) : l'accélération 3D ne fonctionne pas"); ok = False
+        if v in ("8086", "1002", "1022") and not va_ok and ok is not None:
+            txt.append("décodage vidéo matériel absent : les vidéos chargent le processeur")
+            ok = False if ok else ok
+        elif va_ok and v in ("8086", "1002", "1022"):
+            txt.append("vidéo accélérée (VA-API)")
+        if hybride: txt.append("PC à deux cartes : « Lancer avec la carte dédiée » dans le clic droit des applications")
+        R.append(("%s — %s" % (marque, nom), ok, " · ".join(txt), sorted(P)))
+    return R
+
+
 def pilotes():
     """Retourne (lignes, paquets_conseillés)"""
     L, P = [], set()
@@ -87,11 +149,9 @@ def pilotes():
         for k, v in FW.items():
             if k in m: P.add(v)
     L.append(("Firmwares manquants", "\n".join(miss) or "aucun", not miss))
-    # 3. NVIDIA
-    if sh("lspci | grep -i nvidia"):
-        nd = re.findall(r"(nvidia-[a-z0-9-]*driver[a-z0-9-]*|nvidia-tesla-[0-9]+-driver)", sh("nvidia-detect 2>/dev/null"))
-        if nd: P.update([nd[0], "linux-headers-amd64"])
-        L.append(("Carte NVIDIA", f"pilote conseillé : {nd[0]}" if nd else "pilote libre (nouveau) utilisé", None))
+    # 3. cartes graphiques : NVIDIA, AMD, Intel — pilote utilisé, accélération 3D et vidéo
+    for nom, ok, conseil, paquets in graphiques():
+        L.append((nom, conseil, ok)); P.update(paquets)
     # 4. suggestions Debian (isenkram)
     if shutil.which("isenkram-lookup"):
         inst = set(sh("dpkg-query -W -f='${Package}\\n'").split())

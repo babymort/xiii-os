@@ -14,7 +14,7 @@ CATALOGUE = {
     "Partage de fichiers": [
         ("localsend", "LocalSend", "Envoyer des fichiers entre téléphones et PC du même réseau, comme AirDrop", "github:localsend/localsend", "localsend_app", "share-2"),
         ("pairdrop", "PairDrop", "AirDrop dans le navigateur (successeur de Snapdrop), rien à installer sur le téléphone", "web:https://pairdrop.net/", None, "globe"),
-        ("croc", "croc", "Envoi chiffré par code, n'importe où (interface dans Transferts XIII)", "apt:croc", "xiii-transferts", "send"),
+        ("croc", "croc", "Envoi chiffré par code, n'importe où (interface dans Transferts XIII)", "github:schollz/croc", "xiii-transferts", "send"),
         ("wormhole", "Magic Wormhole", "Envoi chiffré par code (interface dans Transferts XIII)", "apt:magic-wormhole", "xiii-transferts", "send"),
         ("transferts", "Transferts XIII", "Gofile, WeTransfer, Smash, partage local, croc, Wormhole", "inclus", "xiii-transferts", "send"),
     ],
@@ -62,6 +62,8 @@ CATALOGUE = {
         ("prism", "Prism Launcher", "Minecraft Java, plusieurs versions et mods", "flatpak:org.prismlauncher.PrismLauncher", None, "box"),
     ],
     "Internet et quotidien": [
+        ("steam", "Steam", "Boutique et bibliothèque de jeux PC (licence de Valve acceptée à l'installation)", "steam", "steam", "gamepad-2"),
+        ("wine32", "Wine 32 bits", "Pour les anciens logiciels Windows en 32 bits", "apt:wine32:i386", None, "app-window"),
         ("chromium", "Chromium", "Navigateur web (base de Chrome)", "apt:chromium", "chromium", "globe"),
         ("plex", "Plex", "Vos films, séries et musiques, depuis votre serveur Plex", "inclus", "xiii-plex", "monitor-play"),
         ("plexdesktop", "Plex (application)", "Application Plex complète", "flatpak:tv.plex.PlexDesktop", None, "monitor-play"),
@@ -91,6 +93,7 @@ def installe(src):
             nom = v.split("/")[1].lower()
             return v in suivi() or any(nom in p.lower() for p in os.listdir("/usr/share/applications"))
         if src == "plexserver": return os.path.exists("/usr/lib/plexmediaserver")
+        if src == "steam": return bool(shutil.which("steam"))
         if t == "web": return True
     except Exception:
         pass
@@ -100,7 +103,7 @@ def installer(src, progres):
     t, _, v = src.partition(":")
     if t == "apt":
         progres("Installation (mot de passe administrateur)…")
-        r = subprocess.run(["pkexec", "sh", "-c", "apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y " + v], capture_output=True, text=True)
+        r = subprocess.run(["pkexec", "sh", "-c", ("dpkg --add-architecture i386; " if ":i386" in v else "") + "apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y " + v], capture_output=True, text=True)
         if r.returncode: raise RuntimeError("installation annulée ou impossible")
     elif t == "flatpak":
         progres("Installation depuis Flathub…")
@@ -118,6 +121,9 @@ def installer(src, progres):
         f = os.path.join(GLib.get_tmp_dir(), paq + ".deb"); urllib.request.urlretrieve(url, f)
         progres("Installation (mot de passe administrateur)…")
         if subprocess.run(["pkexec", "sh", "-c", "DEBIAN_FRONTEND=noninteractive apt-get install -y '%s'" % f]).returncode: raise RuntimeError("installation annulée")
+    elif src == "steam":
+        progres("Installation de Steam (mot de passe administrateur)…")
+        if subprocess.run(["pkexec", "/usr/local/bin/xiii-installer-steam"]).returncode: raise RuntimeError("installation annulée ou impossible")
     elif src == "plexserver":
         progres("Recherche de la dernière version de Plex Media Server…")
         d = json.load(urllib.request.urlopen("https://plex.tv/api/downloads/5.json", timeout=30))

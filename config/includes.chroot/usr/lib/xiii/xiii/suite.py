@@ -177,6 +177,36 @@ JS_DOSSIER = r"""
 """
 
 
+# Passerelle projet : le projet actif de la Suite (sélecteur « xiii.projets ») et celui de l'ordinateur (~/XIII/<nom>) restent les mêmes.
+JS_PONT = r"""
+(() => {
+  if (window.__xiiiPont || !window.webkit || !window.webkit.messageHandlers || !window.webkit.messageHandlers.xiii) return;
+  window.__xiiiPont = 1;
+  const K = 'xiii.projets';
+  const fold = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const etat = () => { try { const s = JSON.parse(localStorage.getItem(K)); if (s && Array.isArray(s.list)) return s; } catch (e) {} return { active: '', list: [] }; };
+  const actif = () => { const s = etat(); return s.list.find(f => f && f.id === s.active) || null; };
+  const fiche = f => { if (!f) return null; const o = {}; for (const k in f) if (typeof f[k] !== 'string' || f[k].length < 2000) o[k] = f[k]; return o; };
+  const sig = f => f ? (f.id + '|' + (f.title || '') + '|' + (f.debut || '') + '|' + (f.fin || '') + '|' + (f.lieu || '') + '|' + (f.client || '')) : '';
+  const poste = t => { const f = actif(); window.__xiiiSig = sig(f); window.webkit.messageHandlers.xiii.postMessage(JSON.stringify({ type: t, fiche: fiche(f) })); };
+  window.__xiiiActiver = nom => {
+    if (!nom) return 'vide';
+    const s = etat(), f0 = s.list.find(f => f && f.id === s.active);
+    if (f0 && fold(f0.title) === fold(nom)) return 'deja';
+    let f = s.list.find(f => f && fold(f.title) === fold(nom));
+    if (!f) { f = { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: nom, genre: '', production: '', client: '', realisation: '', producteur: '',
+                     debut: '', fin: '', diffusion: '', duree: '', lieu: '', created: new Date().toISOString(), from: 'os' }; s.list.push(f); }
+    s.active = f.id; localStorage.setItem(K, JSON.stringify(s)); window.__xiiiSig = sig(f);
+    try { window.dispatchEvent(new StorageEvent('storage', { key: K })); } catch (e) {}
+    return 'ok';
+  };
+  window.addEventListener('storage', e => { if (e.key === K && sig(actif()) !== window.__xiiiSig) poste('projet'); });
+  setInterval(() => { if (sig(actif()) !== window.__xiiiSig) poste('projet'); }, 3000);   // changement fait dans cette même fenêtre
+  poste('pret');
+})();
+"""
+
+
 # ===================================================================== application
 class Suite(Gtk.Application):
     def __init__(self):
@@ -193,6 +223,16 @@ class Suite(Gtk.Application):
         os.makedirs(DONNEES, exist_ok=True); os.makedirs(CACHE, exist_ok=True)
         self.session = WebKit.NetworkSession.new(DONNEES, CACHE)
         self.session.connect("download-started", self.telechargement)
+        # passerelle OS ↔ Suite : messages des pages (projet actif) et suivi du projet choisi en haut à gauche de l'ordinateur
+        self.ucm = WebKit.UserContentManager()
+        try:
+            self.ucm.register_script_message_handler("xiii", None)
+            self.ucm.connect("script-message-received::xiii", self.message)
+            self.ucm.add_script(WebKit.UserScript.new(JS_PONT, WebKit.UserContentInjectedFrames.TOP_FRAME, WebKit.UserScriptInjectionTime.END, None, None))
+        except Exception as e:
+            print("passerelle projet indisponible :", e)
+        self._projet_os = config.charger().get("projet_actif") or ""
+        self._mon = config.surveiller(self.cfg_change)
 
     def base(self):
         return "http://127.0.0.1:%d" % self.port
@@ -223,7 +263,7 @@ class Suite(Gtk.Application):
 
     # ------------------------------------------------------------- fenêtres
     def nouvelle_vue(self, liee=None):
-        v = WebKit.WebView(network_session=self.session) if liee is None else WebKit.WebView(related_view=liee)
+        v = WebKit.WebView(network_session=self.session, user_content_manager=self.ucm) if liee is None else WebKit.WebView(related_view=liee, user_content_manager=self.ucm)
         s = v.get_settings()
         for k, val in (("enable-developer-extras", False), ("javascript-can-open-windows-automatically", True), ("enable-media-stream", True),
                        ("enable-webrtc", True), ("enable-fullscreen", True), ("enable-encrypted-media", True), ("enable-back-forward-navigation-gestures", True),
@@ -330,7 +370,7 @@ class Suite(Gtk.Application):
             d.set_destination(f); info[:] = [f, projet]; return True
         def fini(d):
             f, projet = info if info else (None, None)
-            if f: self.notifier("Enregistré dans " + ("le projet « %s »" % projet if projet else "Téléchargements"), os.path.basename(f), os.path.dirname(f))
+            if f: self.notifier("Enregistré dans " + ("le projet « %s »" % projet if projet else "Téléchargements"), os.path.basename(f), os.path.dirname(f), fichier=f)
         try:
             u = dl.get_web_view().get_uri() if dl.get_web_view() else ""
             oid = re.sub(r"^.*/([a-z0-9_-]+)\.html.*$", r"\1", u) if ".html" in (u or "") else None
@@ -343,10 +383,15 @@ class Suite(Gtk.Application):
         dl.connect("decide-destination", destination)
         dl.connect("finished", lambda d: (did and S.progres(did, None), fini(d)))
 
-    def notifier(self, titre, corps, dossier=None):
+    def notifier(self, titre, corps, dossier=None, fichier=None):
         n = Gio.Notification.new(titre); n.set_body(corps)
         n.set_icon(Gio.ThemedIcon.new("xiii-suite"))
         if dossier: n.set_default_action_and_target("app.ouvrir-dossier", GLib.Variant.new_string(dossier))
+        if fichier and not fichier.lower().endswith(".xiii.json"):
+            # passerelles : un export de la Suite part tout de suite par lien (Transferts XIII) ou rejoint le dossier de production
+            n.add_button_with_target("Envoyer par lien", "app.envoyer", GLib.Variant.new_string(fichier))
+            if fichier.lower().endswith(EXT_DOCS) and "/dossier" not in fichier.lower():
+                n.add_button_with_target("Ajouter à DOSSIER", "app.vers-dossier", GLib.Variant.new_string(fichier))
         self.send_notification(None, n)
 
     def do_activate(self):
@@ -414,6 +459,34 @@ class Suite(Gtk.Application):
         an = Gtk.Button(label="Annuler"); an.connect("clicked", lambda *_: w.close()); b.append(an)
         w.set_child(b); w.present()
 
+    # ------------------------------------------------------------- passerelle projet
+    def message(self, ucm, val):
+        try:
+            m = json.loads(val.to_string())
+        except Exception:
+            return
+        fiche = m.get("fiche") or {}
+        nom = re.sub(r'[\\/:*?"<>|]', "-", (fiche.get("title") or "")).strip()
+        os_nom = config.charger().get("projet_actif") or ""
+        if m.get("type") == "pret" and os_nom and os_nom != nom:
+            return self.pousser_projet(os_nom)            # l'ordinateur a changé de projet pendant que la Suite était fermée
+        if not nom: return
+        from . import projets
+        if nom != os_nom:
+            projets.activer(nom); self._projet_os = nom
+            self.notifier("Projet XIII : " + nom, "Choisi dans la Suite — c'est aussi le projet de l'ordinateur", os.path.join(projets.BASE, nom))
+        projets.ecrire_fiche(nom, fiche)
+
+    def pousser_projet(self, nom):
+        if not nom: return
+        w = next((x for x in self.fenetres if getattr(x, "_vue", None)), None)
+        if w: w._vue.evaluate_javascript("window.__xiiiActiver && window.__xiiiActiver(%s)" % json.dumps(nom), -1, None, None, None, None, None)
+
+    def cfg_change(self, c):
+        nom = c.get("projet_actif") or ""
+        if nom and nom != self._projet_os:
+            self._projet_os = nom; self.pousser_projet(nom)
+
     def activer_projet(self, nom, f=None):
         nom = re.sub(r'[\\/:*?"<>|]', "-", nom).strip()
         d = os.path.join(os.path.expanduser("~/XIII"), nom)
@@ -431,4 +504,10 @@ def main():
     act = Gio.SimpleAction.new("ouvrir-dossier", GLib.VariantType.new("s"))
     act.connect("activate", lambda a, p: Gio.AppInfo.launch_default_for_uri("file://" + urllib.parse.quote(p.get_string()), None))
     app.add_action(act)
+    env = Gio.SimpleAction.new("envoyer", GLib.VariantType.new("s"))
+    env.connect("activate", lambda a, p: Gio.Subprocess.new(["xiii-transferts", p.get_string()], 0))
+    app.add_action(env)
+    vd = Gio.SimpleAction.new("vers-dossier", GLib.VariantType.new("s"))
+    vd.connect("activate", lambda a, p: app.vers_dossier([p.get_string()]))
+    app.add_action(vd)
     sys.exit(app.run(sys.argv))

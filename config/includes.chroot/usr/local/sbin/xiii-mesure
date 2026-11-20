@@ -1,0 +1,52 @@
+#!/bin/sh
+# OS XIII — mesure automatique (tests sur machines virtuelles, CI) : mémoire au repos, démarrage, services, erreurs.
+# Ne tourne que si « xiii.mesure » est sur la ligne de commande du noyau. Le résultat sort sur le port série.
+OUT=/dev/ttyS0; [ -w "$OUT" ] || OUT=/dev/console
+T0=$(cut -d' ' -f1 /proc/uptime)
+i=0; while [ $i -lt 300 ] && ! pgrep -f '/usr/local/bin/xiii-shell' >/dev/null; do sleep 1; i=$((i+1)); done
+sleep 75   # bureau posé : la mesure est faite « au repos »
+U=$(getent passwd 1000 | cut -d: -f1)
+{
+echo "==XIII-MESURE-DEBUT=="
+echo "bureau prêt après : $( [ $i -lt 300 ] && echo "$(cut -d' ' -f1 /proc/uptime | cut -d. -f1) s (mesure à +75 s)" || echo "JAMAIS (xiii-shell absent)")"
+echo "processeur : $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2) · $(nproc) cœur(s)"
+echo "édition : $(cat /etc/xiii/edition 2>/dev/null || echo complete) · $(cat /usr/share/xiii/VERSION.json 2>/dev/null)"
+echo "--- mémoire"
+free -m
+cat /proc/swaps
+python3 - <<'P'
+import os, collections
+tot = {}
+for l in open("/proc/meminfo"):
+    k, v = l.split(":"); tot[k] = int(v.split()[0]) // 1024
+print("MÉMOIRE UTILISÉE AU REPOS : %d Mo (sur %d Mo ; disponible %d Mo)" % (tot["MemTotal"] - tot["MemAvailable"], tot["MemTotal"], tot["MemAvailable"]))
+g = collections.Counter(); n = collections.Counter()
+for p in os.listdir("/proc"):
+    if not p.isdigit(): continue
+    try:
+        pss = sum(int(l.split()[1]) for l in open("/proc/%s/smaps_rollup" % p) if l.startswith("Pss:"))
+        cmd = open("/proc/%s/cmdline" % p, "rb").read().split(b"\0")
+        nom = os.path.basename(cmd[0].decode(errors="replace")) or open("/proc/%s/comm" % p).read().strip()
+        if nom.startswith("python") and len(cmd) > 1 and cmd[1]: nom = "python:" + os.path.basename(cmd[1].decode(errors="replace"))[:40]
+    except OSError:
+        continue
+    g[nom] += pss; n[nom] += 1
+print("PSS total des processus : %d Mo" % (sum(g.values()) // 1024))
+for nom, k in g.most_common(28): print("  %6.1f Mo  %s%s" % (k / 1024, nom, " ×%d" % n[nom] if n[nom] > 1 else ""))
+P
+echo "--- démarrage"
+systemd-analyze 2>&1 | head -3
+systemd-analyze blame 2>/dev/null | head -12
+echo "--- services actifs : $(systemctl list-units --type=service --state=running --no-legend | wc -l)"
+systemctl list-units --type=service --state=running --no-legend | awk '{print "  " $1}'
+echo "--- services en échec"
+systemctl --failed --no-legend
+echo "--- graphique"
+lspci -nnk 2>/dev/null | grep -A3 -iE 'vga|3d|display' | head -8
+echo "--- erreurs du bureau (journal xiii-shell)"
+[ -n "$U" ] && tail -n 25 "/home/$U/.cache/xiii/shell.log" 2>/dev/null
+grep -l Traceback /home/*/.cache/xiii/*.log 2>/dev/null | sed 's/^/  trace python : /'
+echo "==XIII-MESURE-FIN=="
+} > "$OUT" 2>&1
+grep -q 'xiii.mesure=arret' /proc/cmdline && { sleep 2; systemctl poweroff; }
+exit 0

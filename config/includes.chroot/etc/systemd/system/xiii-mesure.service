@@ -1,0 +1,12 @@
+[Unit]
+Description=OS XIII — mesure automatique (tests)
+ConditionKernelCommandLine=|xiii.mesure
+ConditionKernelCommandLine=|xiii.mesure=arret
+After=graphical.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/xiii-mesure
+
+[Install]
+WantedBy=multi-user.target

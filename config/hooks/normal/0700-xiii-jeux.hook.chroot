@@ -2,11 +2,12 @@
 # xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
 # Phase 07 — Steam (licence acceptée d'avance), Vulkan / OpenGL 32 bits, GameMode, MangoHud
 set -e
+ED=$(cat /etc/xiii/edition 2>/dev/null || echo complete)   # « leger » : ISO allégée, le reste s'installe à la demande
 echo "steam steam/question select I AGREE" | debconf-set-selections
 echo "steam steam/license note ''" | debconf-set-selections
 echo "steam-installer steam/question select I AGREE" | debconf-set-selections
 apt-get update
-if [ "$(dpkg --print-architecture)" = amd64 ]; then
+if [ "$(dpkg --print-architecture)" = amd64 ] && [ "$ED" != leger ]; then
   dpkg --add-architecture i386; apt-get update
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends steam-installer steam-devices \
     mesa-vulkan-drivers:i386 libgl1-mesa-dri:i386 libglx-mesa0:i386 libvulkan1:i386 gamemode mangohud vulkan-tools
@@ -16,8 +17,9 @@ fi
 apt-get clean
 
 # Console XIII (mode Gaming) : émulateurs libres de Debian, chacun facultatif — jeux, BIOS et clés non fournis
-for p in retroarch libretro-core-info libretro-nestopia libretro-snes9x libretro-mgba libretro-gambatte libretro-genesisplusgx libretro-beetle-vb libretro-beetle-wswan \
-         dolphin-emu mupen64plus-ui-console desmume mednafen mame stella dosbox scummvm fs-uae openmsx vice hatari atari800 fuse-emulator-gtk spectrum-roms flatpak; do
+EMUS="retroarch libretro-core-info"
+[ "$ED" = leger ] || EMUS="$EMUS libretro-nestopia libretro-snes9x libretro-mgba libretro-gambatte libretro-genesisplusgx libretro-beetle-vb libretro-beetle-wswan dolphin-emu mupen64plus-ui-console desmume mednafen mame stella dosbox scummvm fs-uae openmsx vice hatari atari800 fuse-emulator-gtk spectrum-roms"
+for p in $EMUS flatpak; do
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$p" || echo "absent : $p"
 done
 # Flathub pour les émulateurs absents de Debian (PS2, PSP, Dreamcast, 3DS, Xbox, PS3, Wii U), installés à la demande depuis la console

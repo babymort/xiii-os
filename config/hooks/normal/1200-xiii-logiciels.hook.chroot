@@ -1,14 +1,17 @@
 #!/bin/sh
 # xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
 # Phase 12 — logiciels libres préinstallés (chacun facultatif) ; le reste s'installe en un clic depuis le Centre de logiciels XIII
+ED=$(cat /etc/xiii/edition 2>/dev/null || echo complete)   # « leger » : ISO allégée, le reste s'installe à la demande
 export DEBIAN_FRONTEND=noninteractive
 echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections
-for p in chromium chromium-l10n wireshark iperf3 kismet remmina input-leap; do apt-get install -y --no-install-recommends "$p" || echo "absent : $p"; done
+LISTE="iperf3 remmina"
+[ "$ED" = leger ] || LISTE="chromium chromium-l10n wireshark iperf3 kismet remmina input-leap"
+for p in $LISTE; do apt-get install -y --no-install-recommends "$p" || echo "absent : $p"; done
 # Tailscale (dépôt officiel)
 if curl -fsSL https://pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg -o /usr/share/keyrings/tailscale-archive-keyring.gpg; then
   curl -fsSL https://pkgs.tailscale.com/stable/debian/trixie.tailscale-keyring.list -o /etc/apt/sources.list.d/tailscale.list
   apt-get update -qq && apt-get install -y tailscale || echo "Tailscale : non installé"
-  systemctl enable tailscaled 2>/dev/null || true
+  # tailscaled démarre quand on se connecte (Paramètres › Tailscale)
 fi
 # LocalSend, Sunshine : dernières versions Linux publiées sur GitHub (.deb)
 python3 - <<'PY'
@@ -27,10 +30,11 @@ def deb(depot, prefere=()):
     except Exception as e:
         print(depot, ": non installé", e)
 deb("localsend/localsend")
-deb("LizardByte/Sunshine", ("debian", "trixie"))
+if not (os.path.exists("/etc/xiii/edition") and open("/etc/xiii/edition").read().strip() == "leger"):
+    deb("LizardByte/Sunshine", ("debian", "trixie"))
 PY
 # Parsec (paquet de l'éditeur)
-[ "$(dpkg --print-architecture)" = amd64 ] && curl -fsSL -o /tmp/parsec.deb https://builds.parsec.app/package/parsec-linux.deb && apt-get install -y /tmp/parsec.deb; rm -f /tmp/parsec.deb
+[ "$(dpkg --print-architecture)" = amd64 ] && [ "$ED" != leger ] && curl -fsSL -o /tmp/parsec.deb https://builds.parsec.app/package/parsec-linux.deb && apt-get install -y /tmp/parsec.deb; rm -f /tmp/parsec.deb
 # comptes créés par l'installateur : capture Wireshark autorisée
 for f in /etc/calamares/modules/users.conf /usr/share/calamares/modules/users.conf; do
   [ -f "$f" ] || continue

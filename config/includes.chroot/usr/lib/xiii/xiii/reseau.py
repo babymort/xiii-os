@@ -254,6 +254,12 @@ def regler_duo(conf):
 
 def surveiller():
     """Applique le profil dont le Wi-Fi associé vient d'être rejoint (lancé à l'ouverture de session)."""
+    import fcntl
+    try:      # une seule surveillance par session (le shell la lance ; l'ancien lancement à part s'efface)
+        verrou = open(os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "xiii-reseau.lock"), "w")
+        fcntl.flock(verrou, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return
     dernier = None
     p = subprocess.Popen(["nmcli", "monitor"], stdout=subprocess.PIPE, text=True)
     for _ in p.stdout:

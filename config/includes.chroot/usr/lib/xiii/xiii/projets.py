@@ -43,3 +43,52 @@ def importer(f):
         try: shutil.copy(f, os.path.join(d, "03_Documents", os.path.basename(f)))
         except OSError: pass
     return nom
+
+
+# ---------------------------------------------------------------- fiche projet venue de la Suite XIII
+GENRES = {"tv": "Émission TV", "live": "Captation live", "fiction": "Fiction", "doc": "Documentaire", "corporate": "Institutionnel",
+          "event": "Événementiel", "pub": "Publicité / clip", "autre": "Autre"}
+MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
+
+
+def _f_fiche(nom):
+    return os.path.join(BASE, nettoyer(nom), ".fiche-suite.json")
+
+
+def ecrire_fiche(nom, fiche):
+    """La fiche du projet (dates, lieu, client…) est rangée dans le dossier du projet : elle voyage avec lui."""
+    if not nom or not isinstance(fiche, dict): return
+    try:
+        os.makedirs(os.path.dirname(_f_fiche(nom)), exist_ok=True)
+        if fiche != fiche_de(nom):
+            json.dump(fiche, open(_f_fiche(nom), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    except OSError:
+        pass
+
+
+def fiche_de(nom):
+    try:
+        return json.load(open(_f_fiche(nom), encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _date(iso):
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})", iso or "")
+    return (int(m.group(3)), int(m.group(2)), int(m.group(1))) if m else None
+
+
+def resume(nom):
+    """« Fiction · tournage du 12 au 14 nov. · Lyon · Client » — vide si la Suite n'a pas encore de fiche."""
+    f = fiche_de(nom)
+    if not f: return ""
+    P = []
+    if f.get("genre") in GENRES: P.append(GENRES[f["genre"]])
+    d, fi = _date(f.get("debut")), _date(f.get("fin"))
+    if d and fi and fi != d:
+        P.append("tournage du %d%s au %d %s" % (d[0], "" if d[1] == fi[1] else " " + MOIS[d[1] - 1], fi[0], MOIS[fi[1] - 1]))
+    elif d:
+        P.append("tournage le %d %s" % (d[0], MOIS[d[1] - 1]))
+    for k in ("lieu", "client"):
+        if (f.get(k) or "").strip(): P.append(f[k].strip())
+    return " · ".join(P)

@@ -91,9 +91,19 @@ def pour_fenetre(app_id):
                 pass
     return _index_wm.get(app_id.lower()) or _index_wm.get(app_id.split(".")[-1].lower())
 
-def lancer(a, fichiers=None):
+def deux_cartes():
+    """PC portable à deux cartes graphiques (Intel/AMD intégrée + carte dédiée)."""
+    import glob
+    return len(glob.glob("/sys/class/drm/card[0-9]")) > 1
+
+
+def lancer(a, fichiers=None, dediee=False):
     try:
         ctx = Gdk.Display.get_default().get_app_launch_context()
+        if dediee:      # carte dédiée : Mesa (AMD, nouveau) et pilote NVIDIA officiel
+            for k, v in (("DRI_PRIME", "1"), ("__NV_PRIME_RENDER_OFFLOAD", "1"), ("__GLX_VENDOR_LIBRARY_NAME", "nvidia" if os.path.exists("/proc/driver/nvidia") else "mesa"),
+                         ("__VK_LAYER_NV_optimus", "NVIDIA_only" if os.path.exists("/proc/driver/nvidia") else "")):
+                if v: ctx.setenv(k, v)
         if fichiers:
             a.launch([Gio.File.new_for_path(f) for f in fichiers], ctx)
         else:

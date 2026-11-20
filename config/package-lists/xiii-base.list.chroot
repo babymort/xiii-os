@@ -28,3 +28,6 @@ htop
 amd64-microcode
 intel-microcode
 #endif
+# Phase 14 — vieux PC : mémoire compressée, protection contre le gel
+zram-tools
+earlyoom

@@ -475,3 +475,47 @@ def progres(desktop_id, fraction):
                         _G.Variant("(sa{sv})", ("application://" + desktop_id, props)))
     except Exception:
         pass
+
+
+# ================================================================ VIEUX PC
+def memoire():
+    """(totale, utilisée, zram utilisée, zram compressée) en octets — la mémoire « utilisée » est celle que le système ne peut pas reprendre."""
+    m = {}
+    try:
+        for l in open("/proc/meminfo"):
+            k, v = l.split(":", 1); m[k] = int(v.split()[0]) * 1024
+    except OSError:
+        return 0, 0, 0, 0
+    tot = m.get("MemTotal", 0); util = tot - m.get("MemAvailable", 0)
+    zu = zc = 0
+    for d in glob.glob("/sys/block/zram*/mm_stat"):
+        try:
+            f = open(d).read().split(); zu += int(f[0]); zc += int(f[1])
+        except (OSError, ValueError, IndexError):
+            pass
+    return tot, util, zu, zc
+
+
+def zram_actif():
+    try:
+        return any("zram" in l for l in open("/proc/swaps"))
+    except OSError:
+        return False
+
+
+def allegement_auto():
+    """Au premier démarrage d'un compte sur un PC de 3 Go ou moins : mode léger (sans effets) activé une fois.
+    L'utilisateur peut le rallumer dans Paramètres › Effets visuels ; on n'y revient plus ensuite."""
+    from . import config
+    c = config.charger()
+    if c.get("allegement_fait"): return False
+    tot = memoire()[0]
+    leger = 0 < tot < 3.2 * 1024 ** 3
+    kw = dict(allegement_fait=True)
+    if leger: kw.update(vieux_pc=True, animations=False, transparence=False)
+    config.modifier(_histo=False, **kw)
+    if leger:
+        detacher(["notify-send", "-a", "OS XIII", "-i", "preferences-system", "Mode léger activé",
+                  "Ce PC a %.1f Go de mémoire : les effets visuels sont coupés pour garder un bureau fluide. "
+                  "Paramètres › Effets visuels pour les rallumer." % (tot / 1024 ** 3)])
+    return leger

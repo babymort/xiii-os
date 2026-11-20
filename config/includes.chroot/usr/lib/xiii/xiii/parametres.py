@@ -444,6 +444,13 @@ class Parametres(Gtk.Application):
         txt = []
         for k, n in (("cpu", "Processeur"), ("ram", "Mémoire vive"), ("gpu", "Carte graphique"), ("arch", "Architecture")):
             c.append(reglage(None, n, None, droite=label(i[k], "attenue", xalign=1, selectable=True, ellipsize=True, largeur=60))); txt.append("%s : %s" % (n, i[k]))
+        tot, util, zu, zc = S.memoire()
+        if tot:
+            pb = Gtk.ProgressBar(fraction=min(1, util / tot), valign=Gtk.Align.CENTER, hexpand=True); pb.set_size_request(160, -1)
+            c.append(reglage(None, "Mémoire utilisée", "%s sur %s" % (S.humain(util), S.humain(tot)), droite=pb))
+            c.append(reglage(None, "Mémoire compressée (zram)",
+                             ("Active · %s rangés dans %s" % (S.humain(zu), S.humain(zc))) if zu else ("Active · inutilisée pour l'instant" if S.zram_actif() else "Inactive"),
+                             droite=None))
         c.append(groupe_titre("Caractéristiques du système"))
         for k, n in (("nom", "Système"), ("base", "Base"), ("noyau", "Noyau Linux"), ("uptime", "Allumé depuis")):
             c.append(reglage(None, n, None, droite=label(i[k], "attenue", xalign=1, selectable=True))); txt.append("%s : %s" % (n, i[k]))
@@ -1346,7 +1353,8 @@ class Parametres(Gtk.Application):
         def connecter():
             self.toast("Connexion à Tailscale…")
             def t():
-                S.admin(["tailscale", "set", "--operator=" + u])
+                # le service ne tourne pas tant qu'on ne s'en sert pas (vieux PC) : il est allumé et gardé au démarrage ici
+                S.admin(["sh", "-c", "systemctl enable --now tailscaled && sleep 2 && tailscale set --operator=" + shlex.quote(u)])
                 p = subprocess.run(["tailscale", "up", "--timeout=8s"], capture_output=True, text=True, timeout=20)
                 m = re.search(r"https://login\.tailscale\.com/\S+", p.stdout + p.stderr)
                 return m.group(0) if m else None
@@ -1772,6 +1780,11 @@ class Parametres(Gtk.Application):
     # ================================================================== ACCESSIBILITÉ
     def p_effets(self, c, cle):
         cfg = self.cfg
+        def leger(on):
+            self.regler(vieux_pc=on, animations=not on, transparence=not on)
+        c.append(reglage("feather" if os.path.exists(theme.LUCIDE + "/feather.svg") else "gauge", "Mode léger (vieux PC)",
+                         "Sans transparence ni animation, état du réseau et de la batterie relu moins souvent. Activé tout seul sur les PC de 3 Go ou moins.",
+                         droite=interrupteur(cfg.get("vieux_pc", False), leger)))
         c.append(reglage("sparkles", "Effets de transparence", "", droite=interrupteur(cfg["transparence"], lambda on: self.regler(transparence=on))))
         c.append(reglage("wand-sparkles", "Effets d'animation", "", droite=interrupteur(cfg["animations"], lambda on: self.regler(animations=on))))
         c.append(reglage("contrast", "Contraste renforcé", "Texte atténué et bordures plus marqués, texte en demi-gras — avec n'importe quel thème",

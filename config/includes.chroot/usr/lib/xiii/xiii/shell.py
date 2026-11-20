@@ -65,11 +65,15 @@ class Shell(Gtk.Application):
         self.zone = tray.Zone(self.maj_zone)
         self.mon = config.surveiller(self.cfg_change)
         self.services(premier=True)
+        if not S.DEMO:
+            S.allegement_auto()                                          # vieux PC : effets coupés une fois, au premier démarrage
+            from . import reseau
+            import threading; threading.Thread(target=reseau.surveiller, daemon=True).start()   # profils réseau (plus de processus à part)
         theme.appliquer_systeme(self.cfg) if not os.path.exists(os.path.join(config.DOSSIER, ".applique")) else None
         try: open(os.path.join(config.DOSSIER, ".applique"), "w").close()
         except OSError: pass
         GLib.timeout_add_seconds(1, self.tic)
-        GLib.timeout_add_seconds(6, self.maj_icones)
+        GLib.timeout_add_seconds(6, self.maj_icones_periodique)
         GLib.timeout_add_seconds(1800, self.maj_meteo)
         self.maj_icones(); self.maj_meteo(); self.maj_taches(); self.tic(); self.demarrer_timecode()
         if not self.cfg.get("visite_faite") and not os.path.isdir("/run/live/medium"):
@@ -496,6 +500,8 @@ class Shell(Gtk.Application):
         v = boite(True, 4, margin_top=8, margin_bottom=8, margin_start=8, margin_end=8); v.set_size_request(300, -1)
         cur = self.cfg.get("projet_actif", "")
         v.append(label("Projets", "section"))
+        if cur and projets.resume(cur):      # fiche remplie dans la Suite XIII (DOSSIER, CALL SHEETO…)
+            v.append(label(projets.resume(cur), "petit", "attenue", wrap=True, xalign=0))
         for p in projets.liste()[:12]:
             b = Gtk.Button(); b.add_css_class("ligne"); b.add_css_class("plat")
             bx = boite(False, 8); bx.append(ico("check" if p == cur else "folder", 16, "c" if p == cur else "d")); bx.append(label(p, "gras" if p == cur else "", hexpand=True, ellipsize=True)); b.set_child(bx)
@@ -518,6 +524,7 @@ class Shell(Gtk.Application):
             v.append(Gtk.Separator())
             v.append(bouton("Ouvrir le dossier du projet", "folder-open", "ligne", "plat", taille=16, rappel=lambda: (pop.popdown(), S.detacher(["thunar", os.path.join(projets.BASE, cur)]))))
             v.append(bouton("Widgets du projet", "layout-dashboard", "ligne", "plat", taille=16, rappel=lambda: (pop.popdown(), self.basculer("widgets"))))
+            v.append(bouton("Fiche du projet dans la Suite (DOSSIER)", "folder-kanban", "ligne", "plat", taille=16, rappel=lambda: (pop.popdown(), S.detacher(["xiii-suite", "dossier"]))))
         v.append(bouton("Gérer les projets", "settings", "ligne", "plat", taille=16, rappel=lambda: (pop.popdown(), self.parametres("projet"))))
         pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
 
@@ -561,13 +568,20 @@ class Shell(Gtk.Application):
 
     def maj_titre(self):
         f = self.fenetres.active() if self.fenetres and self.fenetres.ok else None
-        self.l_titre.set_text(f.titre if (f and self.cfg["haut_titre"]) else "")
+        t = f.titre if (f and self.cfg["haut_titre"]) else ""
+        if t != self.l_titre.get_text(): self.l_titre.set_text(t)
 
     def icones_bientot(self):
         if self._icones_src: GLib.source_remove(self._icones_src)
         def go():
             self._icones_src = 0; self.maj_icones(); return False
         self._icones_src = GLib.timeout_add(700, go)
+
+    def maj_icones_periodique(self):
+        # mode léger : réseau, son et batterie relus toutes les 18 s au lieu de 6 (moins de processeur sur un vieux PC)
+        self._n_ic = (getattr(self, "_n_ic", 0) + 1) % 3
+        if self.cfg.get("vieux_pc") and self._n_ic: return True
+        return self.maj_icones()
 
     def maj_icones(self):
         S.en_fond(lambda: (S.etat_reseau(), S.wifi_actif(), S.bt_present(), S.bt_actif(), S.bt_appareils() if S.bt_actif() else [],
@@ -578,6 +592,10 @@ class Shell(Gtk.Application):
         if isinstance(r, Exception): return
         et, wifi, btp, bt, btd, (vol, muet), bat = r
         style = self.cfg.get("indic_style", "icone")
+        # vieux PC : rien n'est redessiné si rien n'a changé depuis le dernier passage
+        cle = repr((r, style, self.cfg["haut_pourcentage"], self.cfg["ne_pas_deranger"], profils.courant(self.cfg)[0]))
+        if cle == getattr(self, "_icones_cle", None): return
+        self._icones_cle = cle
         def met(b, icone, texte=None, role="t", valeur=None):
             """valeur 0..1 (signal, volume, charge) : dessinée selon le style choisi (Paramètres › Barre du haut)."""
             bx = boite(False, 5, valign=Gtk.Align.CENTER)
@@ -610,7 +628,9 @@ class Shell(Gtk.Application):
     def tic(self):
         n = datetime.datetime.now()
         fmt = ("%H:%M" if self.cfg["horloge_24h"] else "%I:%M %p") + (":%S" if self.cfg["haut_secondes"] else "")
-        self.l_heure.set_text(n.strftime(fmt)); self.l_date.set_text("%d %s %d" % (n.day, MOIS[n.month - 1], n.year))
+        h = n.strftime(fmt)
+        if h != self.l_heure.get_text():
+            self.l_heure.set_text(h); self.l_date.set_text("%d %s %d" % (n.day, MOIS[n.month - 1], n.year))
         if self.fenetres: self.maj_titre()
         return True
 
@@ -931,7 +951,8 @@ class MenuDemarrer:
     def menu_app(self, b, a):
         cle = a.get_id(); c = self.shell.cfg
         em, eb = cle in c["menu_epingles"], cle in c["epingles"]
-        popover_menu(b, [("app-window", "Ouvrir", lambda: self.lancer(a)),
+        dd = [("gpu" if os.path.exists(theme.LUCIDE + "/gpu.svg") else "cpu", "Lancer avec la carte dédiée", lambda: (self.shell.fermer(), apps.lancer(a, dediee=True)))] if apps.deux_cartes() else []
+        popover_menu(b, [("app-window", "Ouvrir", lambda: self.lancer(a))] + dd + [
                          ("pin-off" if em else "pin", "Désépingler du menu" if em else "Épingler au menu", lambda: self.shell.epingler(cle, not em, "menu_epingles")),
                          ("pin-off" if eb else "panel-bottom", "Désépingler de la barre" if eb else "Épingler à la barre des tâches", lambda: self.shell.epingler(cle, not eb, "epingles")),
                          None, ("trash-2", "Désinstaller…", lambda: self.shell.parametres("apps"))])
@@ -1054,6 +1075,18 @@ class MenuDemarrer:
                 v = boite(True, 0); v.append(label(t, "gras")); v.append(label(chemin, "attenue", "petit")); bx.append(v); b.set_child(bx)
                 b.connect("clicked", lambda _b, c=cle: self.shell.parametres(c)); self.res.append(b)
                 if not self._premier: self._premier = lambda c=cle: self.shell.parametres(c)
+        # projets XIII (nom, ou lieu / client de la fiche remplie dans la Suite) : un clic l'active sur l'ordinateur et dans la Suite
+        from . import projets
+        pj = [p for p in projets.liste() if q in sans_accents(p + " " + projets.resume(p))] if mode in ("tout", "fichiers") else []
+        if pj:
+            self.res.append(label("Projets XIII", "section"))
+            for p in pj[:4]:
+                b = Gtk.Button(); b.add_css_class("ligne"); b.add_css_class("plat")
+                bx = boite(False, 12); bx.append(ico("check" if p == self.shell.cfg.get("projet_actif") else "folder-kanban", 22, "c"))
+                v = boite(True, 0); v.append(label(p, "gras")); v.append(label(projets.resume(p) or "Projet XIII · ~/XIII/" + p, "attenue", "petit", ellipsize=True, largeur=60)); bx.append(v)
+                b.set_child(bx); b.connect("clicked", lambda _b, p=p: (self.shell.fermer(), projets.activer(p), S.detacher(["xiii-fichiers", os.path.join(projets.BASE, p)])))
+                self.res.append(b)
+                if not self._premier: self._premier = lambda p=p: (self.shell.fermer(), projets.activer(p))
         fic = [f for f in apps.recents(30) if q in sans_accents(os.path.basename(f))] if mode in ("tout", "fichiers") else []
         if fic:
             self.res.append(label("Fichiers récents", "section"))

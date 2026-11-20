@@ -1,3 +1,7 @@
 #!/bin/sh
-# OS XIII — Plex : l'application web de Plex dans sa propre fenêtre (Chromium en mode application)
-exec chromium --app=https://app.plex.tv/desktop --class=fr.xiii.plex --user-data-dir="$HOME/.config/xiii-plex" "$@"
+# OS XIII — Plex : l'application web de Plex dans sa propre fenêtre (Chromium en mode application ; Firefox si Chromium n'est pas installé)
+if command -v chromium >/dev/null; then
+  exec chromium --app=https://app.plex.tv/desktop --class=fr.xiii.plex --user-data-dir="$HOME/.config/xiii-plex" "$@"
+fi
+mkdir -p "$HOME/.config/xiii-plex-ff"
+exec firefox-esr --kiosk --name fr.xiii.plex --profile "$HOME/.config/xiii-plex-ff" --no-remote https://app.plex.tv/desktop

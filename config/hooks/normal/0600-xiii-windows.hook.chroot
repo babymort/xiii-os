@@ -1,7 +1,12 @@
 #!/bin/sh
 # Phase 06 — logiciels Windows : Wine 64 + 32 bits, winetricks, extraction d'icônes
 set -e
-if [ "$(dpkg --print-architecture)" = amd64 ]; then
+ED=$(cat /etc/xiii/edition 2>/dev/null || echo complete)   # « leger » : ISO allégée, le reste s'installe à la demande
+if [ "$(dpkg --print-architecture)" = amd64 ] && [ "$ED" = leger ]; then
+  # édition légère : Wine 64 bits seulement (les vieux .exe 32 bits demandent « wine32 », installable ensuite)
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wine wine64 fonts-wine winetricks cabextract icoutils unzip p7zip-full
+elif [ "$(dpkg --print-architecture)" = amd64 ]; then
   dpkg --add-architecture i386
   apt-get update
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wine wine64 wine32:i386 libwine:i386 fonts-wine winetricks cabextract icoutils unzip p7zip-full
