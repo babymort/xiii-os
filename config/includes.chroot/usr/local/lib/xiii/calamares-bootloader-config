@@ -1,0 +1,38 @@
+#!/bin/bash
+# OS XIII — installe le chargeur de démarrage (GRUB) sur le système installé par Calamares.
+# Remplace l'aide de Debian, qui téléchargeait « grub-efi » (paquet absent de Debian 13) : tout est déjà sur la clé, rien n'est téléchargé.
+set -e
+CHROOT=$(mount | grep proc | grep calamares | awk '{print $3}' | sed -e "s#/proc##g" | head -1)
+[ -d "$CHROOT" ] || CHROOT=$(ls -d /tmp/calamares-root-* 2>/dev/null | head -1)
+[ -d "$CHROOT" ] || { echo "Système installé introuvable"; exit 1; }
+echo "Chargeur de démarrage OS XIII dans $CHROOT"
+for d in dev dev/pts proc sys run; do mountpoint -q "$CHROOT/$d" || mount --bind "/$d" "$CHROOT/$d"; done
+[ -d /sys/firmware/efi/efivars ] && { mountpoint -q "$CHROOT/sys/firmware/efi/efivars" || mount -t efivarfs efivarfs "$CHROOT/sys/firmware/efi/efivars" 2>/dev/null || true; }
+mkdir -p "$CHROOT/etc/default"
+cat > "$CHROOT/etc/default/grub" <<'G'
+# OS XIII
+GRUB_DEFAULT=0
+GRUB_TIMEOUT=3
+GRUB_TIMEOUT_STYLE=menu
+GRUB_DISTRIBUTOR="OS XIII"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"
+GRUB_CMDLINE_LINUX=""
+GRUB_DISABLE_OS_PROBER=false
+GRUB_GFXMODE=auto
+G
+ARCH=$(chroot "$CHROOT" dpkg --print-architecture)
+if [ -d /sys/firmware/efi ]; then
+  case "$ARCH" in amd64) T=x86_64-efi;; arm64) T=arm64-efi;; *) T=$ARCH-efi;; esac
+  ESP=/boot/efi; mountpoint -q "$CHROOT$ESP" || { [ -d "$CHROOT/efi" ] && ESP=/efi; }
+  echo "UEFI : grub-install --target=$T ($ESP)"
+  chroot "$CHROOT" grub-install --target=$T --efi-directory=$ESP --bootloader-id=OS-XIII --recheck
+  # copie de secours EFI/BOOT/BOOTX64.EFI : certains PC ignorent l'entrée enregistrée
+  chroot "$CHROOT" grub-install --target=$T --efi-directory=$ESP --removable --recheck || true
+else
+  RACINE=$(findmnt -no SOURCE "$CHROOT" | sed 's/\[.*//')
+  DISQUE=/dev/$(lsblk -no PKNAME "$RACINE" | head -1)
+  echo "BIOS : grub-install --target=i386-pc $DISQUE"
+  chroot "$CHROOT" grub-install --target=i386-pc --recheck "$DISQUE"
+fi
+chroot "$CHROOT" update-grub
+echo "Chargeur de démarrage installé"

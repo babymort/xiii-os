@@ -1,7 +1,13 @@
 #!/bin/sh
 # Installateur Calamares aux couleurs XIII
 set -e
+# xiii-maj: relancer
 sed -i 's/^branding:.*/branding: xiii/' /etc/calamares/settings.conf
+# chargeur de démarrage : l'aide de Debian téléchargeait « grub-efi » (absent de Debian 13) → échec ; remplacée par celle d'OS XIII (hors ligne)
+H=/usr/share/calamares/helpers/calamares-bootloader-config
+[ -f "$H" ] && [ ! -f "$H.debian" ] && cp "$H" "$H.debian"
+install -m 0755 /usr/local/lib/xiii/calamares-bootloader-config "$H"
+grep -rl "calamares-bootloader-config" /etc/calamares/modules 2>/dev/null | sed 's/^/aide utilisée par : /' || true
 rm -f /etc/xdg/autostart/calamares-desktop-icon.desktop
 [ -f /usr/share/applications/calamares-install-debian.desktop ] && sed -i 's/^\[Desktop Entry\]/[Desktop Entry]\nNoDisplay=true/' /usr/share/applications/calamares-install-debian.desktop
 # l'installation retire aussi l'entrée live et l'accueil live

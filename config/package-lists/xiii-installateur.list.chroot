@@ -2,6 +2,17 @@
 calamares
 calamares-settings-debian
 qt6-wayland
+# chargeur de démarrage installé sans Internet par l'installateur (UEFI et BIOS), autres systèmes détectés (double démarrage Windows)
+grub2-common
+grub-common
+efibootmgr
+os-prober
+#if ARCHITECTURES amd64
+grub-efi-amd64-bin
+grub-efi-amd64-signed
+shim-signed
+grub-pc-bin
+#endif
 #if ARCHITECTURES arm64
 grub-efi-arm64
 grub-efi-arm64-bin
