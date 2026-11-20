@@ -42,7 +42,7 @@ for t in sombre clair sobre sobrec w2k xp mac9 cyber term gb regie soleil rainbo
   xiii-ctl demarrer; sleep 1.5; grim -s 0.5 /out/theme-$t-menu.png; xiii-ctl fermer; sleep 0.4
 done
 python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, theme='sombre')"
-xiii-ctl demarrer-categorie; sleep 1.5; grim /out/menu-categorie.png; xiii-ctl fermer; sleep 0.4
+sleep 3; xiii-ctl demarrer-categorie; sleep 2; grim /out/menu-categorie.png; xiii-ctl fermer; sleep 0.4
 grim /out/bureau-fond.png
 echo "== Bureau" >> $R
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  xiii-shell" >> $R; grep -A8 Traceback /out/shell.log | tail -12 >> $R; } || echo "OK        xiii-shell (aucune erreur Python)" >> $R
