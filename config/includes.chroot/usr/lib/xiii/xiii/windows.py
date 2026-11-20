@@ -123,11 +123,33 @@ class AppWindows(Gtk.Application):
         self.w = Gtk.ApplicationWindow(application=self, title="Applications Windows", default_width=720, default_height=600)
         self.w.add_css_class("parametres")
         self.pile = Gtk.Stack(transition_type=Gtk.StackTransitionType.SLIDE_LEFT_RIGHT); self.w.set_child(self.pile)
-        if not self.fichier:
+        if not shutil.which("wine"):
+            self.page_sans_wine()          # édition légère : la prise en charge Windows s'installe au premier .exe
+        elif not self.fichier:
             self.page_accueil()
         else:
             self.page_preparer(self.fichier)
         self.w.present()
+
+    def page_sans_wine(self):
+        v = self.cadre("sans-wine")
+        v.append(label("Applications Windows", "page-titre"))
+        v.append(label("Pour ouvrir les logiciels Windows (.exe, .msi), OS XIII installe d'abord Wine, une seule fois (environ 700 Mo à télécharger). "
+                       "Un mot de passe administrateur est demandé.", "attenue", wrap=True))
+        etat = label("", "attenue", wrap=True)
+        def go(b):
+            b.set_sensitive(False); etat.set_text("Installation en cours… (quelques minutes)")
+            amd = os.uname().machine == "x86_64"
+            cmd = ("dpkg --add-architecture i386; " if amd else "") + "apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wine fonts-wine winetricks cabextract icoutils unzip p7zip-full" + (" wine64 wine32:i386 libwine:i386" if amd else " box64")
+            def fini(r):
+                if r == 0:
+                    if self.fichier: self.page_preparer(self.fichier); self.pile.set_visible_child_name("preparer")
+                    else: self.page_accueil(); self.pile.set_visible_child_name("accueil")
+                else:
+                    etat.set_text("Installation annulée ou impossible (connexion Internet ?)"); b.set_sensitive(True)
+            S.en_fond(lambda: subprocess.run(["pkexec", "sh", "-c", cmd]).returncode, fini)
+        b = bouton("Installer la prise en charge Windows", "download", "pilule", rappel=None); b.connect("clicked", go)
+        v.append(b); v.append(etat)
 
     def cadre(self, nom):
         v = boite(True, 12, margin_top=24, margin_bottom=20, margin_start=30, margin_end=30)

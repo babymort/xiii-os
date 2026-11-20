@@ -46,9 +46,13 @@ jobs:
         run: |
           ls -l binary/live/filesystem.squashfs || true
           echo "== 60 paquets les plus lourds (Mo installés)"
-          chroot chroot dpkg-query -W -f='${Installed-Size}\t${Package}\n' | sort -rn | head -60 | awk '{printf "%7.1f  %s\n", $1/1024, $2}'
+          set +o pipefail
+          chroot chroot dpkg-query -W -f='${Installed-Size}\t${Package}\n' | sort -rn | awk 'NR<=60{printf "%7.1f  %s\n", $1/1024, $2}'
           echo "== dossiers"
-          du -xsm chroot/usr/lib/* chroot/usr/share/* chroot/opt/* chroot/var/lib/* chroot/usr/local/* 2>/dev/null | sort -rn | head -40
+          du -xsm chroot/usr/lib/* chroot/usr/share/* chroot/opt/* chroot/var/lib/* chroot/usr/local/* chroot/root chroot/home 2>/dev/null | sort -rn | awk 'NR<=45'
+          echo "== /usr/lib/xiii, /usr/share/xiii, /opt"
+          du -xsm chroot/usr/share/xiii/* chroot/opt/* chroot/usr/local/lib/* 2>/dev/null | sort -rn | awk 'NR<=25'
+          true
       - name: Nommage
         shell: bash
         run: |

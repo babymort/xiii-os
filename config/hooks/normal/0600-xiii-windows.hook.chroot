@@ -3,9 +3,9 @@
 set -e
 ED=$(cat /etc/xiii/edition 2>/dev/null || echo complete)   # « leger » : ISO allégée, le reste s'installe à la demande
 if [ "$(dpkg --print-architecture)" = amd64 ] && [ "$ED" = leger ]; then
-  # édition légère : Wine 64 bits seulement (les vieux .exe 32 bits demandent « wine32 », installable ensuite)
+  # édition légère : Wine (≈ 700 Mo) s'installe en un clic au premier .exe ouvert (Applications Windows)
   apt-get update
-  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wine wine64 fonts-wine winetricks cabextract icoutils unzip p7zip-full
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends cabextract icoutils unzip p7zip-full
 elif [ "$(dpkg --print-architecture)" = amd64 ]; then
   dpkg --add-architecture i386
   apt-get update

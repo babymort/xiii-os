@@ -1151,7 +1151,7 @@ class Parametres(Gtk.Application):
         if vd: h.append(bouton("Ouvrir Claude", None, "pilule", rappel=lambda: CL.ouvrir()))
         else:
             def installer():
-                S.en_fond(lambda: subprocess.run(["pkexec", "sh", "-c", "apt-get update && apt-get install -y claude-desktop claude-code"]).returncode,
+                S.en_fond(lambda: subprocess.run(["pkexec", "sh", "-c", "apt-get update && apt-get install -y --no-install-recommends claude-desktop claude-code " + ("qemu-system-x86 ovmf virtiofsd" if os.uname().machine == "x86_64" else "")]).returncode,
                           lambda r: (self.toast("Claude installé" if r == 0 else "Installation impossible (connexion Internet ?)"), self.aller("claude", False)))
                 self.toast("Installation de Claude…")
             h.append(bouton("Installer", None, "pilule", rappel=installer))

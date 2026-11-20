@@ -2,12 +2,13 @@
 # xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
 # Phase 10 — Réseau XIII : service XIII Duo, Plexo (téléchargements sur plusieurs connexions)
 set -e
+ED=$(cat /etc/xiii/edition 2>/dev/null || echo complete)   # « leger » : ISO allégée, le reste s'installe à la demande
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends iputils-ping iproute2 curl ca-certificates python3
 chmod 0755 /usr/local/bin/xiii-duo
 systemctl enable xiii-duo.service
 
 # --- Plexo (github.com/anmolkapil/plexo) : dernière version Linux publiée (.deb, sinon AppImage)
-python3 - <<'PY' || echo "Plexo : non installé (sera proposé dans Paramètres)"
+[ "$ED" = leger ] && echo "Édition légère : Plexo proposé dans Paramètres › XIII Duo" || python3 - <<'PY' || echo "Plexo : non installé (sera proposé dans Paramètres)"
 import json, urllib.request, subprocess, os, re
 AR = r"amd64|x86_64|x64" if subprocess.run(["dpkg", "--print-architecture"], capture_output=True, text=True).stdout.strip() == "amd64" else r"arm64|aarch64"
 req = urllib.request.Request("https://api.github.com/repos/anmolkapil/plexo/releases", headers={"User-Agent": "OS-XIII", "Accept": "application/vnd.github+json"})

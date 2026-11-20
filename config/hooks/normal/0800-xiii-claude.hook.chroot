@@ -2,6 +2,7 @@
 # Phase 08 — Claude Desktop (Chat, Cowork, Code) et Claude Code, depuis les dépôts officiels d'Anthropic
 # Les mises à jour arrivent ensuite avec celles du système (Paramètres › Mises à jour).
 set -e
+ED=$(cat /etc/xiii/edition 2>/dev/null || echo complete)   # « leger » : ISO allégée, le reste s'installe à la demande
 EMPREINTE=31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl gnupg ca-certificates
 
@@ -18,8 +19,9 @@ echo "deb [signed-by=/etc/apt/keyrings/claude-code.asc] https://downloads.claude
 
 apt-get update
 # Cowork : machine virtuelle QEMU/KVM ; connexion mémorisée : trousseau GNOME ; icône de zone de notification
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends claude-desktop claude-code \
-  qemu-system-x86 ovmf virtiofsd bubblewrap socat openssh-client \
+# édition légère : dépôts prêts, Claude Desktop + Code (≈ 900 Mo) installés en un clic depuis Paramètres › Claude
+CLAUDE="claude-desktop claude-code qemu-system-x86 ovmf virtiofsd"; [ "$ED" = leger ] && CLAUDE=""
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $CLAUDE bubblewrap socat openssh-client \
   gnome-keyring libpam-gnome-keyring libsecret-tools libayatana-appindicator3-1 xdg-desktop-portal-gtk
 apt-get clean
 
