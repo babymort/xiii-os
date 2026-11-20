@@ -16,8 +16,6 @@ firmware-iwlwifi
 firmware-realtek
 firmware-atheros
 firmware-brcm80211
-intel-microcode
-amd64-microcode
 # Réseau
 network-manager
 wpasupplicant
@@ -26,3 +24,7 @@ nano
 curl
 ca-certificates
 htop
+#if ARCHITECTURES amd64
+amd64-microcode
+intel-microcode
+#endif

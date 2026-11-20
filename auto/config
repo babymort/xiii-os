@@ -1,9 +1,13 @@
 #!/bin/sh
 # OS XIII — configuration live-build (phase 01 : socle bootable)
 set -e
+# architecture : amd64 (PC) par défaut, arm64 (PC ARM, Raspberry Pi) avec XIII_ARCH=arm64
+ARCH="${XIII_ARCH:-amd64}"
+EXTRA=""
+[ "$ARCH" = arm64 ] && EXTRA="--bootloaders grub-efi --linux-flavours arm64"
 lb config noauto \
   --distribution trixie \
-  --architectures amd64 \
+  --architectures "$ARCH" $EXTRA \
   --archive-areas "main contrib non-free non-free-firmware" \
   --mirror-bootstrap "http://deb.debian.org/debian/" \
   --mirror-binary "http://deb.debian.org/debian/" \

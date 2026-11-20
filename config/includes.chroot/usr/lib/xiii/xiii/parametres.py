@@ -1803,7 +1803,48 @@ class Parametres(Gtk.Application):
         v.append(label(i["nom"] + " · " + i["base"], "attenue")); h.append(v)
         self.b_maj = bouton("Rechercher des mises à jour", None, "pilule", rappel=lambda: self.verifier_maj(zone)); h.append(self.b_maj); c.append(h)
         zone = boite(True, 3); c.append(zone)
-        c.append(info("Les mises à jour d'OS XIII et de ses applications passent par les dépôts Debian et le dépôt XIII. Un mot de passe administrateur est demandé."))
+        c.append(info("Paquets Debian (système, pilotes, applications). Un mot de passe administrateur est demandé."))
+        self.bloc_maj_xiii(c)
+
+    def bloc_maj_xiii(self, c):
+        """Mise à jour d'OS XIII lui-même, depuis GitHub, sans perte de données."""
+        from . import maj
+        v = maj.version()
+        c.append(groupe_titre("OS XIII"))
+        c.append(reglage("tag", "Version installée", "%s · canal %s" % (v.get("version", "?"), "Stable" if v.get("branche") == "main" else "Beta")))
+        canal = {"v": "stable" if v.get("branche") == "main" else "beta"}
+        c.append(reglage("git-branch", "Canal de mise à jour", "Stable : versions publiées · Beta : nouveautés en avant-première",
+                         droite=deroulant([("stable", "Stable"), ("beta", "Beta")], canal["v"], lambda x: canal.__setitem__("v", x))))
+        c.append(reglage("bell", "Vérifier automatiquement", "Une fois par jour, notification quand une nouvelle version est disponible",
+                         droite=interrupteur(self.cfg.get("maj_auto", True), lambda on: self.regler(maj_auto=on))))
+        zone = boite(True, 6); c.append(zone)
+        def verifier():
+            vider(zone); zone.append(label("Recherche sur GitHub…", "attenue"))
+            def fin(r):
+                vider(zone)
+                if isinstance(r, Exception): zone.append(label("Vérification impossible : %s" % r, "attenue", wrap=True)); return
+                if not r["dispo"]: zone.append(reglage("check", "OS XIII est à jour", "Dernière version du canal : %s (%s)" % (r["distant"], r["date"]))); return
+                zone.append(reglage("sparkles", "Nouvelle version disponible : %s" % r["distant"], "%d nouveauté(s) depuis votre version" % len(r["nouveautes"]),
+                                    droite=bouton("Mettre à jour OS XIII", None, "pilule", rappel=lambda: appliquer(r))))
+                for d, m in r["nouveautes"][:25]: zone.append(label("• %s — %s" % (d, m), "petit", wrap=True))
+            S.en_fond(lambda: maj.verifier(canal["v"]), fin)
+        def appliquer(r):
+            vider(zone)
+            zone.append(info("Un instantané du système est créé d'abord (Timeshift) : en cas de souci, revenez en arrière depuis Paramètres › Sauvegardes. "
+                             "Vos fichiers, projets, jeux et réglages ne sont pas touchés."))
+            pb = Gtk.ProgressBar(pulse_step=.04); zone.append(pb); journal = label("", "petit", "attenue", wrap=True); zone.append(journal)
+            src = GLib.timeout_add(120, lambda: (pb.pulse(), True)[1])
+            p_ = subprocess.Popen(["pkexec", "xiii-maj-systeme", "appliquer", r["canal"], r["distant"]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            def lire(src_, cond):
+                l = p_.stdout.readline()
+                if l: journal.set_text(l.strip()[20:] or l.strip()); return True
+                GLib.source_remove(src); pb.set_fraction(1)
+                ok = p_.wait() == 0
+                journal.set_text("OS XIII est à jour ✓ — redémarrez la session pour tout profiter" if ok else "Mise à jour interrompue (voir /var/log/xiii-maj.log)")
+                if ok: zone.append(bouton("Redémarrer la session", None, "pilule", rappel=lambda: S.detacher(["labwc", "--exit"])))
+                return False
+            GLib.io_add_watch(p_.stdout, GLib.IO_IN | GLib.IO_HUP, lire)
+        c.append(bouton("Rechercher une nouvelle version d'OS XIII", "refresh-cw", "fantome", rappel=verifier))
 
     def verifier_maj(self, zone):
         self.b_maj.set_sensitive(False); self.b_maj.set_label("Recherche…"); vider(zone)

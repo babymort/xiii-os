@@ -1,0 +1,53 @@
+name: Build ARM OS XIII (PC ARM + Raspberry Pi)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1"
+
+jobs:
+  arm64:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 150
+    container:
+      image: debian:trixie
+      options: --privileged
+    steps:
+      - name: Outils de build
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends live-build git ca-certificates xorriso parted dosfstools e2fsprogs rsync xz-utils python3 fdisk mount
+      - uses: actions/checkout@v5
+      - name: Version d'OS XIII
+        shell: bash
+        run: |
+          mkdir -p config/includes.chroot/usr/share/xiii config/includes.chroot/var/lib/xiii
+          printf '{"version": "%s", "branche": "%s", "commit": "%s", "date": "%s", "architecture": "arm64"}\n' "$(date +%Y%m%d)-${GITHUB_REF_NAME}-${GITHUB_SHA::7}" "${GITHUB_REF_NAME}" "${GITHUB_SHA::7}" "$(date +%F)" > config/includes.chroot/usr/share/xiii/VERSION.json
+          python3 -c "import hashlib,json,glob,os; print(json.dumps({'scripts': {os.path.basename(f): hashlib.sha256(open(f,'rb').read()).hexdigest() for f in glob.glob('config/hooks/normal/*.hook.chroot') if b'xiii-maj: relancer' in open(f,'rb').read()}}))" > config/includes.chroot/var/lib/xiii/maj.json
+      - name: Configuration (arm64)
+        run: XIII_ARCH=arm64 lb config
+      - name: Construction de l'ISO ARM
+        run: lb build
+      - name: Image Raspberry Pi
+        run: |
+          V=$(date +%Y%m%d)-${GITHUB_REF_NAME}-$(echo $GITHUB_SHA | cut -c1-7)
+          sh tools/image-raspi.sh chroot "OS-XIII-$V-raspberry-pi.img"
+          xz -T0 -6 "OS-XIII-$V-raspberry-pi.img"
+          mv *.iso "OS-XIII-$V-arm64.iso"
+          sha256sum OS-XIII-* > SHA256SUMS-arm64
+          ls -lh OS-XIII-*
+      - uses: actions/upload-artifact@v5
+        with:
+          name: OS-XIII-arm64-${{ github.ref_name }}
+          path: |
+            OS-XIII-*-arm64.iso
+            SHA256SUMS-arm64
+          retention-days: 14
+      - uses: actions/upload-artifact@v5
+        with:
+          name: OS-XIII-raspberry-pi-${{ github.ref_name }}
+          path: OS-XIII-*-raspberry-pi.img.xz
+          compression-level: 0
+          retention-days: 14

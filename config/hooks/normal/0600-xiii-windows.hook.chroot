@@ -1,7 +1,14 @@
 #!/bin/sh
 # Phase 06 — logiciels Windows : Wine 64 + 32 bits, winetricks, extraction d'icônes
 set -e
-dpkg --add-architecture i386
-apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wine wine64 wine32:i386 libwine:i386 fonts-wine winetricks cabextract icoutils unzip p7zip-full
+if [ "$(dpkg --print-architecture)" = amd64 ]; then
+  dpkg --add-architecture i386
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wine wine64 wine32:i386 libwine:i386 fonts-wine winetricks cabextract icoutils unzip p7zip-full
+else
+  # ARM : Wine ARM (applications Windows ARM) + émulation x86 (FEX si disponible, sinon Box64) pour les .exe classiques
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wine fonts-wine winetricks cabextract icoutils unzip p7zip-full || true
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends fex-emu || DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends box64 || echo "émulation x86 indisponible"
+fi
 apt-get clean

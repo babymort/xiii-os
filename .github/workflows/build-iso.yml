@@ -18,6 +18,14 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends live-build git ca-certificates xorriso
       - uses: actions/checkout@v5
+      - name: Version d'OS XIII
+        shell: bash
+        run: |
+          mkdir -p config/includes.chroot/usr/share/xiii
+          printf '{"version": "%s", "branche": "%s", "commit": "%s", "date": "%s"}\n' "$(date +%Y%m%d)-${GITHUB_REF_NAME}-${GITHUB_SHA::7}" "${GITHUB_REF_NAME}" "${GITHUB_SHA::7}" "$(date +%F)" > config/includes.chroot/usr/share/xiii/VERSION.json
+          cat config/includes.chroot/usr/share/xiii/VERSION.json
+          mkdir -p config/includes.chroot/var/lib/xiii
+          python3 -c "import hashlib,json,glob,os; print(json.dumps({'scripts': {os.path.basename(f): hashlib.sha256(open(f,'rb').read()).hexdigest() for f in glob.glob('config/hooks/normal/*.hook.chroot') if b'xiii-maj: relancer' in open(f,'rb').read()}}))" > config/includes.chroot/var/lib/xiii/maj.json || true
       - name: Configuration
         run: lb config
       - name: Construction de l'ISO

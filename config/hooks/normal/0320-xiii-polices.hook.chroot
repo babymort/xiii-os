@@ -1,4 +1,5 @@
 #!/bin/sh
+# xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
 # Design XIII — polices des thèmes de la suite (licence SIL OFL) : Cyberpunk (Rajdhani, Orbitron, Share Tech Mono),
 # Game Boy (Press Start 2P, Pixelify Sans), Pellicule (Courier Prime). Tahoma (Win 2000 / XP) vient des polices de Wine.
 set -e

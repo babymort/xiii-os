@@ -10,7 +10,7 @@ from gi.repository import Gtk, Gdk, GLib, Gio, WebKit
 
 JEUX = os.path.expanduser("~/Jeux")
 BIOS = os.path.join(JEUX, "bios")
-CORES = "/usr/lib/x86_64-linux-gnu/libretro"
+CORES = (glob.glob("/usr/lib/*-linux-gnu/libretro") or ["/usr/lib/x86_64-linux-gnu/libretro"])[0]
 HTML = "/usr/share/xiii/console/index.html"
 
 def ra(core):     # RetroArch + cœur libretro, plein écran

@@ -1,4 +1,5 @@
 #!/bin/sh
+# xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
 # Saison 2 — S2c : Fichiers XIII, Lecteurs réseau (rclone), Transferts XIII, Scanner IP XIII (chaque paquet facultatif)
 for p in rclone fuse3 smbclient cifs-utils nfs-common avahi-utils ieee-data croc magic-wormhole remmina remmina-plugin-rdp remmina-plugin-vnc zip qrencode gvfs-backends; do
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$p" || echo "absent : $p"

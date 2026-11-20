@@ -2,3 +2,7 @@
 calamares
 calamares-settings-debian
 qt6-wayland
+#if ARCHITECTURES arm64
+grub-efi-arm64
+grub-efi-arm64-bin
+#endif

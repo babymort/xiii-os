@@ -43,7 +43,7 @@ jobs:
           export WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 HOME=/root XIII_DEMO=1 LANG=C.UTF-8
           export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 LIBGL_ALWAYS_SOFTWARE=1
           chmod +x tests/scenario.sh
-          timeout 600 dbus-run-session -- labwc -s tests/scenario.sh > /out/labwc.log 2>&1 || true
+          timeout 1200 dbus-run-session -- labwc -s tests/scenario.sh > /out/labwc.log 2>&1 || true
           ls -la /out
       - name: Publier les captures (branche apercu)
         if: always()

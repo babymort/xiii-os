@@ -143,6 +143,8 @@ xiii-logiciels >> /out/p12.log 2>&1 & sleep 6; grim /out/p12-logiciels.png; pkil
 xiii-qrwifi >> /out/p12.log 2>&1 & sleep 3; grim /out/p12-qrwifi.png; pkill -f xiii.qrwifi; sleep 0.5
 xiii-debit >> /out/p12.log 2>&1 & sleep 3; grim /out/p12-debit.png; pkill -f xiii.debit; sleep 0.5
 xiii-parametres --page tailscale >> /out/param.log 2>&1 & sleep 4; grim /out/p12-tailscale.png; pkill -f xiii.parametres; sleep 0.5
+# Phase 13 — mises à jour
+xiii-parametres --page maj >> /out/param.log 2>&1 & sleep 4; grim /out/p13-maj.png; pkill -f xiii.parametres; sleep 0.5
 cp /usr/share/plymouth/themes/xiii-ascii-matrix/f-040.png /out/s2-ascii-matrix.png 2>/dev/null
 cp /root/.config/xiii/reglages.json /out/ 2>/dev/null
 labwc --exit

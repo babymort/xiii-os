@@ -12,7 +12,6 @@ mesa-utils
 mesa-vulkan-drivers
 libgl1-mesa-dri
 vulkan-tools
-intel-media-va-driver
 mesa-va-drivers
 vainfo
 nvidia-detect
@@ -59,3 +58,6 @@ swayidle
 swaylock
 fprintd
 libpam-fprintd
+#if ARCHITECTURES amd64
+intel-media-va-driver
+#endif

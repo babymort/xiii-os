@@ -54,6 +54,7 @@ class Shell(Gtk.Application):
         self.fenetres = Gestionnaire(self.maj_taches)
         self.ecouter_progres()
         if not S.DEMO: S.detacher(["xiii-lecteurs", "--monter-tout"])      # NAS et clouds reconnectés
+        GLib.timeout_add_seconds(900, lambda: (self.verifier_maj_xiii(), False)[1]); GLib.timeout_add_seconds(86400, self.verifier_maj_xiii)
         if self.cfg.get("decklink_pont") and not S.DEMO:      # pont DeckLink → caméra virtuelle
             try:
                 from . import acquisition as A
@@ -519,6 +520,18 @@ class Shell(Gtk.Application):
             v.append(bouton("Widgets du projet", "layout-dashboard", "ligne", "plat", taille=16, rappel=lambda: (pop.popdown(), self.basculer("widgets"))))
         v.append(bouton("Gérer les projets", "settings", "ligne", "plat", taille=16, rappel=lambda: (pop.popdown(), self.parametres("projet"))))
         pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
+
+    def verifier_maj_xiii(self):
+        """Une fois par jour : nouvelle version d'OS XIII sur GitHub ? (notification, une seule fois par version)"""
+        if not self.cfg.get("maj_auto", True) or S.DEMO: return True
+        from . import maj
+        def fin(r):
+            if isinstance(r, dict) and r.get("dispo") and r.get("distant") != self.cfg.get("maj_vue"):
+                config.modifier(_histo=False, maj_vue=r["distant"])
+                S.detacher(["notify-send", "-a", "OS XIII", "-i", "software-update-available", "Nouvelle version d'OS XIII",
+                            "%d nouveauté(s) — Paramètres › Mises à jour" % len(r.get("nouveautes", []))])
+        S.en_fond(maj.verifier, fin)
+        return True
 
     def maj_bouton_ia(self):
         from .ia_base import pastille, PAR_CLE
