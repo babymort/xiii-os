@@ -12,7 +12,7 @@ for p in $CANDIDATS; do
   if [ "$n" = 1 ]; then
     DEBIAN_FRONTEND=noninteractive apt-get purge -y -qq "$p" >/dev/null && echo "ménage : $p retiré"
   else
-    echo "ménage : $p gardé ($n paquets en dépendent)"
+    echo "ménage : $p gardé ($n paquets en dépendent : $(apt-get -s purge "$p" 2>/dev/null | awk '/^Purg /{print $2}' | grep -vx "$p" | head -6 | tr '\n' ' '))"
   fi
 done
 DEBIAN_FRONTEND=noninteractive apt-get autoremove -y --purge -qq >/dev/null || true

@@ -6,6 +6,7 @@ wlr-randr --output HEADLESS-1 --custom-mode 1600x900 >/dev/null 2>&1
 mkdir -p /root/.config /root/Bureau /root/XIII/Concert-Dome/03_Documents; echo "XDG_DESKTOP_DIR=\"\$HOME/Bureau\"" > /root/.config/user-dirs.dirs
 touch /root/Bureau/Notes.txt
 R=/out/zz.txt; : > $R
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(_histo=False, visite_faite=True)'
 xiii-shell > /out/shell.log 2>&1 &
 sleep 6
 verifier() {  # nom, motif du processus, journal
@@ -19,7 +20,7 @@ for a in acquisition bilan blackmagic console debit demarrage fichiers ia lecteu
   command -v xiii-$a >/dev/null || { echo "ABSENTE   xiii-$a" >> $R; continue; }
   xiii-$a > /out/app-$a.log 2>&1 &
   sleep 5; grim -s 0.5 /out/app-$a.png
-  m="xiii.$(echo $a | tr - _)"; [ $a = bilan ] && m=xiii-bilan; [ $a = phonebox ] && m=phonebox
+  m="xiii.$(echo $a | tr - _)"; [ $a = bilan ] && m=xiii-bilan; [ $a = timecode ] && m=xiii.ltc; [ $a = acquisition ] && continue; [ $a = phonebox ] && m=phonebox
   verifier "xiii-$a" "$m" /out/app-$a.log
   pkill -f "$m"; pkill -f WebKitWebProcess; sleep 0.6
 done

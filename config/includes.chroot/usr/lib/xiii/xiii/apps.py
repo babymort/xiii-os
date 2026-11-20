@@ -28,7 +28,7 @@ CACHES = {"lxpolkit.desktop", "blueman-adapters.desktop", "nm-applet.desktop", "
           "system-config-printer.desktop", "org.gnome.DejaDup.desktop", "timeshift-gtk.desktop", "gnome-disk-image-mounter.desktop",
           "gnome-disk-image-writer.desktop", "imv-dir.desktop", "qv4l2.desktop", "qvidcap.desktop", "nano.desktop", "lstopo.desktop",
           "org.freedesktop.IBus.Panel.Emojier.desktop", "org.freedesktop.IBus.Panel.Extension.Gtk3.desktop", "yelp.desktop", "cups.desktop",
-          "io.github.ilya_zlobintsev.LACT.desktop"}
+          "io.github.ilya_zlobintsev.LACT.desktop", "foot.desktop", "org.xfce.mousepad-settings.desktop"}
 
 IA = {"com.anthropic.Claude.desktop", "xiii-claude-code.desktop"}
 
