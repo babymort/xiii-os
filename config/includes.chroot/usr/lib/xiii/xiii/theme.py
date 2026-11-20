@@ -329,7 +329,7 @@ button.dispo-zone {{ background: alpha({p['accent']},0.22); border: 1px solid al
 button.dispo-zone:hover {{ background: {p['accent']}; }}
 .icone-bureau {{ border-radius: {p['rayon_petit']}; padding: 6px 2px; }}
 .icone-bureau:hover {{ background: rgba(255,255,255,0.10); }}
-.icone-bureau label {{ color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }}
+.icone-bureau label {{ color: {'#1d1b19' if p['clair'] else '#ffffff'}; text-shadow: 0 1px 3px {'rgba(255,255,255,0.95)' if p['clair'] else 'rgba(0,0,0,0.9)'}; }}
 button.emoji {{ font-size: 22px; padding: 2px; min-width: 36px; min-height: 36px; }}
 """
 

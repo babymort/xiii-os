@@ -32,9 +32,9 @@ DEFAUTS = {
     "barre_recherche": True,
     "barre_meteo": True,
     "barre_badge": True,
-    "epingles": ["xiii-parametres.desktop", "com.anthropic.Claude.desktop", "firefox-esr.desktop", "thunar.desktop",
+    "epingles": ["xiii-parametres.desktop", "com.anthropic.Claude.desktop", "firefox-esr.desktop", "xiii-fichiers.desktop",
                  "org.xfce.mousepad.desktop", "mpv.desktop", "xiii-bilan.desktop"],
-    "menu_epingles": ["xiii-parametres.desktop", "com.anthropic.Claude.desktop", "xiii-claude-code.desktop", "xiii-suite-accueil.desktop", "xiii-tally.desktop", "firefox-esr.desktop", "thunar.desktop", "org.xfce.mousepad.desktop",
+    "menu_epingles": ["xiii-parametres.desktop", "com.anthropic.Claude.desktop", "xiii-claude-code.desktop", "xiii-suite-accueil.desktop", "xiii-tally.desktop", "firefox-esr.desktop", "xiii-fichiers.desktop", "org.xfce.mousepad.desktop",
                       "mpv.desktop", "steam.desktop", "xiii-bilan.desktop", "xiii-pilotes.desktop", "xiii-demarrage.desktop",
                       "org.gnome.DiskUtility.desktop", "pavucontrol.desktop", "xiii-webcam.desktop"],
     "menu_recommandes": True,
@@ -86,6 +86,9 @@ def charger():
             c.update({k: v for k, v in d.items() if k in DEFAUTS or k.startswith("x_")})
     except Exception:
         pass
+    for k in ("epingles", "menu_epingles"):      # Thunar remplacé par Fichiers XIII (doublon retiré en saison 2)
+        if isinstance(c.get(k), list) and "thunar.desktop" in c[k]:
+            c[k] = list(dict.fromkeys("xiii-fichiers.desktop" if x == "thunar.desktop" else x for x in c[k]))
     return c
 
 def enregistrer(c):

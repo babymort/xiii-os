@@ -11,7 +11,7 @@ for f in $(find "$B/boot/grub" -maxdepth 2 -name '*.cfg' 2>/dev/null); do
   sed -i -e 's/Live system (\([a-z0-9]*\) fail-safe mode)/OS XIII — démarrage sans échec/' \
          -e 's/Live system (\([a-z0-9]*\))/Démarrer OS XIII/' \
          -e 's/Graphical Debian Installer/Installateur Debian (graphique)/' \
-         -e 's/"Utilities\.\.\."/"Outils…"/' \
+         -e "s/['\"]Utilities\.\.\.['\"]/'Outils…'/" \
          -e 's/^\(\s*\)set timeout=.*/\1set timeout=5/' "$f"
 done
 G="$B/boot/grub/grub.cfg"
@@ -45,10 +45,10 @@ title-text: ""
 }
 + progress_bar {
   id = "__timeout__"
-  left = 30%
-  top = 50%
-  width = 40%
-  height = 3
+  left = 35%
+  top = 86%
+  width = 30%
+  height = 6
   fg_color = "#f0b378"
   bg_color = "#35302b"
   border_color = "#35302b"
@@ -69,7 +69,7 @@ if [ -d "$I" ]; then
            -e 's/menu color title\s.*/menu color title 1;36;44 #fff0b378 #00000000 none/' \
            -e 's/menu color sel\s.*/menu color sel 7;37;40 #ff141210 #fff0b378 none/' \
            -e 's/menu color unsel\s.*/menu color unsel 37;44 #ffc9c3bb #00000000 none/' \
-           -e 's/menu title .*/menu title OS XIII/' "$f"
+           -e 's/menu title .*/menu title OS XIII/' -e 's/menu label \^\?Utilities\.\.\./menu label Outils/' "$f"
   done
   grep -qs '^timeout' "$I/isolinux.cfg" || echo "timeout 50" >> "$I/isolinux.cfg"
   [ -n "$A" ] && [ -f "$I/splash.png" ] && cp "$A/splash-isolinux.png" "$I/splash.png"

@@ -126,7 +126,7 @@ jobs:
           fi
           Q=$!
           capture() { echo "screendump $1.ppm" | socat - unix-connect:mon.sock >/dev/null 2>&1; sleep 2; pnmtopng "$1.ppm" > "$1.png" 2>/dev/null && rm -f "$1.ppm"; }
-          for t in 7 13 20 45 120 200 300; do
+          for t in 3 5 7 13 20 45 120 200 300; do
             while [ $SECONDS -lt $t ]; do kill -0 $Q 2>/dev/null || break 2; sleep 2; done
             capture "ecran-${t}s"
           done
