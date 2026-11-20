@@ -2,7 +2,6 @@
 Description=OS XIII — mesure automatique (tests)
 ConditionKernelCommandLine=|xiii.mesure
 ConditionKernelCommandLine=|xiii.mesure=arret
-After=graphical.target
 
 [Service]
 Type=simple

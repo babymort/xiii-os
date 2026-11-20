@@ -35,6 +35,10 @@ jobs:
           mkdir -p config/includes.chroot/etc/xiii
           echo "${{ matrix.edition }}" > config/includes.chroot/etc/xiii/edition
           sed -i 's/}$/, "edition": "${{ matrix.edition }}"}/' config/includes.chroot/usr/share/xiii/VERSION.json
+          # numéro affiché par le système (os-release, écran texte) = version construite
+          V="$(date +%Y.%m.%d)"; ED="${{ matrix.edition == 'leger' && ' légère' || '' }}"
+          sed -i "s/^VERSION_ID=.*/VERSION_ID=\"$V\"/; s/^VERSION=.*/VERSION=\"$V ($GITHUB_REF_NAME$ED)\"/" config/includes.chroot/etc/os-release
+          sed -i "s/OS XIII 0\.9 — beta/OS XIII $V — $GITHUB_REF_NAME$ED/" config/includes.chroot/etc/issue
           cat config/includes.chroot/usr/share/xiii/VERSION.json
           mkdir -p config/includes.chroot/var/lib/xiii
           python3 -c "import hashlib,json,glob,os; print(json.dumps({'scripts': {os.path.basename(f): hashlib.sha256(open(f,'rb').read()).hexdigest() for f in glob.glob('config/hooks/normal/*.hook.chroot') if b'xiii-maj: relancer' in open(f,'rb').read()}}))" > config/includes.chroot/var/lib/xiii/maj.json || true

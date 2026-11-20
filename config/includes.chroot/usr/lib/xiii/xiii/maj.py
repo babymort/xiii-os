@@ -15,7 +15,8 @@ JOURNAL = "/var/log/xiii-maj.log"
 CACHE = "/var/cache/xiii-maj"
 UA = {"User-Agent": "OS-XIII-maj", "Accept": "application/vnd.github+json"}
 # fichiers de /etc qui appartiennent à l'utilisateur ou à la machine : jamais remplacés s'ils existent
-GARDER = ("var/lib/xiii/maj.json", "usr/share/xiii/VERSION.json", "etc/fstab", "etc/hostname", "etc/hosts", "etc/xiii/duo.json", "etc/lightdm/lightdm.conf.d/60-autologin.conf")
+GARDER = ("var/lib/xiii/maj.json", "usr/share/xiii/VERSION.json", "etc/fstab", "etc/hostname", "etc/hosts", "etc/xiii/duo.json", "etc/lightdm/lightdm.conf.d/60-autologin.conf",
+          "etc/os-release", "etc/issue", "etc/xiii/edition")
 
 def version():
     try: return json.load(open(VERSION))
@@ -167,7 +168,15 @@ def finaliser(sha, canal):
               ["gtk-update-icon-cache", "-qf", "/usr/share/icons/XIII"], ["update-mime-database", "/usr/share/mime"], ["fc-cache", "-f"], ["systemctl", "daemon-reload"]):
         try: subprocess.run(c, capture_output=True, timeout=300)
         except Exception: pass
-    v = {"version": datetime.date.today().strftime("%Y%m%d") + "-" + canal + "-" + sha[:7], "branche": canal, "commit": sha[:7], "date": datetime.date.today().isoformat(), "mise_a_jour": True}
+    v = {"version": datetime.date.today().strftime("%Y%m%d") + "-" + canal + "-" + sha[:7], "branche": canal, "commit": sha[:7], "date": datetime.date.today().isoformat(), "mise_a_jour": True,
+         "edition": version().get("edition", "complete")}
+    try:      # numéro affiché par le système
+        n = datetime.date.today().strftime("%Y.%m.%d")
+        t = open("/etc/os-release").read()
+        t = re.sub(r'(?m)^VERSION_ID=.*$', 'VERSION_ID="%s"' % n, t); t = re.sub(r'(?m)^VERSION=.*$', 'VERSION="%s (%s)"' % (n, canal), t)
+        open("/etc/os-release", "w").write(t)
+    except OSError:
+        pass
     os.makedirs(os.path.dirname(VERSION), exist_ok=True); json.dump(v, open(VERSION, "w"))
     log("OS XIII est à jour : %s" % v["version"])
 
