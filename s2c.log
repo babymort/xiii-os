@@ -1,0 +1,36 @@
+
+(-c:11322): Gtk-WARNING **: 19:19:22.233: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(-c:11346): Gtk-WARNING **: 19:19:26.976: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(-c:11371): Gtk-WARNING **: 19:19:31.734: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(-c:11395): Gtk-WARNING **: 19:19:36.415: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.479: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.479: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.480: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.480: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.480: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.480: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.481: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.481: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.481: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.481: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.482: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11395): Gtk-CRITICAL **: 19:19:37.482: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11420): Gtk-WARNING **: 19:19:43.000: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(-c:11441): Gtk-WARNING **: 19:19:46.593: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.

@@ -1,0 +1,279 @@
+
+(-c:8461): Gtk-WARNING **: 19:11:48.241: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(-c:8816): Gtk-WARNING **: 19:12:45.511: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(-c:8816): Gtk-WARNING **: 19:17:36.725: GtkGizmo 0x47a28a90 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:37.728: GtkGizmo 0x4c3edf10 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:38.174: GtkGizmo 0x4b45eec0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:39.382: GtkGizmo 0x4a805f00 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:41.481: GtkGizmo 0x4b59cc90 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:42.164: GtkGizmo 0x4b59d6e0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:42.493: GtkGizmo 0x4b59da80 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:43.195: GtkGizmo 0x47895430 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:45.063: GtkGizmo 0x4c304230 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:45.149: GtkGizmo 0x4b609b10 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:45.735: GtkGizmo 0x3c45f250 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:45.754: GtkGizmo 0x474cbd50 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:45.856: GtkGizmo 0x4b625e70 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:45.975: GtkGizmo 0x4c293660 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:46.678: GtkGizmo 0x47839a60 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:48.643: GtkGizmo 0x4b3f3ba0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:48.721: GtkGizmo 0x4b421740 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:49.324: GtkGizmo 0x4367bd30 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:49.425: GtkGizmo 0x42f45a40 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:49.475: GtkGizmo 0x42f3fcf0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:50.176: GtkGizmo 0x4b494d50 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:52.217: GtkGizmo 0x4b4c3ae0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:52.302: GtkGizmo 0x4c0100f0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:55.852: GtkGizmo 0x4ea62bb0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:56.931: GtkGizmo 0x4ec9b8d0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:57.622: GtkGizmo 0x4e31c390 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:58.087: GtkGizmo 0x4e297790 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:17:58.789: GtkGizmo 0x4e30e040 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:01.510: GtkGizmo 0x4bd57170 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:01.592: GtkGizmo 0x4b5f2d70 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:02.197: GtkGizmo 0x4f71b630 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:02.293: GtkGizmo 0x4f745200 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:02.657: GtkGizmo 0x4f76ecf0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:03.359: GtkGizmo 0x4f7a8480 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:06.083: GtkGizmo 0x4f7d1660 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:06.165: GtkGizmo 0x4f7fab10 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:06.771: GtkGizmo 0x4f813ec0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:06.868: GtkGizmo 0x4f83d110 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:07.219: GtkGizmo 0x4f866cf0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:07.921: GtkGizmo 0x4f1cde90 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:10.658: GtkGizmo 0x4f1f7360 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:10.738: GtkGizmo 0x4f220800 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:11.362: GtkGizmo 0x4f23adb0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:11.712: GtkGizmo 0x4f2e10e0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:14.324: GtkGizmo 0x4bcc1e60 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:14.342: GtkGizmo 0x4ecef2f0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:14.342: GtkGizmo 0x4c5e17c0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:14.342: GtkGizmo 0x4feb6c80 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:16.918: GtkGizmo 0x4bcd4230 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:19.525: GtkGizmo 0x4feb6c80 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:23.743: GtkGizmo 0x4fedf370 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:27.365: GtkGizmo 0x4e3b91d0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:27.448: GtkGizmo 0x4f25aab0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:27.970: GtkGizmo 0x50bb1960 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:29.943: GtkGizmo 0x50a15a70 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:30.023: GtkGizmo 0x50b44ca0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:31.349: GtkGizmo 0x4fb115b0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:34.528: GtkGizmo 0x4fed5df0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:34.615: GtkGizmo 0x50b78e70 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:35.677: GtkGizmo 0x51a94e50 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:39.106: GtkGizmo 0x50b27e10 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:39.187: GtkGizmo 0x51421970 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:40.250: GtkGizmo 0x5148bbc0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:43.681: GtkGizmo 0x50b33c10 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:43.757: GtkGizmo 0x4c2ee880 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:44.677: GtkGizmo 0x52a841e0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:48.802: GtkGizmo 0x51362aa0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:49.055: GtkGizmo 0x507904a0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:52.950: GtkGizmo 0x4c0049a0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:53.207: GtkGizmo 0x533faa90 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:57.098: GtkGizmo 0x553f6540 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:57.357: GtkGizmo 0x504e37d0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:18:57.613: GtkGizmo 0x55167290 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:01.263: GtkGizmo 0x4b5acf00 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:01.585: GtkGizmo 0x43d9bc90 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:01.595: GtkGizmo 0x5326e7a0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:18.877: GtkGizmo 0x593da810 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:20.236: GtkGizmo 0x5577a6d0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:20.488: GtkGizmo 0x594076f0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:20.744: GtkGizmo 0x59560d00 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:22.394: GtkGizmo 0x58f35b20 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:22.455: GtkGizmo 0x47a6dd50 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:26.102: GtkGizmo 0x5630a0c0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:26.176: GtkGizmo 0x5116e230 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:27.150: GtkGizmo 0x59ca3fc0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:27.168: GtkGizmo 0x59e85eb0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:30.855: GtkGizmo 0x5a4ca330 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:30.932: GtkGizmo 0x5a6b36d0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:31.906: GtkGizmo 0x5a7030a0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:31.929: GtkGizmo 0x43dd6c50 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:35.612: GtkGizmo 0x5a8ffb60 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:35.688: GtkGizmo 0x5aae57c0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:36.581: GtkGizmo 0x5a8e6f20 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:42.293: GtkGizmo 0x59373640 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:42.372: GtkGizmo 0x5a908f10 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:43.152: GtkGizmo 0x5a92d850 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:45.867: GtkGizmo 0x5a2693c0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:45.942: GtkGizmo 0x5a25bf90 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:46.782: GtkGizmo 0x5a934170 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:49.437: GtkGizmo 0x5ab6f6c0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:49.516: GtkGizmo 0x5a9bbd20 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:50.599: GtkGizmo 0x5933ae70 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:19:58.902: GtkGizmo 0x5a2445d0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:01.616: GtkGizmo 0x5aabc890 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:01.700: GtkGizmo 0x5ab83200 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:02.492: GtkGizmo 0x5ae90a20 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:11.196: GtkGizmo 0x5aedac50 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:11.276: GtkGizmo 0x5af03e80 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:12.079: GtkGizmo 0x5ae7f870 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:14.768: GtkGizmo 0x5af53950 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:14.844: GtkGizmo 0x5af7cc10 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:15.638: GtkGizmo 0x5ae5fee0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:21.338: GtkGizmo 0x5ab31400 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:21.426: GtkGizmo 0x50bdc4d0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:22.203: GtkGizmo 0x5afb4ad0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:24.919: GtkGizmo 0x50c26120 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:25.000: GtkGizmo 0x50c4f3e0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:25.791: GtkGizmo 0x50c040e0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:28.496: GtkGizmo 0x50c9e860 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:28.574: GtkGizmo 0x5b0dd880 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:29.632: GtkGizmo 0x50c7df80 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:33.069: GtkGizmo 0x5631f200 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:33.147: GtkGizmo 0x5af27980 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:34.219: GtkGizmo 0x5ab1faf0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:37.641: GtkGizmo 0x5b104a80 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:37.721: GtkGizmo 0x5b129580 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:38.620: GtkGizmo 0x5b25db10 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:41.745: GtkGizmo 0x55f1a230 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:44.017: GtkGizmo 0x593a35f0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:47.451: GtkGizmo 0x58bb8d50 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:47.535: GtkGizmo 0x5b5fdca0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:48.634: GtkGizmo 0x5ae37d70 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:52.031: GtkGizmo 0x5c2b8f30 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:52.110: GtkGizmo 0x5c2dd9a0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:52.860: GtkGizmo 0x5c1b8bc0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:59.605: GtkGizmo 0x5c216a30 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:8816): Gtk-WARNING **: 19:20:59.692: GtkGizmo 0x5c23af90 (progress) reported min width -2, but sizes must be >= 0
+Gdk-Message: 19:21:00.204: Lost connection to Wayland compositor.
