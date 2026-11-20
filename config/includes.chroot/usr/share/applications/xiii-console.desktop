@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Console XIII
+GenericName=Jeux et émulateurs
+Comment=Toutes vos consoles en plein écran, à la manette : Steam, Switch, PlayStation, Nintendo, Sega…
+Exec=xiii-console
+Icon=input-gaming
+Categories=Game;X-XIII;
+Keywords=jeux;console;emulateur;retro;batocera;manette;steam;
+StartupWMClass=fr.xiii.console

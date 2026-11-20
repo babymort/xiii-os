@@ -449,14 +449,25 @@ class Shell(Gtk.Application):
         return self.sel_mode
 
     def remplir_selecteur(self):
-        from .modes import MODES
+        """Menu déroulant des modes, au style de la Suite XIII : pastille du mode actif + flèche, liste au clic."""
+        from .modes import MODES, PAR_CLE
         sel = self.sel_mode; vider(sel)
-        cur = self.cfg.get("mode_bureau", "classique")
-        for k, nom, ic, desc, _p in MODES:
-            b = Gtk.Button(); b.add_css_class("plat"); b.set_tooltip_text("%s — %s" % (nom, desc))
-            bx = boite(False, 5); bx.append(ico(ic, 14, "c" if k == cur else "t"))
-            if k == cur: b.add_css_class("actif"); bx.append(label(nom, "petit", "gras", "accent"))
-            b.set_child(bx); b.connect("clicked", lambda _b, k=k: config.modifier(mode_bureau=k)); sel.append(b)
+        cur = self.cfg.get("mode_bureau", "classique"); _, nom, ic, desc, _p = PAR_CLE.get(cur, MODES[0])
+        b = Gtk.Button(); b.add_css_class("plat"); b.add_css_class("actif"); b.set_tooltip_text("Mode d'utilisation — " + desc)
+        bx = boite(False, 6); bx.append(ico(ic, 14, "c")); bx.append(label(nom, "petit", "gras", "accent")); bx.append(ico("chevron-down", 12, "d")); b.set_child(bx)
+        def ouvrir(_b):
+            pop = Gtk.Popover(has_arrow=False); pop.set_parent(b); pop.set_position(Gtk.PositionType.BOTTOM); pop.add_css_class("menu-modes")
+            v = boite(True, 2, margin_top=8, margin_bottom=8, margin_start=8, margin_end=8); v.set_size_request(340, -1)
+            v.append(label("Mode d'utilisation", "section", margin_start=8))
+            for k, n, i2, d, _pp in MODES:
+                it = Gtk.Button(); it.add_css_class("ligne"); it.add_css_class("plat")
+                if k == cur: it.add_css_class("mode-actif")
+                r = boite(False, 12); r.append(ico(i2, 20, "c" if k == cur else "t"))
+                col = boite(True, 0, hexpand=True); col.append(label(n, "gras")); col.append(label(d, "petit", "attenue", wrap=True, largeur=36)); r.append(col)
+                if k == cur: r.append(ico("check", 16, "c"))
+                it.set_child(r); it.connect("clicked", lambda _x, k=k: (pop.popdown(), config.modifier(mode_bureau=k))); v.append(it)
+            pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
+        b.connect("clicked", ouvrir); sel.append(b)
 
     def appliquer_mode(self, k, premier=False):
         from .modes import PAR_CLE
@@ -470,6 +481,7 @@ class Shell(Gtk.Application):
             if prof: config.modifier(profil=prof)
             elif avant and PAR_CLE.get(avant, (0, 0, 0, 0, None))[4]: config.modifier(profil="normal", mode_tournage=False)
         if k in ("fiction", "multicam") and not self.cfg.get("timecode"): config.modifier(_histo=False, timecode=True)
+        if k == "gaming" and (not premier or avant is None): S.detacher("xiii-console")      # l'interface console plein écran
 
     def menu_projets(self):
         """Sélecteur de projet (en haut à gauche, comme la suite) : changer, créer, ajouter depuis un fichier .xiii."""

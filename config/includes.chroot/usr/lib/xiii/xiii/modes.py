@@ -236,28 +236,15 @@ class VueMode:
 
     # ----------------------------------------------------------------- Gaming
     def v_gaming(self, mode):
+        """Derrière la Console XIII (plein écran) : de quoi la rouvrir si on l'a quittée."""
         self.entete(mode)
-        rang = boite(False, 22, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, vexpand=True)
-        cartes = [("Steam", "steam", "Big Picture : la bibliothèque Steam en plein écran", lambda: S.detacher(["steam", "-gamepadui"]), shutil.which("steam")),
-                  ("RetroArch", "retroarch", "Consoles rétro : NES, Super Nintendo, Game Boy, Mega Drive…", lambda: S.detacher(["retroarch", "--fullscreen"]), shutil.which("retroarch")),
-                  ("Lichii", "gamepad-2", "Émulateur Switch 1 et 2 (expérimental) — jeux, clés et firmware non fournis", self.lichii, True)]
-        for nom, ic, desc, fn, ok in cartes:
-            b = Gtk.Button(); b.add_css_class("carte-jeu"); b.set_size_request(300, 360)
-            v = boite(True, 14, valign=Gtk.Align.CENTER)
-            im = Gtk.Image.new_from_icon_name(ic) if ic != "gamepad-2" else ico(ic, 96, "c")
-            if isinstance(im, Gtk.Image): im.set_pixel_size(96)
-            v.append(im); v.append(label(nom, "grand-titre", xalign=0.5)); v.append(label(desc if ok else "Non installé", "attenue", xalign=0.5, wrap=True))
-            b.set_child(v); b.connect("clicked", lambda *_x, fn=fn: fn()); rang.append(b)
-        self.corps.append(rang)
-        jeux = [a for a in apps.toutes() if "Game" in (a.get_categories() or "") and a.get_id() not in ("steam.desktop", "retroarch.desktop")]
-        if jeux:
-            self.corps.append(label("Jeux et applications de jeu", "section", margin_start=28))
-            g = Gtk.FlowBox(max_children_per_line=10, min_children_per_line=4, selection_mode=Gtk.SelectionMode.NONE, column_spacing=12, row_spacing=12, margin_start=28, margin_end=28, margin_bottom=24)
-            for a in jeux[:20]:
-                b = Gtk.Button(); b.add_css_class("tuile-mode"); v = boite(True, 6); v.append(gicon_image(a.get_icon(), 48)); v.append(label(a.get_display_name(), "petit", xalign=0.5, ellipsize=True))
-                b.set_child(v); b.connect("clicked", lambda *_x, a=a: apps.lancer(a)); g.append(b)
-            self.corps.append(g)
-        self.corps.append(label("Flèches / Entrée pour naviguer · Super pour revenir au bureau", "petit", "attenue", xalign=0.5, margin_bottom=16))
+        v = boite(True, 18, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, vexpand=True)
+        b = Gtk.Button(); b.add_css_class("carte-jeu"); b.set_size_request(420, 280)
+        c = boite(True, 14, valign=Gtk.Align.CENTER); c.append(ico("gamepad-2", 96, "c")); c.append(label("Console XIII", "grand-titre", "titre-astoria", xalign=0.5))
+        c.append(label("Toutes vos consoles à la manette — Entrée pour ouvrir", "attenue", xalign=0.5)); b.set_child(c)
+        b.connect("clicked", lambda *_: S.detacher("xiii-console")); v.append(b)
+        v.append(label("Vos jeux vont dans le dossier Jeux de votre dossier personnel, une console par sous-dossier.", "petit", "attenue", xalign=0.5))
+        self.corps.append(v); GLib.idle_add(lambda: (b.grab_focus(), False)[1])
 
     def lichii(self):
         f = os.path.expanduser("~/.local/share/xiii/lichii/Lichii.AppImage")

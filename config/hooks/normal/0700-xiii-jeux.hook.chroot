@@ -9,7 +9,11 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends steam-
   mesa-vulkan-drivers:i386 libgl1-mesa-dri:i386 libglx-mesa0:i386 libvulkan1:i386 gamemode mangohud vulkan-tools
 apt-get clean
 
-# Mode Gaming : RetroArch et quelques cœurs d'émulation libres (chacun facultatif)
-for p in retroarch libretro-nestopia libretro-snes9x libretro-mgba libretro-gambatte libretro-genesisplusgx libretro-desmume libretro-beetle-pce-fast; do
+# Console XIII (mode Gaming) : émulateurs libres de Debian, chacun facultatif — jeux, BIOS et clés non fournis
+for p in retroarch libretro-core-info libretro-nestopia libretro-snes9x libretro-mgba libretro-gambatte libretro-genesisplusgx libretro-beetle-vb libretro-beetle-wswan \
+         dolphin-emu mupen64plus-ui-console desmume mednafen mame stella dosbox scummvm fs-uae openmsx vice hatari atari800 fuse-emulator-gtk spectrum-roms flatpak; do
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$p" || echo "absent : $p"
 done
+# Flathub pour les émulateurs absents de Debian (PS2, PSP, Dreamcast, 3DS, Xbox, PS3, Wii U), installés à la demande depuis la console
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+apt-get clean

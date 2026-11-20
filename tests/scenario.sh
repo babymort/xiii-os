@@ -115,6 +115,10 @@ mkdir -p /media/demo/CARTE_A001/DCIM && head -c 3000000 /dev/urandom > /media/de
 for m in production fiction multicam backup gaming; do
   python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(mode_bureau='$m')"; sleep 4; grim /out/s2b-$m.png
 done
+sleep 6; grim /out/s2c-console.png
+wtype -k Right; sleep 1.2; wtype -k Right; sleep 1.5; grim /out/s2c-console-2.png
+wtype -k Return; sleep 2; grim /out/s2c-console-jeux.png; wtype -k Escape; sleep 1; wtype -k Tab; sleep 1.2; grim /out/s2c-console-menu.png
+pkill -f xiii.console; sleep 1
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(mode_bureau="classique")'; sleep 2; grim /out/s2b-classique.png
 cp /usr/share/plymouth/themes/xiii-ascii-matrix/f-040.png /out/s2-ascii-matrix.png 2>/dev/null
 cp /root/.config/xiii/reglages.json /out/ 2>/dev/null

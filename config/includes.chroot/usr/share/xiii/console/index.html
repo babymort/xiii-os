@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Console XIII</title>
+<style>
+@font-face { font-family: "Astoria"; src: local("Astoria"), url("file:///usr/share/fonts/truetype/xiii/astoria.otf"); }
+:root { --acc: #f0b378; --fond: #0e0d0c; --c1: #333; --c2: #777; --txt: #f5efe8; --att: rgba(245,239,232,.62);
+  --carte-l: 17.5vw; --carte-h: 10.6vw; --ecart: 1.4vw; --courbe: cubic-bezier(.22,.9,.26,1.06); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--fond); color: var(--txt);
+  font-family: "IBM Plex Sans", "Noto Sans", sans-serif; user-select: none; cursor: default; }
+body.souris-cachee { cursor: none; }
+
+/* ---------- fond : deux calques qui se fondent quand on change de console ---------- */
+.fond { position: fixed; inset: 0; transition: opacity 600ms ease; }
+.fond .grad { position: absolute; inset: 0; }
+.fond .motif { position: absolute; inset: 0; opacity: .16; mix-blend-mode: overlay; }
+#voile { position: fixed; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 90% at 75% 30%, transparent 0 35%, rgba(0,0,0,.55) 75%, rgba(0,0,0,.85)),
+              linear-gradient(to bottom, rgba(0,0,0,.25), transparent 18%, transparent 52%, rgba(0,0,0,.82) 70%, rgba(6,6,7,.97)); }
+#balayage { position: fixed; inset: 0; pointer-events: none; opacity: .07;
+  background: repeating-linear-gradient(to bottom, #000 0 1px, transparent 1px 3px); }
+
+/* ---------- haut ---------- */
+#haut { position: fixed; top: 0; left: 0; right: 0; height: 5.6vh; display: flex; align-items: center; justify-content: space-between; padding: 0 3vw; z-index: 5; }
+#logo { display: flex; align-items: baseline; gap: .8vw; }
+#logo b { font-family: Astoria, serif; font-size: 2.6vh; color: var(--acc); letter-spacing: .1em; font-weight: 400; }
+#logo span { font-size: 1.35vh; letter-spacing: .5em; color: var(--att); font-weight: 600; }
+#heure { font-family: "IBM Plex Mono", monospace; font-size: 1.9vh; color: var(--att); }
+
+/* ---------- héros ---------- */
+#heros { position: fixed; left: 0; right: 0; top: 7vh; height: 52vh; padding: 0 6vw; display: flex; align-items: center; z-index: 2; }
+#infos { width: 52%; }
+#infos .meta { font-family: "IBM Plex Mono", monospace; font-size: 1.7vh; letter-spacing: .3em; text-transform: uppercase; color: var(--att); display: flex; gap: 1.4vw; align-items: center; }
+#infos .meta i { width: 2.4vw; height: 2px; background: var(--acc); display: inline-block; box-shadow: 0 0 10px var(--acc); }
+#infos h1 { font-family: Astoria, serif; font-weight: 400; font-size: 7.6vw; line-height: .95; margin: 1.4vh 0 2vh; text-transform: uppercase;
+  text-shadow: 0 .4vh 0 rgba(0,0,0,.35), 0 0 4vh rgba(0,0,0,.4); letter-spacing: .01em; }
+#infos .ligne { display: flex; gap: 1vw; align-items: center; flex-wrap: wrap; }
+.puce { font-size: 1.6vh; font-weight: 600; padding: .55vh 1.1vw; border-radius: 999px; border: 1px solid rgba(255,255,255,.22); background: rgba(0,0,0,.3); backdrop-filter: blur(6px); }
+.puce.acc { border-color: var(--acc); color: var(--acc); }
+.puce.ok::before { content: "● "; color: #6fdc8c; }
+.puce.att::before { content: "● "; color: var(--acc); }
+#infos .rem { margin-top: 1.6vh; font-size: 1.6vh; color: var(--att); max-width: 40vw; line-height: 1.5; min-height: 2.4vh; }
+#art { position: absolute; right: 6vw; top: 2vh; width: 38vw; height: 48vh; display: flex; align-items: center; justify-content: center; }
+#art svg { width: 100%; height: 100%; filter: drop-shadow(0 3vh 5vh rgba(0,0,0,.55)); animation: flotte 6s ease-in-out infinite; }
+@keyframes flotte { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-1.6vh) rotate(1.5deg); } }
+.entre { animation: entre 520ms var(--courbe) both; }
+.entre2 { animation: entre 520ms var(--courbe) 70ms both; }
+.entre3 { animation: entre 520ms var(--courbe) 140ms both; }
+@keyframes entre { from { opacity: 0; transform: translateX(-3vw); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+.art-entre { animation: artEntre 700ms var(--courbe) both; }
+@keyframes artEntre { from { opacity: 0; transform: translateX(6vw) scale(.9); } to { opacity: 1; transform: none; } }
+
+/* ---------- carrousel ---------- */
+#carrousel { position: fixed; left: 0; right: 0; top: 62vh; height: calc(var(--carte-h) + 4vh); z-index: 3; overflow: visible; }
+#piste { position: absolute; left: 0; top: 2vh; display: flex; gap: var(--ecart); transition: transform 420ms var(--courbe); will-change: transform; }
+.carte { position: relative; width: var(--carte-l); height: var(--carte-h); border-radius: 1.1vw; overflow: hidden; flex: none;
+  transition: transform 380ms var(--courbe), opacity 300ms, box-shadow 300ms, filter 300ms; opacity: .62; filter: saturate(.85);
+  box-shadow: 0 1.2vh 3vh rgba(0,0,0,.5); }
+.carte .g { position: absolute; inset: 0; }
+.carte .m { position: absolute; inset: 0; opacity: .18; mix-blend-mode: overlay; }
+.carte .a { position: absolute; right: -6%; bottom: -12%; width: 62%; height: 100%; opacity: .55; }
+.carte .n { position: absolute; left: 7%; right: 7%; top: 50%; transform: translateY(-50%); font-family: Astoria, serif; font-size: 1.75vw; line-height: 1;
+  text-transform: uppercase; text-shadow: 0 .3vh .8vh rgba(0,0,0,.55); }
+.carte .f { position: absolute; left: 7%; top: 9%; font-size: 1.15vh; letter-spacing: .3em; text-transform: uppercase; opacity: .75; font-weight: 600; }
+.carte .c { position: absolute; left: 7%; bottom: 9%; font-size: 1.3vh; font-weight: 600; background: rgba(0,0,0,.42); padding: .3vh .6vw; border-radius: 999px; }
+.carte .bord { position: absolute; inset: 0; border-radius: inherit; border: .22vw solid transparent; transition: border-color 300ms; }
+.carte.vide { filter: saturate(.35) brightness(.75); }
+.carte.sel { opacity: 1; filter: none; transform: translateY(-1.4vh) scale(1.09); box-shadow: 0 0 0 .2vw var(--acc), 0 0 3.5vh color-mix(in srgb, var(--acc) 70%, transparent), 0 2.4vh 4vh rgba(0,0,0,.6); z-index: 2; }
+.carte.sel .bord { border-color: rgba(255,255,255,.18); }
+.carte.sel::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.22) 45%, transparent 60%);
+  transform: translateX(-120%); animation: reflet 2.6s ease-in-out 400ms infinite; }
+@keyframes reflet { 0% { transform: translateX(-120%); } 40%, 100% { transform: translateX(120%); } }
+
+/* ---------- bas ---------- */
+#bas { position: fixed; left: 3vw; right: 3vw; bottom: 0; height: 7vh; display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid rgba(255,255,255,.12); z-index: 4; font-size: 1.55vh; letter-spacing: .12em; text-transform: uppercase; color: var(--att); }
+#bas .g { display: flex; gap: .8vw; align-items: center; font-weight: 600; }
+#bas .g svg { width: 2.2vh; height: 2.2vh; }
+#aides { display: flex; gap: 1.6vw; align-items: center; }
+.aide { display: flex; gap: .5vw; align-items: center; cursor: pointer; }
+.aide kbd { font-family: "IBM Plex Sans", sans-serif; font-size: 1.25vh; font-weight: 700; min-width: 2.3vh; height: 2.3vh; padding: 0 .4vh; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; background: var(--txt); color: #111; }
+.aide kbd.acc { background: var(--acc); }
+
+/* ---------- liste des jeux ---------- */
+#jeux { position: fixed; inset: 0 0 7vh 0; z-index: 6; display: flex; pointer-events: none; opacity: 0; transition: opacity 320ms ease;
+  background: linear-gradient(to right, rgba(7,7,8,.97) 0 40%, rgba(7,7,8,.55)); }
+#heros, #carrousel { transition: opacity 320ms ease, transform 420ms var(--courbe); }
+body.liste #heros { opacity: 0; transform: translateX(4vw); }
+body.liste #carrousel { opacity: 0; transform: translateY(6vh); }
+#j-art { position: absolute; right: 4vw; top: 10vh; width: 34vw; height: 60vh; opacity: .22; pointer-events: none; }
+#j-art svg { width: 100%; height: 100%; }
+#jeux.ouvert { pointer-events: auto; opacity: 1; }
+#jeux .panneau-g { width: 42vw; height: 100%; padding: 9vh 2.4vw 3vh 4vw;
+  transform: translateX(-6vw); transition: transform 420ms var(--courbe); display: flex; flex-direction: column; }
+#jeux.ouvert .panneau-g { transform: none; }
+#jeux .titre { font-family: Astoria, serif; font-size: 4.4vh; text-transform: uppercase; color: var(--acc); }
+#jeux .sous { font-size: 1.5vh; color: var(--att); letter-spacing: .2em; text-transform: uppercase; margin: .6vh 0 2.4vh; }
+#liste { flex: 1; overflow: hidden; position: relative; mask-image: linear-gradient(to bottom, transparent, #000 6%, #000 90%, transparent); }
+#liste .defile { transition: transform 300ms var(--courbe); }
+.jeu { display: flex; align-items: center; gap: 1vw; padding: 1.25vh 1.2vw; border-radius: .7vw; font-size: 2.05vh; color: var(--att); transition: background 200ms, color 200ms, padding 200ms; }
+.jeu::before { content: ""; width: .32vw; height: 2.6vh; border-radius: 9px; background: transparent; transition: background 200ms; }
+.jeu.sel { background: rgba(255,255,255,.08); color: var(--txt); padding-left: 1.6vw; font-weight: 600; }
+.jeu.sel::before { background: var(--acc); box-shadow: 0 0 12px var(--acc); }
+.jeu .t { margin-left: auto; font-family: "IBM Plex Mono", monospace; font-size: 1.4vh; opacity: .6; }
+#jeux .panneau-d { flex: 1; position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 6vw 0 3vw; }
+#jeux .panneau-d .gros { font-family: Astoria, serif; font-size: 6vh; line-height: 1.05; text-transform: uppercase; text-shadow: 0 .4vh 1.4vh rgba(0,0,0,.6); }
+#jeux .panneau-d .det { margin-top: 2vh; font-size: 1.7vh; color: var(--att); line-height: 1.8; font-family: "IBM Plex Mono", monospace; word-break: break-all; }
+.jouer { margin-top: 4vh; align-self: flex-start; display: inline-flex; gap: 1vw; align-items: center; font-size: 2.3vh; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  padding: 1.5vh 2.6vw; border-radius: 999px; color: #1b130c; background: linear-gradient(135deg, var(--acc), color-mix(in srgb, var(--acc) 65%, #fff));
+  box-shadow: 0 0 3vh color-mix(in srgb, var(--acc) 55%, transparent); animation: pulse 2.2s ease-in-out infinite; cursor: pointer; }
+@keyframes pulse { 50% { box-shadow: 0 0 5vh color-mix(in srgb, var(--acc) 85%, transparent); } }
+.vide-msg { color: var(--att); font-size: 1.9vh; line-height: 1.7; }
+.vide-msg code { color: var(--acc); font-family: "IBM Plex Mono", monospace; }
+.btn { display: inline-flex; align-items: center; gap: .6vw; margin: 2vh 1vw 0 0; padding: 1vh 1.6vw; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); font-size: 1.7vh; cursor: pointer; }
+.btn.sel { border-color: var(--acc); color: var(--acc); box-shadow: 0 0 2vh color-mix(in srgb, var(--acc) 40%, transparent); }
+
+/* ---------- boîtes : menu, installation ---------- */
+.modal { position: fixed; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.6); backdrop-filter: blur(10px);
+  opacity: 0; pointer-events: none; transition: opacity 260ms; }
+.modal.ouvert { opacity: 1; pointer-events: auto; }
+.boite { min-width: 34vw; max-width: 50vw; padding: 3.4vh 2.6vw; border-radius: 1.4vw; background: rgba(24,21,18,.94);
+  border: 1px solid color-mix(in srgb, var(--acc) 35%, transparent); box-shadow: 0 0 6vh color-mix(in srgb, var(--acc) 22%, transparent);
+  transform: scale(.94) translateY(2vh); transition: transform 320ms var(--courbe); }
+.modal.ouvert .boite { transform: none; }
+.boite h2 { font-family: Astoria, serif; font-weight: 400; font-size: 3.6vh; color: var(--acc); text-transform: uppercase; margin-bottom: 1.6vh; }
+.boite p { color: var(--att); font-size: 1.8vh; line-height: 1.6; margin-bottom: 1vh; }
+.item { padding: 1.3vh 1.2vw; border-radius: .7vw; font-size: 2vh; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 160ms; }
+.item.sel { background: color-mix(in srgb, var(--acc) 22%, transparent); color: #fff; }
+.item small { color: var(--att); font-size: 1.5vh; }
+#prog { margin-top: 1.4vh; height: .6vh; border-radius: 9px; background: rgba(255,255,255,.1); overflow: hidden; }
+#prog i { display: block; height: 100%; width: 30%; background: var(--acc); animation: charge 1.2s ease-in-out infinite; }
+@keyframes charge { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+
+#enjeu { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; gap: 2vh; align-items: center; justify-content: center; background: rgba(0,0,0,.82);
+  opacity: 0; pointer-events: none; transition: opacity 300ms; font-family: Astoria, serif; font-size: 4vh; color: var(--acc); text-transform: uppercase; }
+#enjeu.ouvert { opacity: 1; pointer-events: auto; }
+#enjeu small { font-family: "IBM Plex Sans", sans-serif; font-size: 1.7vh; color: var(--att); text-transform: none; }
+#toast { position: fixed; left: 50%; bottom: 10vh; transform: translateX(-50%) translateY(2vh); opacity: 0; transition: all 300ms var(--courbe); z-index: 11;
+  background: rgba(20,18,16,.95); border: 1px solid var(--acc); border-radius: 999px; padding: 1.2vh 2vw; font-size: 1.8vh; }
+#toast.vu { opacity: 1; transform: translateX(-50%); }
+#intro { position: fixed; inset: 0; z-index: 20; background: #050505; display: flex; align-items: center; justify-content: center; font-family: Astoria, serif;
+  color: var(--acc); font-size: 12vh; letter-spacing: .2em; animation: intro 1.4s ease 400ms forwards; pointer-events: none; }
+#intro span { animation: introLogo 1.4s var(--courbe) both; text-shadow: 0 0 4vh var(--acc); }
+@keyframes intro { to { opacity: 0; visibility: hidden; } }
+@keyframes introLogo { from { opacity: 0; transform: scale(.7); filter: blur(12px); } 60% { opacity: 1; transform: scale(1.02); filter: none; } }
+</style>
+</head>
+<body>
+<div class="fond" id="fondA"><div class="grad"></div><div class="motif"></div></div>
+<div class="fond" id="fondB" style="opacity:0"><div class="grad"></div><div class="motif"></div></div>
+<div id="voile"></div><div id="balayage"></div>
+
+<div id="haut"><div id="logo"><b>XIII</b><span>CONSOLE</span></div><div id="heure"></div></div>
+<section id="heros"><div id="infos"></div><div id="art"></div></section>
+<div id="carrousel"><div id="piste"></div></div>
+<div id="bas"><div class="g" id="compte"></div><div id="aides"></div></div>
+
+<section id="jeux"><div class="panneau-g"><div class="titre" id="j-titre"></div><div class="sous" id="j-sous"></div><div id="liste"><div class="defile" id="defile"></div></div></div>
+  <div id="j-art"></div><div class="panneau-d" id="j-det"></div></section>
+
+<div class="modal" id="menu"><div class="boite"><h2>Menu</h2><div id="menu-items"></div></div></div>
+<div class="modal" id="install"><div class="boite"><h2 id="i-titre"></h2><p id="i-texte"></p><div id="i-items"></div><div id="prog" style="display:none"><i></i></div></div></div>
+<div id="enjeu"><span>Bonne partie</span><small>Quittez le jeu pour revenir à la console</small></div>
+<div id="toast"></div>
+<div id="intro"><span>XIII</span></div>
+
+<script>
+/*DONNEES*/
+const SYS = window.SYSTEMES || [], CFG = window.CFG || {};
+if (CFG.accent) document.documentElement.style.setProperty("--acc", CFG.accent);
+const envoyer = m => { try { window.webkit.messageHandlers.xiii.postMessage(JSON.stringify(m)); } catch (e) { console.log(m); } };
+let masquerVides = false; try { masquerVides = localStorage.getItem("xiii-console-vides") === "1"; } catch (e) {}
+let liste = [], i = 0, vue = "systemes", j = 0, menuSel = 0, instSel = 0, detSel = 0, enJeuEtat = false;
+
+/* ---------- sons (synthétisés, discrets) ---------- */
+let audio = null;
+function son(f = 660, d = .05, type = "triangle", v = .05) {
+  try { audio = audio || new AudioContext(); const o = audio.createOscillator(), g = audio.createGain(); o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(v, audio.currentTime); g.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + d); o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + d); } catch (e) {}
+}
+const sonDep = () => son(520, .045), sonOk = () => { son(660, .06); setTimeout(() => son(990, .08), 60); }, sonRet = () => son(330, .07, "sine");
+
+/* ---------- illustrations originales par type de support ---------- */
+function art(s, opac = 1) {
+  const a = s.c1, b = s.c2, acc = "var(--acc)", id = "g" + s.id;
+  const def = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${b}"/><stop offset="1" stop-color="${a}"/></linearGradient></defs>`;
+  const formes = {
+    cartouche: `<rect x="70" y="30" width="260" height="300" rx="22" fill="url(#${id})" stroke="rgba(255,255,255,.35)" stroke-width="3"/>
+      <rect x="100" y="70" width="200" height="150" rx="10" fill="rgba(0,0,0,.35)"/><rect x="118" y="88" width="164" height="114" rx="6" fill="${a}" opacity=".7"/>
+      <text x="200" y="158" text-anchor="middle" font-family="Astoria" font-size="40" fill="#fff">XIII</text>
+      ${[0,1,2,3,4,5,6].map(k => `<rect x="${110 + k * 27}" y="290" width="14" height="40" rx="3" fill="rgba(0,0,0,.35)"/>`).join("")}
+      <rect x="70" y="245" width="260" height="6" fill="${acc}" opacity=".85"/>`,
+    disque: `<circle cx="200" cy="180" r="150" fill="url(#${id})" stroke="rgba(255,255,255,.4)" stroke-width="3"/>
+      <circle cx="200" cy="180" r="110" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="18"/><circle cx="200" cy="180" r="70" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="10"/>
+      <path d="M90 110 A130 130 0 0 1 200 50" stroke="rgba(255,255,255,.55)" stroke-width="8" fill="none" stroke-linecap="round"/>
+      <circle cx="200" cy="180" r="34" fill="#0d0d0d" stroke="${acc}" stroke-width="4"/><circle cx="200" cy="180" r="12" fill="${a}"/>`,
+    portable: `<rect x="105" y="15" width="190" height="330" rx="26" fill="url(#${id})" stroke="rgba(255,255,255,.35)" stroke-width="3"/>
+      <rect x="125" y="40" width="150" height="128" rx="10" fill="#101010"/><rect x="137" y="52" width="126" height="104" rx="4" fill="${a}" opacity=".85"/>
+      <text x="200" y="114" text-anchor="middle" font-family="Astoria" font-size="30" fill="#fff">XIII</text>
+      <path d="M140 225h44M162 203v44" stroke="#151515" stroke-width="15" stroke-linecap="round"/>
+      <circle cx="244" cy="236" r="12" fill="${acc}"/><circle cx="268" cy="214" r="12" fill="#151515"/>
+      <rect x="162" y="290" width="26" height="8" rx="4" fill="rgba(0,0,0,.4)"/><rect x="204" y="290" width="26" height="8" rx="4" fill="rgba(0,0,0,.4)"/>`,
+    ordinateur: `<rect x="60" y="25" width="280" height="200" rx="16" fill="url(#${id})" stroke="rgba(255,255,255,.35)" stroke-width="3"/>
+      <rect x="82" y="45" width="236" height="150" rx="6" fill="#0b0b0b"/><text x="98" y="88" font-family="IBM Plex Mono" font-size="20" fill="${b}">READY.</text>
+      <rect x="98" y="104" width="14" height="22" fill="${acc}"/><rect x="40" y="252" width="320" height="80" rx="12" fill="${a}" stroke="rgba(255,255,255,.3)" stroke-width="3"/>
+      ${[0,1,2].map(r => [...Array(12)].map((_, k) => `<rect x="${58 + k * 24.5}" y="${266 + r * 20}" width="18" height="13" rx="3" fill="rgba(255,255,255,.22)"/>`).join("")).join("")}`,
+    arcade: `<path d="M110 20h180l-10 70 30 40v220H90V130l30-40z" fill="url(#${id})" stroke="rgba(255,255,255,.35)" stroke-width="3"/>
+      <rect x="115" y="30" width="170" height="44" rx="6" fill="${acc}" opacity=".9"/><text x="200" y="62" text-anchor="middle" font-family="Astoria" font-size="30" fill="#1a1a1a">XIII</text>
+      <rect x="125" y="100" width="150" height="110" rx="8" fill="#0b0b0b"/><rect x="100" y="225" width="200" height="42" rx="6" fill="rgba(0,0,0,.35)"/>
+      <circle cx="140" cy="246" r="9" fill="#eee"/><circle cx="215" cy="246" r="9" fill="${acc}"/><circle cx="240" cy="246" r="9" fill="${b}"/><circle cx="265" cy="246" r="9" fill="#eee"/>`,
+    pc: `<path d="M95 130c0-30 25-50 55-50h100c30 0 55 20 55 50l18 120c4 30-28 46-48 26l-38-40H163l-38 40c-20 20-52 4-48-26z" fill="url(#${id})" stroke="rgba(255,255,255,.35)" stroke-width="3"/>
+      <path d="M138 150h40M158 130v40" stroke="#121212" stroke-width="14" stroke-linecap="round"/>
+      <circle cx="245" cy="140" r="11" fill="${acc}"/><circle cx="270" cy="162" r="11" fill="#121212"/><circle cx="222" cy="162" r="11" fill="#121212"/><circle cx="245" cy="184" r="11" fill="#121212"/>`
+  };
+  return `<svg viewBox="0 0 400 360" opacity="${opac}">${def}${formes[s.support] || formes.pc}</svg>`;
+}
+const motifs = {
+  cartouche: "repeating-linear-gradient(135deg, #fff 0 2px, transparent 2px 22px)",
+  disque: "repeating-radial-gradient(circle at 75% 40%, #fff 0 2px, transparent 2px 26px)",
+  portable: "radial-gradient(#fff 1.5px, transparent 1.6px) 0 0/18px 18px",
+  ordinateur: "repeating-linear-gradient(0deg, #fff 0 1px, transparent 1px 16px), repeating-linear-gradient(90deg, #fff 0 1px, transparent 1px 16px)",
+  arcade: "repeating-linear-gradient(45deg, #fff 0 3px, transparent 3px 14px), repeating-linear-gradient(-45deg, #fff 0 3px, transparent 3px 14px)",
+  pc: "repeating-linear-gradient(90deg, #fff 0 2px, transparent 2px 30px)"
+};
+const SVG_MANETTE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-4 3.6l-.6 6.2A2.6 2.6 0 0 0 6.6 17l2-2h6.8l2 2a2.6 2.6 0 0 0 4.5-2.2l-.6-6.2A4 4 0 0 0 17.3 5z"/></svg>`;
+
+/* ---------- construction ---------- */
+function construire() {
+  liste = SYS.filter(s => !masquerVides || s.jeux.length || s.id === "steam" || s.id === "pc");
+  const p = document.getElementById("piste"); p.innerHTML = "";
+  liste.forEach((s, k) => {
+    const c = document.createElement("div"); c.className = "carte" + (s.jeux.length ? "" : " vide");
+    c.innerHTML = `<div class="g" style="background:linear-gradient(135deg, ${s.c1}, ${s.c2})"></div><div class="m" style="background:${motifs[s.support] || motifs.pc}"></div>
+      <div class="a">${art(s, .9)}</div><div class="f">${s.fabricant}</div><div class="n">${s.nom}</div>
+      <div class="c">${s.installe ? (s.jeux.length ? s.jeux.length + (s.jeux.length > 1 ? " jeux" : " jeu") : "Aucun jeu") : "À installer"}</div><div class="bord"></div>`;
+    c.onclick = () => { if (k === i) ouvrirSysteme(); else { i = k; maj(); sonDep(); } };
+    p.appendChild(c);
+  });
+  i = Math.min(i, liste.length - 1); maj(true);
+}
+let fondActif = "A";
+function maj(premier) {
+  const s = liste[i]; if (!s) return;
+  document.querySelectorAll(".carte").forEach((c, k) => c.classList.toggle("sel", k === i));
+  const l = document.querySelector(".carte").getBoundingClientRect().width, e = window.innerWidth * 0.014;
+  document.getElementById("piste").style.transform = `translateX(${window.innerWidth * 0.06 + (l + e) * (i > 0 ? 1 : 0) - (l + e) * i}px)`;
+  // fond fondu
+  const suiv = fondActif === "A" ? "B" : "A", f = document.getElementById("fond" + suiv);
+  f.querySelector(".grad").style.background = `radial-gradient(110% 120% at 80% 20%, ${s.c2}cc, transparent 60%), linear-gradient(135deg, ${s.c1}, #0b0b0c 85%)`;
+  f.querySelector(".motif").style.background = motifs[s.support] || motifs.pc;
+  f.style.opacity = 1; document.getElementById("fond" + fondActif).style.opacity = 0; fondActif = suiv;
+  // héros
+  const n = s.jeux.length;
+  document.getElementById("infos").innerHTML = `<div class="meta entre"><i></i>${s.fabricant} · ${s.annee}</div><h1 class="entre2">${s.nom}</h1>
+    <div class="ligne entre3"><span class="puce acc">${n ? n + (n > 1 ? " jeux" : " jeu") : "Aucun jeu"}</span>
+    <span class="puce ${s.installe ? "ok" : "att"}">${s.installe ? "Prêt à jouer" : "Émulateur à installer"}</span></div><div class="rem entre3">${s.remarque || ""}</div>`;
+  document.getElementById("art").innerHTML = `<div class="art-entre" style="width:100%;height:100%">${art(s)}</div>`;
+  document.getElementById("compte").innerHTML = `${SVG_MANETTE}<span>${n ? n + (n > 1 ? " jeux disponibles" : " jeu disponible") : "Aucun jeu"} · ${i + 1} / ${liste.length}</span>`;
+  aides();
+}
+function aides() {
+  const A = {
+    systemes: [["A", "Choisir", true], ["Y", "Dossier des jeux"], ["≡", "Menu"]],
+    jeux: [["A", "Jouer", true], ["B", "Retour"], ["Y", "Dossier"], ["≡", "Menu"]]
+  }[vue] || [];
+  document.getElementById("aides").innerHTML = A.map(([k, t, acc]) => `<span class="aide" data-k="${k}"><kbd class="${acc ? "acc" : ""}">${k}</kbd>${t}</span>`).join("");
+  document.querySelectorAll(".aide").forEach(a => a.onclick = () => action({ A: "a", B: "b", Y: "y", "≡": "menu" }[a.dataset.k]));
+}
+
+/* ---------- liste des jeux ---------- */
+function ouvrirSysteme() {
+  const s = liste[i]; sonOk();
+  if (!s.installe && s.source) return ouvrirInstall(s);
+  vue = "jeux"; j = 0; detSel = 0;
+  document.getElementById("j-titre").textContent = s.nom;
+  document.getElementById("j-sous").textContent = `${s.fabricant} · ${s.annee} · ${s.jeux.length} ${s.jeux.length > 1 ? "jeux" : "jeu"}`;
+  const d = document.getElementById("defile"); d.innerHTML = "";
+  s.jeux.forEach((g, k) => { const e = document.createElement("div"); e.className = "jeu"; e.innerHTML = `<span>${esc(g.nom)}</span><span class="t">${g.taille ? taille(g.taille) : ""}</span>`;
+    e.onclick = () => { if (k === j) lancer(); else { j = k; majJeux(); sonDep(); } }; d.appendChild(e); });
+  document.getElementById("j-art").innerHTML = art(s);
+  document.getElementById("jeux").classList.add("ouvert"); document.body.classList.add("liste"); majJeux(); aides();
+}
+function majJeux() {
+  const s = liste[i], det = document.getElementById("j-det");
+  if (!s.jeux.length) {
+    det.innerHTML = `<div class="gros">Aucun jeu</div><div class="vide-msg" style="margin-top:2vh">Déposez vos jeux dans <code>~/Jeux/${s.id}</code>${s.exts ? "<br>Formats : " + s.exts.split(" ").map(x => "." + x).join(" ") : ""}${s.remarque ? "<br>" + s.remarque : ""}
+      <br>OS XIII ne fournit ni jeux, ni BIOS, ni clés : utilisez des copies de vos propres jeux.</div>
+      <div><span class="btn ${detSel === 0 ? "sel" : ""}" onclick="envoyer({a:'dossier',sys:'${s.id}'})">Ouvrir le dossier (Y)</span><span class="btn ${detSel === 1 ? "sel" : ""}" onclick="envoyer({a:'bios'})">Dossier des BIOS</span></div>`;
+    return;
+  }
+  document.querySelectorAll(".jeu").forEach((e, k) => e.classList.toggle("sel", k === j));
+  const h = document.querySelector(".jeu")?.getBoundingClientRect().height || 40, boite = document.getElementById("liste").getBoundingClientRect().height;
+  document.getElementById("defile").style.transform = `translateY(${Math.min(0, boite / 2 - h * (j + .5))}px)`;
+  const g = s.jeux[j];
+  det.innerHTML = `<div class="gros entre">${esc(g.nom)}</div><div class="det entre2">${s.nom}${g.taille ? " · " + taille(g.taille) : ""}<br>${g.chemin.startsWith("/") ? esc(g.chemin.replace(/^\/home\/[^/]+/, "~")) : ""}</div>
+    <div class="jouer entre3" onclick="lancer()">▶ Jouer</div>`;
+}
+function fermerJeux() { vue = "systemes"; document.getElementById("jeux").classList.remove("ouvert"); document.body.classList.remove("liste"); aides(); sonRet(); }
+function lancer() { const s = liste[i], g = s.jeux[j]; if (!g) return; sonOk(); envoyer({ a: "lancer", sys: s.id, jeu: g.chemin }); }
+window.enJeu = on => { enJeuEtat = on; document.getElementById("enjeu").classList.toggle("ouvert", on); };
+
+/* ---------- installation d'un émulateur ---------- */
+function ouvrirInstall(s) {
+  vue = "install"; instSel = 0;
+  document.getElementById("i-titre").textContent = s.nom;
+  document.getElementById("i-texte").textContent = s.source === "lichii" ? "L'émulateur Lichii (expérimental) se télécharge depuis son dépôt GitHub. Jeux, clés et firmware ne sont pas fournis."
+    : "L'émulateur de cette console s'installe depuis Flathub (gratuit, quelques minutes). Jeux et BIOS ne sont pas fournis.";
+  document.getElementById("prog").style.display = "none"; itemsInstall(); document.getElementById("install").classList.add("ouvert");
+}
+function itemsInstall() {
+  const it = [["Installer l'émulateur", () => { envoyer({ a: "installer", sys: liste[i].id }); document.getElementById("prog").style.display = "block"; document.getElementById("i-items").innerHTML = ""; vue = "attente"; }],
+              ["Annuler", fermerInstall]];
+  document.getElementById("i-items").innerHTML = it.map(([t], k) => `<div class="item ${k === instSel ? "sel" : ""}">${t}</div>`).join("");
+  document.querySelectorAll("#i-items .item").forEach((e, k) => e.onclick = () => it[k][1]());
+  window._inst = it;
+}
+function fermerInstall() { document.getElementById("install").classList.remove("ouvert"); vue = "systemes"; aides(); }
+window.installation = (sid, texte, fini, ok) => {
+  document.getElementById("i-texte").textContent = texte;
+  if (fini) { document.getElementById("prog").style.display = "none";
+    if (ok) { const s = SYS.find(x => x.id === sid); if (s) s.installe = true; toast(texte); setTimeout(() => { fermerInstall(); construire(); }, 900); }
+    else { vue = "install"; instSel = 1; itemsInstall(); } }
+};
+
+/* ---------- menu ---------- */
+const MENU = () => [["Reprendre", () => fermerMenu()], ["Rechercher de nouveaux jeux", () => envoyer({ a: "rescanner" })],
+  ["Ouvrir le dossier des jeux", () => envoyer({ a: "dossier", sys: "" })], ["Dossier des BIOS", () => envoyer({ a: "bios" })],
+  [masquerVides ? "Afficher toutes les consoles" : "Masquer les consoles sans jeu", () => { masquerVides = !masquerVides; try { localStorage.setItem("xiii-console-vides", masquerVides ? "1" : "0"); } catch (e) {} fermerMenu(); construire(); }],
+  ["Fenêtre / plein écran", () => envoyer({ a: "fenetre" })],
+  ["Revenir au bureau", () => envoyer({ a: "bureau" }), "Mode Classique"], ["Quitter la console", () => envoyer({ a: "quitter" })], ["Éteindre", () => envoyer({ a: "eteindre" })]];
+let vueAvantMenu = "systemes";
+function ouvrirMenu() { vueAvantMenu = vue; vue = "menu"; menuSel = 0; majMenu(); document.getElementById("menu").classList.add("ouvert"); son(440, .08, "sine"); }
+function majMenu() { const m = MENU(); document.getElementById("menu-items").innerHTML = m.map(([t, , d], k) => `<div class="item ${k === menuSel ? "sel" : ""}">${t}${d ? "<small>" + d + "</small>" : ""}</div>`).join("");
+  document.querySelectorAll("#menu-items .item").forEach((e, k) => e.onclick = () => m[k][1]()); }
+function fermerMenu() { document.getElementById("menu").classList.remove("ouvert"); vue = vueAvantMenu; aides(); }
+
+/* ---------- commandes (clavier, manette, souris) ---------- */
+function action(a) {
+  if (enJeuEtat) return;
+  if (vue === "systemes") {
+    if (a === "g" && i > 0) { i--; maj(); sonDep(); } else if (a === "d" && i < liste.length - 1) { i++; maj(); sonDep(); }
+    else if (a === "a") ouvrirSysteme(); else if (a === "b") ouvrirMenu(); else if (a === "y") envoyer({ a: "dossier", sys: liste[i].id }); else if (a === "menu") ouvrirMenu();
+  } else if (vue === "jeux") {
+    const n = liste[i].jeux.length;
+    if (!n) { if (a === "g" || a === "d") { detSel = 1 - detSel; majJeux(); sonDep(); } else if (a === "a") envoyer(detSel ? { a: "bios" } : { a: "dossier", sys: liste[i].id }); }
+    if (a === "h" && j > 0) { j--; majJeux(); sonDep(); } else if (a === "bas" && j < n - 1) { j++; majJeux(); sonDep(); }
+    else if (a === "g" && n) { j = Math.max(0, j - 10); majJeux(); sonDep(); } else if (a === "d" && n) { j = Math.min(n - 1, j + 10); majJeux(); sonDep(); }
+    else if (a === "a" && n) lancer(); else if (a === "b") fermerJeux(); else if (a === "y") envoyer({ a: "dossier", sys: liste[i].id }); else if (a === "menu") ouvrirMenu();
+  } else if (vue === "menu") {
+    const m = MENU();
+    if (a === "h") { menuSel = (menuSel + m.length - 1) % m.length; majMenu(); sonDep(); } else if (a === "bas") { menuSel = (menuSel + 1) % m.length; majMenu(); sonDep(); }
+    else if (a === "a") { sonOk(); m[menuSel][1](); } else if (a === "b" || a === "menu") { fermerMenu(); sonRet(); }
+  } else if (vue === "install") {
+    if (a === "h" || a === "bas" || a === "g" || a === "d") { instSel = 1 - instSel; itemsInstall(); sonDep(); }
+    else if (a === "a") window._inst[instSel][1](); else if (a === "b") fermerInstall();
+  }
+}
+document.addEventListener("keydown", e => {
+  const k = { ArrowLeft: "g", ArrowRight: "d", ArrowUp: "h", ArrowDown: "bas", Enter: "a", " ": "a", Escape: "b", Backspace: "b", Tab: "menu", m: "menu", y: "y", F2: "y" }[e.key];
+  if (vue === "systemes" && (e.key === "ArrowUp" || e.key === "ArrowDown")) return;
+  if (k) { e.preventDefault(); action(k); }
+});
+document.addEventListener("wheel", e => { action(e.deltaY > 0 || e.deltaX > 0 ? (vue === "systemes" ? "d" : "bas") : (vue === "systemes" ? "g" : "h")); }, { passive: true });
+let tSouris; document.addEventListener("mousemove", () => { document.body.classList.remove("souris-cachee"); clearTimeout(tSouris); tSouris = setTimeout(() => document.body.classList.add("souris-cachee"), 2500); });
+
+// manette (API Gamepad) : croix / stick, A B Y, Start ; répétition quand on reste appuyé
+const etatPad = {}; let tRep = {};
+function boucleManette(t) {
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (const p of pads) {
+    if (!p) continue;
+    const b = k => p.buttons[k] && p.buttons[k].pressed, ax = p.axes || [];
+    const actions = { a: b(0), b: b(1), y: b(3), menu: b(9) || b(8), g: b(14) || ax[0] < -.55, d: b(15) || ax[0] > .55, h: b(12) || ax[1] < -.55, bas: b(13) || ax[1] > .55 };
+    for (const [nom, on] of Object.entries(actions)) {
+      const cle = p.index + nom;
+      if (on && !etatPad[cle]) { action(nom); tRep[cle] = t + 380; }
+      else if (on && ["g", "d", "h", "bas"].includes(nom) && t > tRep[cle]) { action(nom); tRep[cle] = t + 110; }
+      etatPad[cle] = on;
+    }
+  }
+  requestAnimationFrame(boucleManette);
+}
+requestAnimationFrame(boucleManette);
+window.addEventListener("gamepadconnected", e => toast("Manette connectée : " + e.gamepad.id.split("(")[0].trim()));
+
+/* ---------- divers ---------- */
+function toast(t) { const e = document.getElementById("toast"); e.textContent = t; e.classList.add("vu"); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove("vu"), 2600); }
+window.toast = toast;
+function taille(o) { const u = ["o", "Ko", "Mo", "Go"]; let k = 0; while (o >= 1024 && k < 3) { o /= 1024; k++; } return o.toFixed(k ? 1 : 0).replace(".", ",") + " " + u[k]; }
+function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function heure() { const d = new Date(); document.getElementById("heure").textContent = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); }
+heure(); setInterval(heure, 10000);
+window.addEventListener("resize", () => maj());
+const depart = SYS.findIndex(s => s.jeux.length && s.id !== "steam" && s.id !== "pc");
+construire(); if (depart > 0) { i = liste.indexOf(SYS[depart]); if (i < 0) i = 0; maj(); }
+</script>
+</body>
+</html>

@@ -181,7 +181,8 @@ label {{ color: {p['texte']}; }}
 .carte-jeu:hover, .carte-jeu:focus-visible {{ border-color: {p['accent']}; box-shadow: 0 0 24px alpha({p['accent']}, .45); }}
 .sel-mode {{ background: alpha({p['texte']}, .06); border-radius: 999px; padding: 2px; }}
 .sel-mode button {{ border-radius: 999px; padding: 2px 8px; min-height: 22px; }}
-.sel-mode button.actif {{ background: alpha({p['accent']}, .22); }}
+.sel-mode button.actif {{ background: alpha({p['accent']}, .16); padding: 2px 12px; }}
+.menu-modes .mode-actif {{ background: alpha({p['accent']}, .14); }}
 .section {{ font-weight: 600; font-size: 12.5px; color: {p['attenue']}; margin-top: 6px; }}
 button {{ transition: {p['anim']}; }}
 button.pilule {{ background: {p['pilule']}; color: {p['sur_accent']}; border-radius: {'999px' if p['rayon'] != '0px' else '0'}; padding: 6px 18px; font-weight: 700; border: none; box-shadow: {p['pilule_lueur']}; }}
