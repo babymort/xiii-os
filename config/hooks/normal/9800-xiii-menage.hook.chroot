@@ -2,7 +2,7 @@
 # Phase 14 — ménage : paquets tirés par les « recommandés » de Debian mais inutiles sur un PC de bureau.
 # Chaque paquet n'est retiré que si rien d'installé n'en dépend vraiment (simulation d'abord) : aucune fonction perdue.
 set -e
-CANDIDATS="fonts-noto-extra fonts-noto-ui-extra fonts-noto-cjk-extra firmware-netronome firmware-marvell-prestera firmware-qcom-soc firmware-nvidia-tesla-535-gsp
+CANDIDATS="fonts-noto fonts-noto-mono fonts-noto-extra fonts-noto-ui-extra fonts-noto-cjk-extra firmware-netronome firmware-marvell-prestera firmware-qcom-soc firmware-nvidia-tesla-535-gsp
  firmware-nvidia-tesla-470-gsp firmware-ast firmware-qlogic firmware-bnx2x firmware-cavium firmware-myricom firmware-netxen firmware-siano firmware-ivtv
  pocketsphinx-en-us build-essential dpkg-dev g++ gcc g++-14 gcc-14 libstdc++-14-dev cpp cpp-14 libc6-dev linux-libc-dev
  manpages-dev qemu-system-data xserver-xorg-video-all mlocate texlive-base yelp gnome-user-docs"
@@ -18,5 +18,25 @@ done
 DEBIAN_FRONTEND=noninteractive apt-get autoremove -y --purge -qq >/dev/null || true
 apt-get clean
 rm -rf /usr/share/doc/*/changelog* /var/cache/apt/*.bin /var/lib/apt/lists/*_Packages 2>/dev/null || true
+# caches laissés par les installations (pip, npm, Electron) dans le dossier de root
+rm -rf /root/.cache /root/.npm /root/.electron /root/.node-gyp /root/.cargo/registry 2>/dev/null || true
+# traductions : français et anglais seulement (OS XIII est en français) ; règle gardée pour les paquets installés plus tard
+mkdir -p /etc/dpkg/dpkg.cfg.d
+cat > /etc/dpkg/dpkg.cfg.d/90-xiii-langues <<'D'
+# OS XIII — seules les traductions françaises et anglaises sont installées
+path-exclude=/usr/share/locale/*
+path-include=/usr/share/locale/fr/*
+path-include=/usr/share/locale/fr_FR/*
+path-include=/usr/share/locale/en/*
+path-include=/usr/share/locale/en_GB/*
+path-include=/usr/share/locale/locale.alias
+path-exclude=/usr/share/man/*
+path-include=/usr/share/man/man[1-9]*
+path-include=/usr/share/man/fr*
+path-exclude=/usr/share/doc/*
+path-include=/usr/share/doc/*/copyright
+D
+find /usr/share/locale -mindepth 1 -maxdepth 1 -type d ! -name 'fr' ! -name 'fr_FR' ! -name 'en' ! -name 'en_GB' -exec rm -rf {} + 2>/dev/null || true
+find /usr/share/doc -type f ! -name copyright -delete 2>/dev/null || true
 # documentation hors français / anglais (pages de manuel traduites, aides) : plusieurs dizaines de Mo
 find /usr/share/man -mindepth 1 -maxdepth 1 -type d ! -name 'man*' ! -name fr ! -name 'fr.*' -exec rm -rf {} + 2>/dev/null || true

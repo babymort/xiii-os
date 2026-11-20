@@ -3,6 +3,7 @@ name: Build ISO OS XIII
 on:
   push:
     branches: [main, beta]
+    tags: ['v*']          # « v0.24 » : version publique (page Releases de GitHub)
   workflow_dispatch:
 
 permissions:
@@ -151,3 +152,39 @@ jobs:
           cd /tmp/out && git init -q -b essai && git config user.name "CI XIII" && git config user.email "ci@xiii.local"
           git add -A && git commit -qm "Essai ${{ matrix.nom }}"
           git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" essai:essai-${{ strategy.job-index }}
+
+  # Version publique : une étiquette « vX.Y » publie les deux éditions sur la page Releases de GitHub
+  publication:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [iso, essai]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with: { name: "OS-XIII-Leger-${{ github.ref_name }}", path: leger }
+      - uses: actions/download-artifact@v5
+        with: { name: "OS-XIII-${{ github.ref_name }}", path: complete }
+      - name: Préparer les fichiers
+        shell: bash
+        run: |
+          sudo apt-get install -y -qq p7zip-full >/dev/null
+          mkdir pub
+          # GitHub refuse les fichiers de plus de 2 Go : un fichier trop gros part en morceaux .7z.001, .7z.002…
+          # (7-Zip, PeaZip ou l'outil d'archives de Linux les rassemblent en ouvrant le .001)
+          for f in leger/*.iso complete/*.iso; do
+            if [ $(stat -c %s "$f") -lt 2000000000 ]; then cp "$f" pub/; else (cd "$(dirname "$f")" && 7z a -mx0 -v1900m "../pub/$(basename "$f").7z" "$(basename "$f")" >/dev/null); fi
+          done
+          cat leger/SHA256SUMS complete/SHA256SUMS > pub/SHA256SUMS
+          ls -lh pub
+      - name: Publier
+        env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+        run: |
+          cat > notes.md <<'N'
+          **OS XIII** — un Linux léger et complet aux couleurs de la Suite XIII, pour redonner vie aux vieux ordinateurs.
+
+          - **Édition légère** (`OS-XIII-Leger-…iso`) : conseillée pour les PC de 2 à 4 Go de mémoire. Steam, Wine, Claude Desktop, émulateurs et Chromium s'installent en un clic quand on en a besoin.
+          - **Édition complète** (`OS-XIII-…iso.7z.001`, `.002`…) : tout est préinstallé. Ouvrez le `.001` avec 7-Zip ou PeaZip pour obtenir l'ISO.
+
+          Écrire l'ISO sur une clé USB de 8 Go avec balenaEtcher, Rufus ou Ventoy, puis démarrer dessus : « Essayer » ou « Installer ».
+          Vérification : `SHA256SUMS`.
+          N
+          gh release create "${{ github.ref_name }}" pub/* --repo "${{ github.repository }}" --title "OS XIII ${{ github.ref_name }}" --notes-file notes.md
