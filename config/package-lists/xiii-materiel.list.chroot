@@ -52,7 +52,6 @@ printer-driver-gutenprint
 gnome-disk-utility
 system-config-printer
 switcheroo-control
-udiskie
 libnotify-bin
 swayidle
 swaylock

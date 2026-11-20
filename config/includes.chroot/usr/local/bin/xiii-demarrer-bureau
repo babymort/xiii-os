@@ -5,6 +5,20 @@ export XDG_CURRENT_DESKTOP=labwc XDG_SESSION_TYPE=wayland XCURSOR_THEME=XIII-cur
 if systemd-detect-virt -q 2>/dev/null || ! ls /dev/dri/renderD* >/dev/null 2>&1; then
   export WLR_RENDERER=pixman WLR_NO_HARDWARE_CURSORS=1; echo "[xiii] rendu logiciel (VM ou pas de 3D)" >>"$LOG"
 fi
+# Rendu des applications GTK : sans vraie carte 3D (VM, très vieux PC), le rendu par le processeur « cairo » évite de charger
+# une carte 3D simulée (llvmpipe / lavapipe) dans chaque application — plusieurs dizaines de Mo de mémoire chacune.
+# Petite mémoire avec une vraie carte : OpenGL plutôt que Vulkan (moins gourmand).
+if [ -z "$GSK_RENDERER" ]; then
+  hw=0
+  for d in /sys/class/drm/card[0-9]*/device/driver; do
+    case "$(basename "$(readlink -f "$d" 2>/dev/null)")" in i915|xe|amdgpu|radeon|nouveau|nvidia|virtio-pci|virtio_gpu|vmwgfx) hw=1;; esac
+  done
+  mem=$(awk '/^MemTotal/{print $2}' /proc/meminfo)
+  if [ "$hw" = 0 ] || [ -n "$WLR_RENDERER" ]; then export GSK_RENDERER=cairo
+  elif [ "${mem:-0}" -lt 3300000 ]; then export GSK_RENDERER=ngl
+  fi
+  [ -n "$GSK_RENDERER" ] && echo "[xiii] applications GTK : rendu $GSK_RENDERER" >>"$LOG"
+fi
 run(){ if [ -n "$DBUS_SESSION_BUS_ADDRESS" ]; then labwc >>"$LOG" 2>&1; else dbus-run-session labwc >>"$LOG" 2>&1; fi; }
 t=$(date +%s); run
 if [ $(( $(date +%s) - t )) -lt 8 ]; then

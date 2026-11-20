@@ -548,7 +548,7 @@ class Shell(Gtk.Application):
         rv.set_child(label(PAR_CLE[k][1], "haut-survol")); bx.append(rv); self.b_ia.set_child(bx)
         self.b_ia.set_tooltip_text("%s — clic : volet IA (Super + J) · clic droit : changer d'IA" % PAR_CLE[k][1])
         mv = Gtk.EventControllerMotion(); mv.connect("enter", lambda *_: rv.set_reveal_child(True)); mv.connect("leave", lambda *_: rv.set_reveal_child(False))
-        if getattr(self, "_mv_ia", None): self.b_ia.remove_controller(self._mv_ia)
+        if getattr(self, "_mv_ia", None) and self._mv_ia.get_widget() is self.b_ia: self.b_ia.remove_controller(self._mv_ia)
         self._mv_ia = mv; self.b_ia.add_controller(mv)
 
     def menu_ia(self, ancre):
@@ -767,7 +767,7 @@ class Shell(Gtk.Application):
                 cmd += ["timeout", str(int(c["veille_ecran"])), "pkill -f xiii.veille; swaylock -f"]
             cmd += ["before-sleep", "swaylock -f"]
             self.processus("veille", cmd)
-        self.processus("disques", ["udiskie", "--no-tray", "--notify"] + ([] if c["montage_auto"] else ["--no-automount"]))
+        if premier: self.automontage()
         if premier:
             for nom, e in (c.get("ecrans") or {}).items():
                 S.en_fond(S.regler_ecran, None, nom, e.get("w"), e.get("h"), e.get("hz"), e.get("echelle"), e.get("rotation"))
@@ -777,6 +777,28 @@ class Shell(Gtk.Application):
         GLib.timeout_add_seconds(60, self.memoriser_session) if premier else None
         if premier:
             self._auto = theme.theme_effectif(c); GLib.timeout_add_seconds(300, self.theme_auto)
+
+    def automontage(self):
+        """Clés USB, cartes et disques externes montés par le bureau lui-même (remplace udiskie : ~30 Mo de mémoire en moins)."""
+        self._vm = Gio.VolumeMonitor.get()
+        def ajout(vm, vol):
+            if not self.cfg.get("montage_auto", True) or vol.get_mount() or not vol.can_mount() or not vol.should_automount(): return
+            nom = vol.get_name()
+            def fini(v, res):
+                try:
+                    v.mount_finish(res)
+                except GLib.Error as e:
+                    if "annul" not in str(e).lower() and "cancel" not in str(e).lower():
+                        S.detacher(["notify-send", "-a", "Disques", "-i", "drive-removable-media", "Impossible d'ouvrir « %s »" % nom, e.message])
+                    return
+                m = v.get_mount(); chemin = m.get_root().get_path() if m and m.get_root() else None
+                if not chemin: return
+                def attendre():
+                    return subprocess.run(["notify-send", "-a", "Disques", "-i", "drive-removable-media", "--action=ouvrir=Ouvrir", "Support branché : " + nom, chemin],
+                                          capture_output=True, text=True, timeout=600).stdout.strip()
+                S.en_fond(attendre, lambda r: S.detacher(["xiii-fichiers", chemin]) if r == "ouvrir" else None)
+            vol.mount(Gio.MountMountFlags.NONE, Gtk.MountOperation.new(None), None, fini)
+        self._vm.connect("volume-added", ajout)
 
     def theme_auto(self):
         """Thème Auto : passe au clair au lever du soleil, au sombre au coucher."""

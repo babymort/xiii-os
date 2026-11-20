@@ -3,7 +3,7 @@
 # Ne tourne que si « xiii.mesure » est sur la ligne de commande du noyau. Le résultat sort sur le port série.
 OUT=/dev/ttyS0; [ -w "$OUT" ] || OUT=/dev/console
 T0=$(cut -d' ' -f1 /proc/uptime)
-i=0; while [ $i -lt 300 ] && ! pgrep -f '/usr/local/bin/xiii-shell' >/dev/null; do sleep 1; i=$((i+1)); done
+i=0; while [ $i -lt 300 ] && ! pgrep -f 'xiii.shell import' >/dev/null; do sleep 1; i=$((i+1)); done
 sleep 75   # bureau posé : la mesure est faite « au repos »
 U=$(getent passwd 1000 | cut -d: -f1)
 {
@@ -27,7 +27,11 @@ for p in os.listdir("/proc"):
         pss = sum(int(l.split()[1]) for l in open("/proc/%s/smaps_rollup" % p) if l.startswith("Pss:"))
         cmd = open("/proc/%s/cmdline" % p, "rb").read().split(b"\0")
         nom = os.path.basename(cmd[0].decode(errors="replace")) or open("/proc/%s/comm" % p).read().strip()
-        if nom.startswith("python") and len(cmd) > 1 and cmd[1]: nom = "python:" + os.path.basename(cmd[1].decode(errors="replace"))[:40]
+        if nom.startswith("python") and len(cmd) > 2 and cmd[1] == b"-c":
+            import re
+            m = re.search(rb"from xiii(?:\.(\w+))? import (\w+)", cmd[2])
+            nom = "python:xiii." + ((m.group(1) or m.group(2)).decode() if m else "?")
+        elif nom.startswith("python") and len(cmd) > 1 and cmd[1]: nom = "python:" + os.path.basename(cmd[1].decode(errors="replace"))[:40]
     except OSError:
         continue
     g[nom] += pss; n[nom] += 1

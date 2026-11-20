@@ -172,10 +172,10 @@ jobs:
         run: |
           sudo apt-get install -y -qq p7zip-full >/dev/null
           mkdir pub
-          # GitHub refuse les fichiers de plus de 2 Go : un fichier trop gros part en morceaux .7z.001, .7z.002…
+          # GitHub refuse les fichiers de 2 Gio ou plus : un fichier trop gros part en morceaux .7z.001, .7z.002…
           # (7-Zip, PeaZip ou l'outil d'archives de Linux les rassemblent en ouvrant le .001)
           for f in leger/*.iso complete/*.iso; do
-            if [ $(stat -c %s "$f") -lt 2000000000 ]; then cp "$f" pub/; else (cd "$(dirname "$f")" && 7z a -mx0 -v1900m "../pub/$(basename "$f").7z" "$(basename "$f")" >/dev/null); fi
+            if [ $(stat -c %s "$f") -lt 2140000000 ]; then cp "$f" pub/; else (cd "$(dirname "$f")" && 7z a -mx0 -v1900m "../pub/$(basename "$f").7z" "$(basename "$f")" >/dev/null); fi
           done
           cat leger/SHA256SUMS complete/SHA256SUMS > pub/SHA256SUMS
           ls -lh pub
