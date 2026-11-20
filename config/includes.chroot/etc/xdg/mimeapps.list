@@ -1,4 +1,5 @@
 [Default Applications]
+inode/directory=xiii-fichiers.desktop;thunar.desktop
 application/x-ms-dos-executable=xiii-windows.desktop
 application/x-msdownload=xiii-windows.desktop
 application/x-msi=xiii-windows.desktop

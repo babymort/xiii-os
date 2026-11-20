@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Fichiers
+GenericName=Explorateur de fichiers
+Comment=Vues Windows, Mac et arbre ; cloud, NAS, clés et disques
+Exec=xiii-fichiers %U
+Icon=system-file-manager
+Categories=System;FileManager;Utility;X-XIII;
+MimeType=inode/directory;
+Keywords=fichiers;explorateur;dossiers;finder;documents;
+StartupWMClass=fr.xiii.fichiers

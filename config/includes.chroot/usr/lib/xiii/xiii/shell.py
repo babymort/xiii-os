@@ -53,6 +53,7 @@ class Shell(Gtk.Application):
         self.miniatures = Miniatures(self); self.progres = {}
         self.fenetres = Gestionnaire(self.maj_taches)
         self.ecouter_progres()
+        if not S.DEMO: S.detacher(["xiii-lecteurs", "--monter-tout"])      # NAS et clouds reconnectés
         if self.cfg.get("decklink_pont") and not S.DEMO:      # pont DeckLink → caméra virtuelle
             try:
                 from . import acquisition as A
@@ -416,7 +417,7 @@ class Shell(Gtk.Application):
         outils = boite(False, 2)
         outils.append(self.bouton_survol("search", "Rechercher", lambda: self.basculer("demarrer-recherche")))
         outils.append(self.bouton_survol("layout-grid", "Suite XIII", lambda: S.detacher(["xiii-suite"])))
-        outils.append(self.bouton_survol("folder-open", "Fichiers", lambda: S.detacher(["thunar", os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"]) if self.cfg.get("projet_actif") and os.path.isdir(os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"])) else os.path.expanduser("~")])))
+        outils.append(self.bouton_survol("folder-open", "Fichiers", lambda: S.detacher(["xiii-fichiers", os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"]) if self.cfg.get("projet_actif") and os.path.isdir(os.path.join(os.path.expanduser("~/XIII"), self.cfg["projet_actif"])) else os.path.expanduser("~")])))
         outils.append(self.bouton_survol("sparkles", "Claude", lambda: S.detacher("claude-desktop")))
         d.append(outils)
         etat = boite(False, 2); etat.add_css_class("haut-secteur"); d.append(etat)

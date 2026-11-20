@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Transferts XIII
+GenericName=Envoi de fichiers
+Comment=Gofile, WeTransfer, Smash, partage sur le réseau local, croc, Magic Wormhole
+Exec=xiii-transferts %F
+Icon=folder-remote
+Categories=Network;FileTransfer;X-XIII;
+Keywords=wetransfer;smash;gofile;envoyer;partager;transfert;croc;wormhole;lien;
+StartupWMClass=fr.xiii.transferts

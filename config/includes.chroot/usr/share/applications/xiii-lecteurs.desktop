@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Lecteurs réseau
+GenericName=NAS et cloud
+Comment=NAS, serveurs, OneDrive et Google Drive dans Fichiers, comme RaiDrive
+Exec=xiii-lecteurs
+Icon=network-server
+Categories=Network;System;X-XIII;
+Keywords=nas;synology;qnap;smb;nfs;webdav;sftp;ftp;onedrive;google drive;cloud;raidrive;lecteur reseau;
+StartupWMClass=fr.xiii.lecteurs

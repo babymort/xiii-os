@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Scanner IP XIII
+GenericName=Analyse du réseau
+Comment=Tous les appareils du réseau : nom, IP, fabricant, services, accès en un clic (comme Advanced IP Scanner)
+Exec=xiii-scanip
+Icon=network-workgroup
+Categories=Network;System;X-XIII;
+Keywords=ip;scanner;advanced ip scanner;reseau;appareils;mac;ping;wake on lan;
+StartupWMClass=fr.xiii.scanip

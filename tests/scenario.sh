@@ -121,6 +121,17 @@ wtype -k Right; sleep 1.2; wtype -k Right; sleep 1.5; grim /out/s2c-console-2.pn
 wtype -k Return; sleep 2; grim /out/s2c-console-jeux.png; wtype -k Escape; sleep 1; wtype -k Tab; sleep 1.2; grim /out/s2c-console-menu.png
 pkill -f xiii.console; sleep 1
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(mode_bureau="classique")'; sleep 2; grim /out/s2b-classique.png
+# Saison 2 — S2c : fichiers, réseau, transferts
+mkdir -p /root/XIII/Concert-Dome/01_Rushes/CAM-A /root/XIII/Concert-Dome/01_Rushes/CAM-B /root/XIII/Concert-Dome/03_Documents /root/XIII/Concert-Dome/06_Exports
+for f in A001C001.MXF A001C002.MXF; do head -c 200000 /dev/urandom > /root/XIII/Concert-Dome/01_Rushes/CAM-A/$f; done
+echo test > /root/XIII/Concert-Dome/03_Documents/conducteur.txt
+for v in windows mac arbre; do
+  python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, fichiers_vue='$v')"
+  xiii-fichiers /root/XIII/Concert-Dome >> /out/s2c.log 2>&1 & sleep 4; grim /out/s2c-fichiers-$v.png; pkill -f xiii.fichiers; sleep 0.6
+done
+xiii-scanip >> /out/s2c.log 2>&1 & sleep 3; wtype -k Return; sleep 3; grim /out/s2c-scanip.png; pkill -f xiii.scanip; sleep 0.5
+xiii-lecteurs >> /out/s2c.log 2>&1 & sleep 3; grim /out/s2c-lecteurs.png; pkill -f xiii.lecteurs; sleep 0.5
+xiii-transferts /root/XIII/Concert-Dome/03_Documents/conducteur.txt >> /out/s2c.log 2>&1 & sleep 3; grim /out/s2c-transferts.png; pkill -f xiii.transferts; sleep 0.5
 cp /usr/share/plymouth/themes/xiii-ascii-matrix/f-040.png /out/s2-ascii-matrix.png 2>/dev/null
 cp /root/.config/xiii/reglages.json /out/ 2>/dev/null
 labwc --exit

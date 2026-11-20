@@ -1,0 +1,8 @@
+#!/bin/sh
+# Saison 2 — S2c : Fichiers XIII, Lecteurs réseau (rclone), Transferts XIII, Scanner IP XIII (chaque paquet facultatif)
+for p in rclone fuse3 smbclient cifs-utils nfs-common avahi-utils ieee-data croc magic-wormhole remmina remmina-plugin-rdp remmina-plugin-vnc zip qrencode gvfs-backends; do
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$p" || echo "absent : $p"
+done
+# FUSE : montages rclone accessibles à l'utilisateur
+grep -q '^user_allow_other' /etc/fuse.conf 2>/dev/null || echo user_allow_other >> /etc/fuse.conf
+apt-get clean
