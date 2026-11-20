@@ -3,7 +3,7 @@
 # empreinte calculée pendant la copie, relecture et vérification de chaque fichier copié, rapport texte + MHL,
 # fichier BACKUPO (.xiii.json) pour la Suite XIII, progression lumineuse dans la barre des tâches.
 # Application développée par Matthieu Lamotte.
-import os, json, time, hashlib, threading, datetime, socket, getpass, shutil
+import os, json, time, subprocess, hashlib, threading, datetime, socket, getpass, shutil
 from gi.repository import Gtk, Gio, GLib
 from . import config, systeme as S
 try:
@@ -127,7 +127,18 @@ class Moteur:
         except Exception as e:
             t["etat"] = "erreur"; t["texte"] = "Erreur : %s" % e
         S.progres("xiii-modes.desktop", None)
-        S.detacher(["notify-send", "-a", "Backup", "-i", "drive-harddisk", ("Déchargement vérifié : " if t["etat"] == "fini" else "Problème de déchargement : ") + t["nom_support"], t["texte"]])
+        titre = ("Déchargement vérifié : " if t["etat"] == "fini" else "Problème de déchargement : ") + t["nom_support"]
+        if t.get("lien"):
+            # passerelles Suite XIII : le rapport rejoint DOSSIER, ou s'ouvre directement dans BACKUPO
+            def attendre():
+                return subprocess.run(["notify-send", "-a", "Backup", "-i", "drive-harddisk", "--action=dossier=Ajouter à DOSSIER", "--action=backupo=Ouvrir dans BACKUPO",
+                                       titre, t["texte"]], capture_output=True, text=True, timeout=3600).stdout.strip()
+            def choix(r):
+                if r == "dossier": S.detacher(["xiii-suite", "--dossier", t["rapport"], t["mhl"]])
+                elif r == "backupo": S.detacher(["xiii-suite", "--avec", "backupo", t["lien"]])
+            S.en_fond(attendre, choix)
+        else:
+            S.detacher(["notify-send", "-a", "Backup", "-i", "drive-harddisk", titre, t["texte"]])
 
     def _rapports(self, t, lignes):
         now = datetime.datetime.now().isoformat(timespec="seconds"); d = t["dossier"]; nom = "backup-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -146,6 +157,7 @@ class Moteur:
                          "destination": d, "algo": t["algo"], "date": now, "projet": self.shell.cfg.get("projet_actif", ""),
                          "fichiers": [{"nom": rel, "taille": taille, "empreinte": h, "statut": st} for rel, taille, h, st in lignes]}}
         json.dump(lien, open(os.path.join(d, nom + ".xiii.json"), "w"), ensure_ascii=False, indent=1)
+        t["lien"], t["rapport"], t["mhl"] = os.path.join(d, nom + ".xiii.json"), os.path.join(d, nom + ".txt"), os.path.join(d, nom + ".mhl")
         pj = self.shell.cfg.get("projet_actif")
         if pj:
             doc = os.path.join(os.path.expanduser("~/XIII"), pj, "03_Documents"); os.makedirs(doc, exist_ok=True)
