@@ -1649,6 +1649,34 @@ class Parametres(Gtk.Application):
                 c.append(reglage("trash-2", "Effacer mes empreintes", "", droite=bouton("Effacer", None, "plat", "danger",
                                  rappel=lambda: S.en_fond(lambda: S.sh(["fprintd-delete", u]), lambda r: self.aller("connexion", False)))))
             c.append(info("L'empreinte sert à la connexion, au déverrouillage et aux demandes administrateur."))
+        # visage (webcam)
+        c.append(groupe_titre("Reconnaissance du visage"))
+        try:
+            import importlib.util; cv = importlib.util.find_spec("cv2") is not None
+        except Exception: cv = False
+        modeles = all(os.path.exists("/usr/share/xiii/visage/" + m) for m in ("face_detection_yunet_2023mar.onnx", "face_recognition_sface_2021dec.onnx"))
+        cam = bool(glob.glob("/dev/video[0-9]*")) or S.DEMO
+        if not (cv or S.DEMO):
+            def inst():
+                self.toast("Installation de la reconnaissance du visage…")
+                S.en_fond(lambda: subprocess.run(["pkexec", "sh", "-c", "apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-opencv python3-numpy"]).returncode,
+                          lambda r: (self.toast("Installé" if r == 0 else "Installation annulée ou impossible"), self.aller("connexion", False)))
+            c.append(reglage("scan-face" if os.path.exists(theme.LUCIDE + "/scan-face.svg") else "user", "Installer la reconnaissance du visage", "OpenCV, environ 100 Mo",
+                             droite=bouton("Installer", None, "pilule", rappel=inst)))
+        elif not modeles and not S.DEMO:
+            c.append(info("Les modèles de reconnaissance sont absents : relancez une mise à jour d'OS XIII (Paramètres › Mises à jour)."))
+        elif not cam:
+            c.append(info("Aucune webcam détectée sur ce PC."))
+        else:
+            fait = os.path.exists(os.path.expanduser("~/.local/share/xiii/visage.npy"))
+            c.append(reglage("scan-face" if os.path.exists(theme.LUCIDE + "/scan-face.svg") else "user", "Mon visage", "Enregistré" if fait else "Pas encore enregistré",
+                             droite=bouton("Recommencer" if fait else "Enregistrer mon visage", None, "pilule", rappel=self.visage)))
+            if fait:
+                c.append(reglage("trash-2", "Effacer mon visage", "", droite=bouton("Effacer", None, "plat", "danger",
+                                 rappel=lambda: S.en_fond(lambda: S.sh(["xiii-visage", "effacer"]), lambda r: self.aller("connexion", False)))))
+            c.append(info("Avec une webcam ordinaire, une photo de vous pourrait suffire à tromper la reconnaissance : gardez un mot de passe sur un PC qui sort du bureau."))
+        c.append(groupe_titre("Au verrouillage"))
+        c.append(info("Tapez votre mot de passe, ou appuyez simplement sur Entrée : OS XIII regarde alors la caméra (visage), puis attend votre doigt sur le lecteur (empreinte)."))
 
     def empreinte(self, u):
         d = Gtk.Window(transient_for=self.win, modal=True, title="Empreinte digitale", default_width=420); d.add_css_class("parametres")
@@ -1674,6 +1702,28 @@ class Parametres(Gtk.Application):
                 return True
             GLib.io_add_watch(p.stdout, GLib.IO_IN | GLib.IO_HUP, lire)
             msg.set_text("Posez le doigt sur le lecteur.")
+        r.append(bouton("Fermer", None, "fantome", rappel=d.close)); r.append(bouton("Commencer", None, "pilule", rappel=lancer)); v.append(r)
+        d.set_child(v); d.present()
+
+    def visage(self):
+        d = Gtk.Window(transient_for=self.win, modal=True, title="Reconnaissance du visage", default_width=420); d.add_css_class("parametres")
+        v = boite(True, 12, margin_top=20, margin_bottom=20, margin_start=24, margin_end=24)
+        v.append(label("Enregistrer mon visage", "page-titre"))
+        v.append(ico("scan-face" if os.path.exists(theme.LUCIDE + "/scan-face.svg") else "user", 72, "d"))
+        msg = label("Placez-vous face à la caméra, bien éclairé, puis « Commencer ».", "attenue", wrap=True, xalign=0.5); v.append(msg)
+        pb = Gtk.ProgressBar(); v.append(pb)
+        r = boite(False, 8, halign=Gtk.Align.END)
+        def lancer():
+            p = subprocess.Popen(["xiii-visage", "enregistrer"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            def lire(src, cond):
+                l = p.stdout.readline()
+                if not l: return False
+                if l.startswith("ETAPE "): msg.set_text(l[6:].strip())
+                elif l.startswith("PROGRES "): a, b = l.split()[1:3]; pb.set_fraction(int(a) / int(b))
+                elif l.startswith("ERREUR "): msg.set_text("Échec : " + l[7:].strip())
+                elif l.startswith("FINI"): pb.set_fraction(1); msg.set_text("Visage enregistré"); GLib.timeout_add(1200, lambda: (d.close(), self.aller("connexion", False), False)[2])
+                return True
+            GLib.io_add_watch(p.stdout, GLib.IO_IN | GLib.IO_HUP, lire)
         r.append(bouton("Fermer", None, "fantome", rappel=d.close)); r.append(bouton("Commencer", None, "pilule", rappel=lancer)); v.append(r)
         d.set_child(v); d.present()
 

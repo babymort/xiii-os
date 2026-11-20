@@ -1,0 +1,7 @@
+# OS XIII — déverrouillage de l'écran : mot de passe, visage ou empreinte.
+# Mot de passe tapé : vérifié tout de suite. Entrée sans rien taper : visage (si enregistré), puis empreinte (si enregistrée).
+auth    sufficient   pam_unix.so try_first_pass nullok nodelay
+auth    sufficient   pam_exec.so quiet /usr/local/bin/xiii-visage verifier
+auth    sufficient   pam_fprintd.so max-tries=1 timeout=10
+auth    required     pam_deny.so
+account include      common-account

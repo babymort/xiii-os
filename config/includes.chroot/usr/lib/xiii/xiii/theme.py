@@ -414,6 +414,29 @@ FONDS_XIII = {"sombre": "/usr/share/xiii/wallpapers/xiii-sombre.png", "clair": "
 
 FONDS_GENERES = os.path.join(GLib.get_user_data_dir(), "xiii", "fonds-themes")
 
+def image_verrou(src, p):
+    """Image de l'écran verrouillé avec, en bas, comment déverrouiller (mot de passe, visage, empreinte)."""
+    import hashlib
+    cle = hashlib.md5(repr((src, p.get("texte"), os.path.getmtime(src) if os.path.exists(src) else 0)).encode()).hexdigest()[:10]
+    f = os.path.join(FONDS_GENERES, "verrou-%s.png" % cle)
+    if os.path.exists(f): return f
+    try:
+        import cairo
+        from gi.repository import GdkPixbuf as GP
+        pb = GP.Pixbuf.new_from_file(src); W, H = pb.get_width(), pb.get_height()
+        s = cairo.ImageSurface(cairo.FORMAT_RGB24, W, H); cr = cairo.Context(s)
+        from gi.repository import Gdk
+        Gdk.cairo_set_source_pixbuf(cr, pb, 0, 0); cr.paint()
+        t = "Mot de passe   ·   ou Entrée, puis regardez la caméra ou posez le doigt"
+        cr.select_font_face("IBM Plex Sans"); cr.set_font_size(H * .022)
+        e = cr.text_extents(t); x, y = (W - e.width) / 2, H * .93
+        cr.set_source_rgba(0, 0, 0, .55); cr.rectangle(x - H * .02, y - e.height - H * .014, e.width + H * .04, e.height + H * .03); cr.fill()
+        cr.set_source_rgba(1, 1, 1, .92); cr.move_to(x, y); cr.show_text(t)
+        os.makedirs(FONDS_GENERES, exist_ok=True); s.write_to_png(f)
+        return f
+    except Exception:
+        return src
+
 def fond_theme(cfg):
     """Fond d'écran assorti au thème : fourni (Sombre, Clair, Sobre) ou dessiné (fond du thème, lueur de l'accent, logo XIII en filigrane)."""
     t = theme_effectif(cfg)
@@ -627,7 +650,7 @@ osd.label.text.color: {p['texte']}
 window.switcher.width: 600
 border.width: {1 if p['rayon'] != '0px' else 2}
 """)
-    _ecrire(f"{conf}/swaylock/config", f"""image={cfg.get('verrou_fond', '/usr/share/xiii/wallpapers/xiii-connexion.png')}
+    _ecrire(f"{conf}/swaylock/config", f"""image={image_verrou(cfg.get('verrou_fond', '/usr/share/xiii/wallpapers/xiii-connexion.png'), p)}
 scaling=fill
 indicator-radius=90
 indicator-thickness=6

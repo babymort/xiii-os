@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+# OS XIII — déverrouillage par le visage (webcam), sans service ni compte en ligne.
+#   xiii-visage enregistrer        capture le visage de l'utilisateur (Paramètres › Options de connexion)
+#   xiii-visage verifier           0 si le visage devant la caméra est celui de l'utilisateur (appelé par PAM au verrouillage)
+#   xiii-visage effacer | etat
+# Détection YuNet + reconnaissance SFace (OpenCV, modèles libres de l'OpenCV Zoo) ; les empreintes du visage restent sur ce PC.
+# Application développée par Matthieu Lamotte.
+import os, sys, time, pwd, glob
+MODELES = "/usr/share/xiii/visage"
+DET, REC = MODELES + "/face_detection_yunet_2023mar.onnx", MODELES + "/face_recognition_sface_2021dec.onnx"
+SEUIL = 0.42          # similarité cosinus SFace (0.363 = seuil conseillé ; un peu plus strict pour un écran de verrouillage)
+
+def utilisateur():
+    return os.environ.get("PAM_USER") or pwd.getpwuid(os.getuid()).pw_name
+
+def fichier(u):
+    return os.path.join(pwd.getpwnam(u).pw_dir, ".local", "share", "xiii", "visage.npy")
+
+def cameras():
+    return sorted(int(p.rsplit("video", 1)[1]) for p in glob.glob("/dev/video[0-9]*")) or [0]
+
+def ouvrir():
+    import cv2
+    for i in cameras():
+        c = cv2.VideoCapture(i)
+        if c.isOpened():
+            ok, _ = c.read()
+            if ok: return c
+        c.release()
+    return None
+
+def visages(duree, maxi, message=None):
+    import cv2, numpy as np
+    det = cv2.FaceDetectorYN.create(DET, "", (320, 240), 0.8)
+    rec = cv2.FaceRecognizerSF.create(REC, "")
+    cam = ouvrir()
+    if cam is None: print("ERREUR caméra introuvable", flush=True); return []
+    L, t0 = [], time.time()
+    try:
+        while time.time() - t0 < duree and len(L) < maxi:
+            ok, im = cam.read()
+            if not ok: continue
+            h, w = im.shape[:2]; det.setInputSize((w, h))
+            _, f = det.detect(im)
+            if f is None or len(f) != 1: continue        # un seul visage, sinon on attend
+            L.append(rec.feature(rec.alignCrop(im, f[0])).flatten())
+            if message: print("PROGRES %d %d" % (len(L), maxi), flush=True)
+    finally:
+        cam.release()
+    return L
+
+def enregistrer():
+    import numpy as np
+    u = utilisateur()
+    print("ETAPE Regardez la caméra, tournez doucement la tête…", flush=True)
+    L = visages(20, 24, True)
+    if len(L) < 6: print("ERREUR visage non détecté (lumière ? caméra ?)", flush=True); return 1
+    os.makedirs(os.path.dirname(fichier(u)), exist_ok=True)
+    np.save(fichier(u), np.array(L, dtype="float32")); os.chmod(fichier(u), 0o600)
+    print("FINI", flush=True); return 0
+
+def verifier():
+    import numpy as np
+    u = utilisateur()
+    try: ref = np.load(fichier(u))
+    except Exception: return 1                                   # pas de visage enregistré : PAM passe à la suite
+    n = np.linalg.norm
+    for v in visages(4, 6):
+        if max(float(np.dot(r, v) / (n(r) * n(v))) for r in ref) >= SEUIL: return 0
+    return 1
+
+if __name__ == "__main__":
+    a = sys.argv[1] if len(sys.argv) > 1 else "etat"
+    if a == "enregistrer": sys.exit(enregistrer())
+    if a == "verifier":
+        try: sys.exit(verifier())
+        except Exception: sys.exit(1)
+    if a == "effacer":
+        try: os.remove(fichier(utilisateur()))
+        except OSError: pass
+        sys.exit(0)
+    print("enregistré" if os.path.exists(fichier(utilisateur())) else "aucun"); sys.exit(0)

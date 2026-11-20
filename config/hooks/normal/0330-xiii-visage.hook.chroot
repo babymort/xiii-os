@@ -1,0 +1,22 @@
+#!/bin/sh
+# xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
+# Déverrouillage par le visage : OpenCV (préinstallé dans l'édition complète, en un clic dans la légère) + modèles libres YuNet / SFace
+set -e
+ED=$(cat /etc/xiii/edition 2>/dev/null || echo complete)
+[ "$ED" = leger ] || DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-opencv python3-numpy || echo "OpenCV indisponible"
+mkdir -p /usr/share/xiii/visage
+Z=https://github.com/opencv/opencv_zoo/raw/main/models
+for m in face_detection_yunet/face_detection_yunet_2023mar.onnx face_recognition_sface/face_recognition_sface_2021dec.onnx; do
+  f=/usr/share/xiii/visage/$(basename $m)
+  [ -s "$f" ] || curl -fsSL --retry 3 -o "$f" "$Z/$m" || echo "modèle indisponible : $m"
+done
+# taille plausible (un fichier « pointeur » Git LFS ferait quelques octets)
+for f in /usr/share/xiii/visage/*.onnx; do [ $(stat -c %s "$f") -gt 100000 ] || { echo "modèle invalide : $f"; rm -f "$f"; }; done
+ls -la /usr/share/xiii/visage
+# les comptes accèdent à la webcam (groupe video)
+for f in /etc/calamares/modules/users.conf /usr/share/calamares/modules/users.conf; do
+  [ -f "$f" ] || continue
+  grep -qE '^\s*-\s*video\s*$' "$f" && continue
+  awk '{print} /^defaultGroups:/{getline n; m=n; sub(/-.*/,"",m); print m "- video"; print n}' "$f" > "$f.xiii" && mv "$f.xiii" "$f"
+done
+apt-get clean
