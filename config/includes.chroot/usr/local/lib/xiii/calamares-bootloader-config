@@ -21,7 +21,8 @@ GRUB_DISABLE_OS_PROBER=false
 GRUB_GFXMODE=auto
 G
 ARCH=$(chroot "$CHROOT" dpkg --print-architecture)
-if [ -d /sys/firmware/efi ]; then
+ESPOK=0; for e in /boot/efi /efi; do mountpoint -q "$CHROOT$e" && ESPOK=1; done
+if [ -d /sys/firmware/efi ] && [ $ESPOK = 1 ]; then
   case "$ARCH" in amd64) T=x86_64-efi;; arm64) T=arm64-efi;; *) T=$ARCH-efi;; esac
   ESP=/boot/efi; mountpoint -q "$CHROOT$ESP" || { [ -d "$CHROOT/efi" ] && ESP=/efi; }
   echo "UEFI : grub-install --target=$T ($ESP)"
@@ -29,6 +30,7 @@ if [ -d /sys/firmware/efi ]; then
   # copie de secours EFI/BOOT/BOOTX64.EFI : certains PC ignorent l'entrée enregistrée
   chroot "$CHROOT" grub-install --target=$T --efi-directory=$ESP --removable --recheck || true
 else
+  [ -d /sys/firmware/efi ] && echo "UEFI sans partition EFI montée : démarrage BIOS/compatibilité installé à la place"
   RACINE=$(findmnt -no SOURCE "$CHROOT" | sed 's/\[.*//')
   DISQUE=/dev/$(lsblk -no PKNAME "$RACINE" | head -1)
   echo "BIOS : grub-install --target=i386-pc $DISQUE"
