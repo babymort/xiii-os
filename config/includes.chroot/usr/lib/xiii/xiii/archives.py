@@ -22,13 +22,12 @@ def contenu(f):
     """[(nom, taille)] ou None si illisible."""
     if shutil.which("7z"):
         r = subprocess.run(["7z", "l", "-slt", "-p", f], capture_output=True, text=True)
-        L, cur = [], {}
-        for l in r.stdout.splitlines():
-            if l.startswith("Path = "): cur = {"n": l[7:]}
-            elif l.startswith("Size = ") and cur: cur["t"] = int(l[7:] or 0)
-            elif l.startswith("Folder = ") and cur:
-                if l.endswith("-") and cur.get("n") != f: L.append((cur["n"], cur.get("t", 0)))
-                cur = {}
+        txt = r.stdout.split("----------", 1)[-1]          # après l'en-tête de l'archive
+        L = []
+        for bloc in txt.split("\n\n"):
+            d = dict(l.split(" = ", 1) for l in bloc.splitlines() if " = " in l)
+            if "Path" in d and d.get("Folder", "-") != "+" and not d.get("Attributes", "").startswith("D"):
+                L.append((d["Path"], int(d.get("Size") or 0)))
         if L or r.returncode == 0: return L
     if shutil.which("lsar"):
         r = subprocess.run(["lsar", f], capture_output=True, text=True)
