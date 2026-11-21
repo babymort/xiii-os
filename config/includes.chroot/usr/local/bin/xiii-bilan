@@ -149,6 +149,18 @@ def pilotes():
         for k, v in FW.items():
             if k in m: P.add(v)
     L.append(("Firmwares manquants", "\n".join(miss) or "aucun", not miss))
+    # 2b. son : cartes vues par le noyau, sortie réelle (pas « Dummy »), firmwares SOF des portables Intel récents
+    cartes = [l.strip() for l in sh("cat /proc/asound/cards").splitlines() if re.match(r"^\s*\d+ \[", l)]
+    sorties = [l for l in sh("pactl list short sinks").splitlines() if "auto_null" not in l]
+    inst0 = set(sh("dpkg-query -W -f='${Package}\\n'").split())
+    if not cartes:
+        sof = bool(re.search(r"sof|dsp_driver|skl_hda", sh("dmesg 2>/dev/null"), re.I))
+        P.update(p for p in ("firmware-sof-signed", "firmware-intel-sound", "alsa-ucm-conf") if p not in inst0)
+        L.append(("Son", "Aucune carte son détectée." + (" Portable Intel récent (SOF) : « Réparer le son » essaie le pilote classique." if sof else ""), False))
+    elif not sorties:
+        L.append(("Son", "Carte(s) : " + "; ".join(re.sub(r"^\d+ \[\S+\s*\]: ", "", c) for c in cartes) + "\nAucune sortie active : « Réparer le son » relance le serveur de son.", False))
+    else:
+        L.append(("Son", "%d sortie(s) active(s) · %s" % (len(sorties), "; ".join(re.sub(r"^\d+ \[\S+\s*\]: ", "", c) for c in cartes)), True))
     # 3. cartes graphiques : NVIDIA, AMD, Intel — pilote utilisé, accélération 3D et vidéo
     for nom, ok, conseil, paquets in graphiques():
         L.append((nom, conseil, ok)); P.update(paquets)
@@ -276,7 +288,7 @@ class App(Gtk.Application):
         def rendu(res):
             L, P = res
             self.vider(self.p_pil, ""); self.p_pil.remove(self.p_pil.get_first_child())
-            for n, v, e in L: self.p_pil.append(self.carte(n, v, e))
+            for n, v, e in L: self.p_pil.append(self.carte(n, v, e, ("Réparer le son", "xiii-reparer-son") if n == "Son" else None))
             if P:
                 c = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, css_classes=["carte"])
                 c.append(Gtk.Label(label="À installer : " + ", ".join(P), css_classes=["conseil"], xalign=0, wrap=True))

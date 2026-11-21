@@ -140,14 +140,25 @@ class AppWindows(Gtk.Application):
         def go(b):
             b.set_sensitive(False); etat.set_text("Installation en cours… (quelques minutes)")
             amd = os.uname().machine == "x86_64"
-            cmd = ("dpkg --add-architecture i386; " if amd else "") + "apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wine fonts-wine winetricks cabextract icoutils unzip p7zip-full" + (" wine64 wine32:i386 libwine:i386" if amd else " box64")
+            # 1. Wine 64 bits (indispensable) ; 2. la partie 32 bits (anciens logiciels), facultative : son échec ne bloque plus rien
+            base = "export DEBIAN_FRONTEND=noninteractive; apt-get update -qq || true; apt-get install -y --fix-broken -qq || true; " \
+                   "apt-get install -y --no-install-recommends wine fonts-wine winetricks cabextract icoutils unzip p7zip-full" + (" wine64" if amd else " box64")
+            extra = "; dpkg --add-architecture i386 && apt-get update -qq && apt-get install -y --no-install-recommends wine32:i386 || echo 'wine32 indisponible'" if amd else ""
+            cmd = base + extra
             def fini(r):
-                if r == 0:
+                code, sortie = r if isinstance(r, tuple) else (1, str(r))
+                if code == 0 and shutil.which("wine"):
                     if self.fichier: self.page_preparer(self.fichier); self.pile.set_visible_child_name("preparer")
                     else: self.page_accueil(); self.pile.set_visible_child_name("accueil")
+                elif code in (126, 127):
+                    etat.set_text("Installation annulée."); b.set_sensitive(True)
                 else:
-                    etat.set_text("Installation annulée ou impossible (connexion Internet ?)"); b.set_sensitive(True)
-            S.en_fond(lambda: subprocess.run(["pkexec", "sh", "-c", cmd]).returncode, fini)
+                    err = [l for l in sortie.splitlines() if l.startswith(("E:", "Err:", "W:"))]
+                    etat.set_text("Installation impossible : " + (err[-1] if err else "voir la connexion Internet") ); b.set_sensitive(True)
+            def tache():
+                r = subprocess.run(["pkexec", "sh", "-c", cmd], capture_output=True, text=True)
+                return r.returncode, r.stdout + r.stderr
+            S.en_fond(tache, fini)
         b = bouton("Installer la prise en charge Windows", "download", "pilule", rappel=None); b.connect("clicked", go)
         v.append(b); v.append(etat)
 

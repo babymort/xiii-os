@@ -1,0 +1,25 @@
+#!/bin/sh
+# xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
+# Store d'animations de démarrage : catalogue des 80 thèmes libres d'adi1090x/plymouth-themes (aperçus GIF, liste des fichiers)
+set -e
+mkdir -p /usr/share/xiii/demarrage
+python3 - <<'P' || echo "catalogue d'animations indisponible"
+import json, re, urllib.request
+H = {"User-Agent": "OS-XIII"}
+lire = lambda u: urllib.request.urlopen(urllib.request.Request(u, headers=H), timeout=60).read()
+readme = lire("https://raw.githubusercontent.com/adi1090x/plymouth-themes/master/README.md").decode()
+arbre = json.loads(lire("https://api.github.com/repos/adi1090x/plymouth-themes/git/trees/master?recursive=1"))["tree"]
+fichiers = [x["path"] for x in arbre if x["type"] == "blob" and re.match(r"pack_\d+/[^/]+/", x["path"])]
+par_dossier = {}
+for f in fichiers: par_dossier.setdefault(f.split("/")[1], []).append(f)
+L = []
+for nom, url in re.findall(r"^\+ \[([^\]]+)\]\((https://[^)]+\.gif)\)", readme, re.M):
+    import difflib
+    n = re.sub(r"[^a-z0-9]", "", nom.lower())
+    norm = {re.sub(r"[^a-z0-9]", "", k.lower()): k for k in par_dossier}
+    d = norm.get(n) or (lambda m: norm[m[0]] if m else None)(difflib.get_close_matches(n, list(norm), 1, 0.8))
+    if d and not any(x["dossier"] == d for x in L):
+        L.append({"nom": nom.strip(), "dossier": d, "apercu": url, "fichiers": sorted(par_dossier[d])})
+json.dump(L, open("/usr/share/xiii/demarrage/catalogue.json", "w"), ensure_ascii=False)
+print("animations au catalogue :", len(L))
+P

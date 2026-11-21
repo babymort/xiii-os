@@ -16,7 +16,7 @@ SUIVI = os.path.expanduser("~/.local/share/xiii/store-github.json")
 APPS = os.path.expanduser("~/Applications"); OPT = os.path.expanduser("~/.local/opt")
 ARCH = "arm64|aarch64" if platform.machine() in ("aarch64", "arm64") else "amd64|x86_64|x64|linux64|linux-64"
 SELECTIONS = [  # idées de départ
-    ("Production et régie", ["bitfocus/companion", "obsproject/obs-studio", "Palakis/obs-websocket", "mltframework/shotcut", "olive-editor/olive"]),
+    ("Production et régie", ["obsproject/obs-studio", "Palakis/obs-websocket", "mltframework/shotcut", "olive-editor/olive"]),
     ("Utilitaires", ["localsend/localsend", "schollz/croc", "rclone/rclone", "ventoy/Ventoy", "balena-io/etcher"]),
     ("Jeux et émulation", ["zortos293/Lichii", "Ryubing/Ryujinx", "PCSX2/pcsx2", "hrydgard/ppsspp", "flyinghead/flycast"]),
 ]
@@ -58,6 +58,14 @@ def lanceur(nom, exe, icone="application-x-executable", depot=""):
 
 def installer(depot, progres):
     """Installe la dernière version publiée de « auteur/projet ». Renvoie un dict de suivi."""
+    def p2(f, t):
+        S.progres("xiii-store-github.desktop", f if f < 1 else None); progres(f, t)
+    try:
+        return _installer(depot, p2)
+    finally:
+        S.progres("xiii-store-github.desktop", None)
+
+def _installer(depot, progres):
     progres(.05, "Lecture du dépôt %s…" % depot)
     info = requete("/repos/" + depot)
     try: rel = requete("/repos/%s/releases/latest" % depot)

@@ -8,6 +8,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, Gio, Pango
 from . import config, theme, systeme as S, apps
 from .ui import *
+from . import animations as A
 from .pages_index import PAGES, PAR_CLE, CATEGORIES, ALIAS, INDEX
 from .panneaux import METEO
 
@@ -259,6 +260,15 @@ class Parametres(Gtk.Application):
             res = deroulant([("%dx%d" % m, "%d × %d%s" % (m[0], m[1], " (recommandé)" if i == 0 else "")) for i, m in enumerate(modes)],
                             "%dx%d" % (e["w"], e["h"]), lambda v, e=e: self.ecran(e, mode=v))
             c.append(reglage("monitor", "Résolution de l'écran", "", droite=res))
+            pr = boite(False, 6)
+            ew = Gtk.SpinButton.new_with_range(320, 7680, 2); ew.set_value(e["w"]); eh = Gtk.SpinButton.new_with_range(200, 4320, 2); eh.set_value(e["h"])
+            ez = Gtk.SpinButton.new_with_range(20, 360, 1); ez.set_value(round(e["hz"] or 60))
+            for x, l in ((ew, None), (eh, "×"), (ez, "Hz")):
+                if l == "×": pr.append(label("×"))
+                pr.append(x)
+                if l == "Hz": pr.append(label("Hz"))
+            pr.append(bouton("Essayer", None, "fantome", rappel=lambda e=e, ew=ew, eh=eh, ez=ez: self.ecran_perso(e, int(ew.get_value()), int(eh.get_value()), float(ez.get_value()))))
+            c.append(reglage("ruler", "Résolution personnalisée", "Pour un écran ou un vidéoprojecteur mal reconnu", droite=pr))
             hz = sorted({r for w, h, r in e["modes"] if (w, h) == (e["w"], e["h"])}, reverse=True)
             if len(hz) > 1:
                 c.append(reglage("gauge", "Fréquence de rafraîchissement", "", droite=deroulant([(str(h), "%.0f Hz" % h) for h in hz], str(e["hz"]),
@@ -270,12 +280,35 @@ class Parametres(Gtk.Application):
                                                                                 e["rotation"], lambda v, e=e: self.ecran(e, rotation=v))))
         c.append(info("Les réglages d'écran sont mémorisés et réappliqués à chaque ouverture de session."))
 
+    def ecran_perso(self, e, w, h, hz):
+        """Essaie une résolution personnalisée : retour automatique à l'ancienne au bout de 15 s si on ne confirme pas (écran noir)."""
+        ancien = (e["w"], e["h"], e["hz"])
+        S.en_fond(S.regler_ecran, None, e["nom"], w, h, hz, None, None, None, True)
+        d = Gtk.Window(transient_for=self.win, modal=True, title="Résolution personnalisée", default_width=420); d.add_css_class("parametres")
+        v = boite(True, 12, margin_top=20, margin_bottom=20, margin_start=24, margin_end=24)
+        v.append(label("Garder %d × %d à %.0f Hz ?" % (w, h, hz), "page-titre")); msg = label("", "attenue", wrap=True); v.append(msg)
+        n = [15]; fini = [False]
+        def retour():
+            if fini[0]: return
+            fini[0] = True; S.en_fond(S.regler_ecran, None, e["nom"], ancien[0], ancien[1], ancien[2]); d.close()
+        def garder():
+            fini[0] = True
+            ec = dict(self.cfg.get("ecrans", {})); dd = dict(ec.get(e["nom"], {})); dd.update(w=w, h=h, hz=hz, perso=True); ec[e["nom"]] = dd; self.regler(ecrans=ec); d.close()
+        def tic():
+            if fini[0]: return False
+            n[0] -= 1; msg.set_text("Retour à l'ancienne résolution dans %d s." % n[0])
+            if n[0] <= 0: retour(); return False
+            return True
+        tic(); GLib.timeout_add_seconds(1, tic)
+        r = boite(False, 8, halign=Gtk.Align.END); r.append(bouton("Revenir", None, "fantome", rappel=retour)); r.append(bouton("Garder", None, "pilule", rappel=garder)); v.append(r)
+        d.set_child(v); d.connect("close-request", lambda *_: (retour() if not fini[0] else None, False)[1]); d.present()
+
     def ecran(self, e, mode=None, hz=None, echelle=None, rotation=None):
         w = h = None
         if mode: w, h = map(int, mode.split("x"))
         S.en_fond(S.regler_ecran, None, e["nom"], w, h, hz, echelle, rotation)
         ec = dict(self.cfg.get("ecrans", {})); d = dict(ec.get(e["nom"], {}))
-        if mode: d.update(w=w, h=h)
+        if mode: d.update(w=w, h=h); d.pop("perso", None)
         if hz: d["hz"] = hz
         if echelle: d["echelle"] = echelle
         if rotation: d["rotation"] = rotation
@@ -307,6 +340,10 @@ class Parametres(Gtk.Application):
         for f in fl:
             c.append(reglage("app-window", f["nom"], "", droite=dim(curseur(f["vol"], lambda v, i=f["idx"]: S.en_fond(S.regler_flux, None, i, v)), 280)))
         c.append(reglage("sliders-horizontal", "Réglages audio avancés", "Profils de carte son, ports, niveaux (pavucontrol)", clic=lambda: S.detacher("pavucontrol")))
+        c.append(groupe_titre("Dépannage"))
+        c.append(reglage("wrench", "Réparer le son", "Pas de son ? Relance le serveur de son, réactive les sorties muettes, essaie un autre pilote si besoin",
+                         droite=bouton("Réparer", None, "pilule", rappel=lambda: (self.toast("Réparation du son…"), S.detacher("xiii-reparer-son")))))
+        c.append(reglage("cpu", "Pilotes et firmwares", "Recherche approfondie du matériel son, graphique, Wi-Fi", clic=lambda: S.detacher("xiii-bilan --pilotes")))
 
     def p_notifications(self, c, cle):
         cfg = self.cfg
@@ -1502,12 +1539,52 @@ class Parametres(Gtk.Application):
             if imgs:
                 pic = Gtk.Picture.new_for_filename(imgs[len(imgs) * 2 // 3]); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(220, 124); pic.add_css_class("miniature"); carte.append(pic)
             carte.append(label(titre + ("  ✓" if cur == th else ""), "gras")); carte.append(label(desc, "petit", "attenue", wrap=True))
-            carte.append(bouton("Actuelle" if cur == th else "Utiliser", None, "pilule" if cur == th else "fantome",
-                                rappel=lambda th=th: (self.toast("Application de l'animation… (une minute)"),
-                                                      S.en_fond(S.admin, lambda r: (self.toast("Animation appliquée au prochain démarrage" if r[0] else "Annulé"), self.aller("demarrage", False)),
-                                                                ["xiii-demarrage-appliquer", th]))))
-            g.append(carte)
+            rb = boite(False, 6)
+            rb.append(bouton("Aperçu", "play", "fantome", rappel=lambda th=th, t=titre: A.fenetre_apercu(self.win, t, theme=th)))
+            rb.append(bouton("Actuelle" if cur == th else "Utiliser", None, "pilule" if cur == th else "fantome", rappel=lambda th=th: self.appliquer_animation(th)))
+            carte.append(rb); g.append(carte)
         c.append(g)
+        # ---- store d'animations (façon Bazzite)
+        cat = A.catalogue()
+        c.append(groupe_titre("Store d'animations (%d)" % len(cat)))
+        if not cat:
+            c.append(info("Le catalogue d'animations n'est pas disponible sur cette version : faites une mise à jour d'OS XIII."))
+            return
+        c.append(info("Animations libres de la collection adi1090x (licence GPL). Survolez une vignette pour la voir bouger, « Aperçu » pour la voir en grand."))
+        g2 = Gtk.FlowBox(max_children_per_line=3, min_children_per_line=2, selection_mode=Gtk.SelectionMode.NONE, column_spacing=10, row_spacing=10, homogeneous=True)
+        for t in cat:
+            carte = boite(True, 6, "carte")
+            lec = A.Lecteur(220, 124); lec.add_css_class("miniature"); carte.append(lec)
+            def charger(lec=lec, url=t["apercu"]):
+                S.en_fond(A.apercu_local, lambda f, lec=lec: lec.gif(f, jouer=False) if isinstance(f, str) else None, url)
+            charger()
+            mv = Gtk.EventControllerMotion()
+            mv.connect("enter", lambda *_ , lec=lec, url=t["apercu"]: lec.gif(os.path.join(A.CACHE, os.path.basename(url))) if os.path.exists(os.path.join(A.CACHE, os.path.basename(url))) else None)
+            mv.connect("leave", lambda *_ , lec=lec, url=t["apercu"]: (lec.stop(), lec.gif(os.path.join(A.CACHE, os.path.basename(url)), jouer=False)) if os.path.exists(os.path.join(A.CACHE, os.path.basename(url))) else None)
+            lec.add_controller(mv)
+            ok = A.installe(t["dossier"])
+            carte.append(label(t["nom"] + ("  ✓" if cur == t["dossier"] else ""), "gras"))
+            rb = boite(False, 6)
+            rb.append(bouton("Aperçu", "play", "fantome", rappel=lambda t=t: S.en_fond(A.apercu_local, lambda f, t=t: A.fenetre_apercu(self.win, t["nom"], gif=f) if isinstance(f, str) else self.toast("Aperçu indisponible (connexion Internet ?)"), t["apercu"])))
+            if ok: rb.append(bouton("Actuelle" if cur == t["dossier"] else "Utiliser", None, "pilule" if cur == t["dossier"] else "fantome", rappel=lambda d=t["dossier"]: self.appliquer_animation(d)))
+            else: rb.append(bouton("Installer", "download", "pilule", rappel=lambda d=t["dossier"], n=t["nom"]: self.installer_animation(d, n)))
+            carte.append(rb); g2.append(carte)
+        c.append(g2)
+
+    def appliquer_animation(self, th):
+        self.toast("Application de l'animation… (une minute)")
+        S.en_fond(S.admin, lambda r: (self.toast("Animation appliquée au prochain démarrage" if r[0] else "Annulé"), self.aller("demarrage", False)), ["xiii-demarrage-appliquer", th])
+
+    def installer_animation(self, d, nom):
+        self.toast("Téléchargement de « %s »… (mot de passe administrateur)" % nom)
+        S.progres("xiii-parametres.desktop", 0.05)
+        def t():
+            p = subprocess.Popen(["pkexec", "/usr/local/sbin/xiii-animation-installer", d], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            for l in p.stdout:
+                m = re.match(r"PROGRES (\d+) (\d+)", l)
+                if m: S.progres("xiii-parametres.desktop", int(m.group(1)) / int(m.group(2)))
+            return p.wait()
+        S.en_fond(t, lambda r: (S.progres("xiii-parametres.desktop", None), self.toast(("« %s » installée et appliquée" % nom) if r == 0 else "Installation annulée ou impossible"), self.aller("demarrage", False)))
 
     # ================================================================== APPLICATIONS
     def p_apps(self, c, cle):

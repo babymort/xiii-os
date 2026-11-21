@@ -369,13 +369,13 @@ def ecrans():
                       echelle=e.get("scale", 1.0), rotation=e.get("transform", "normal"), modes=modes))
     return L
 
-def regler_ecran(nom, w=None, h=None, hz=None, echelle=None, rotation=None, actif=None):
+def regler_ecran(nom, w=None, h=None, hz=None, echelle=None, rotation=None, actif=None, perso=False):
     if DEMO: return True
     cmd = ["wlr-randr", "--output", nom]
     if actif is False: cmd += ["--off"]
     else:
         if actif: cmd += ["--on"]
-        if w: cmd += ["--mode", "%dx%d@%.3fHz" % (w, h, hz) if hz else "%dx%d" % (w, h)]
+        if w: cmd += ["--custom-mode" if perso else "--mode", "%dx%d@%.3fHz" % (w, h, hz) if hz else "%dx%d" % (w, h)]
         if echelle: cmd += ["--scale", str(echelle)]
         if rotation: cmd += ["--transform", rotation]
     return sh(cmd)[0] == 0

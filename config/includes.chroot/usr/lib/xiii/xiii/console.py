@@ -7,6 +7,7 @@ import os, sys, json, glob, shutil, subprocess, threading, re, urllib.request
 import gi
 gi.require_version("Gtk", "4.0"); gi.require_version("WebKit", "6.0")
 from gi.repository import Gtk, Gdk, GLib, Gio, WebKit
+from . import systeme as SY
 
 JEUX = os.path.expanduser("~/Jeux")
 BIOS = os.path.join(JEUX, "bios")
@@ -313,6 +314,8 @@ class Console(Gtk.Application):
         if not e: return
         src = e[8]
         def etat(t, fini=False, ok=True):
+            m = re.search(r"(\d+)\s*%", t or "")
+            SY.progres("xiii-console.desktop", None if fini else (int(m.group(1)) / 100 if m else 0.05))
             GLib.idle_add(lambda: (self.js("installation(%s,%s,%s,%s)" % (json.dumps(sid), json.dumps(t), json.dumps(fini), json.dumps(ok))), False)[1])
         def tache():
             try:

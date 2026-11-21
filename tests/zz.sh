@@ -49,6 +49,17 @@ xiii-archives /tmp/demo.zip > /out/archives.log 2>&1 & sleep 4; grim /out/archiv
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import theme, config; c=config.charger(); print(theme.image_verrou("/usr/share/xiii/wallpapers/xiii-connexion.png", theme.palette(c)))' > /out/verrou.txt 2>&1
 cp "$(tail -1 /out/verrou.txt)" /out/verrou.png 2>/dev/null
 xiii-parametres --page connexion > /out/p.log 2>&1 & sleep 3; grim /out/page-connexion-visage.png; pkill -f xiii.parametres
+# clic en dehors d'un menu ouvert : il doit se fermer (souris virtuelle wlrctl)
+if command -v wlrctl >/dev/null; then
+  for pan in demarrer son centre; do
+    xiii-ctl $pan; sleep 1.5; grim -s 0.5 /out/clic-$pan-avant.png
+    wlrctl pointer move -3000 -3000; wlrctl pointer move 120 450; sleep 0.3; wlrctl pointer click left; sleep 1
+    grim -s 0.5 /out/clic-$pan-apres.png
+    python3 -c "import sys,json; sys.path.insert(0,'/usr/lib/xiii')" 
+    xiii-ctl fermer; sleep 0.4
+  done
+  echo "INFO      clic en dehors : voir clic-*-avant/apres.png" >> $R
+fi
 echo "== Bureau" >> $R
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  xiii-shell" >> $R; grep -A8 Traceback /out/shell.log | tail -12 >> $R; } || echo "OK        xiii-shell (aucune erreur Python)" >> $R
 pgrep -f xiii.shell >/dev/null || echo "FERMÉE    xiii-shell" >> $R

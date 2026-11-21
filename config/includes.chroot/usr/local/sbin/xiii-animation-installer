@@ -1,0 +1,19 @@
+#!/bin/sh
+# OS XIII — installe un thème de démarrage du store (adi1090x/plymouth-themes) puis l'applique. Lancé par pkexec.
+set -e
+D="$1"; [ -n "$D" ] || exit 2
+python3 - "$D" <<'P'
+import json, os, sys, urllib.request
+d = sys.argv[1]
+cat = {t["dossier"]: t for t in json.load(open("/usr/share/xiii/demarrage/catalogue.json"))}
+t = cat.get(d)
+if not t: sys.exit("thème inconnu")
+base = "/usr/share/plymouth/themes/" + d
+os.makedirs(base, exist_ok=True)
+for i, f in enumerate(t["fichiers"]):
+    dest = os.path.join(base, f.split("/", 2)[2])
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    urllib.request.urlretrieve("https://raw.githubusercontent.com/adi1090x/plymouth-themes/master/" + f, dest)
+    print("PROGRES %d %d" % (i + 1, len(t["fichiers"])), flush=True)
+P
+exec /usr/local/bin/xiii-demarrage-appliquer "$D"

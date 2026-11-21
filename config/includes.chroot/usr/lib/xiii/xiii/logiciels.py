@@ -28,7 +28,7 @@ CATALOGUE = {
         ("wifidb", "WiFiDB", "Base de données collaborative des réseaux Wi-Fi (site web)", "web:https://wifidb.net/", None, "globe"),
     ],
     "Production et régie": [
-        ("companion", "Bitfocus Companion", "Stream Deck et boutons de régie (ATEM, vMix, OBS, HyperDeck…) — aussi dans Blackmagic XIII", "github:bitfocus/companion", "xiii-blackmagic", "layout-grid"),
+        ("companion", "Bitfocus Companion", "Stream Deck et boutons de régie (ATEM, vMix, OBS, HyperDeck…) — aussi dans Blackmagic XIII", "companion", "xiii-blackmagic", "layout-grid"),
         ("obs", "OBS Studio", "Enregistrement et diffusion en direct", "apt:obs-studio", "obs", "radio"),
         ("kdenlive", "Kdenlive", "Montage vidéo", "apt:kdenlive", "kdenlive", "film"),
         ("shotcut", "Shotcut", "Montage vidéo simple et léger", "apt:shotcut", "shotcut", "film"),
@@ -94,12 +94,27 @@ def installe(src):
             return v in suivi() or any(nom in p.lower() for p in os.listdir("/usr/share/applications"))
         if src == "plexserver": return os.path.exists("/usr/lib/plexmediaserver")
         if src == "steam": return bool(shutil.which("steam"))
+        if src == "companion":
+            from .blackmagic import companion_bin
+            return bool(companion_bin())
         if t == "web": return True
     except Exception:
         pass
     return False
 
 def installer(src, progres):
+    """Installe, avec la progression affichée aussi dans la barre du haut et sous l'icône de la barre des tâches."""
+    S.progres("xiii-logiciels.desktop", 0.03)
+    def p2(t):
+        m = re.search(r"(\d+)\s*%", t or "")
+        if m: S.progres("xiii-logiciels.desktop", int(m.group(1)) / 100)
+        progres(t)
+    try:
+        return _installer(src, p2)
+    finally:
+        S.progres("xiii-logiciels.desktop", None)
+
+def _installer(src, progres):
     t, _, v = src.partition(":")
     if t == "apt":
         progres("Installation (mot de passe administrateur)…")
@@ -121,6 +136,9 @@ def installer(src, progres):
         f = os.path.join(GLib.get_tmp_dir(), paq + ".deb"); urllib.request.urlretrieve(url, f)
         progres("Installation (mot de passe administrateur)…")
         if subprocess.run(["pkexec", "sh", "-c", "DEBIAN_FRONTEND=noninteractive apt-get install -y '%s'" % f]).returncode: raise RuntimeError("installation annulée")
+    elif src == "companion":
+        from .blackmagic import installer_companion
+        installer_companion(lambda f, t: progres(t))
     elif src == "steam":
         progres("Installation de Steam (mot de passe administrateur)…")
         if subprocess.run(["pkexec", "/usr/local/bin/xiii-installer-steam"]).returncode: raise RuntimeError("installation annulée ou impossible")
@@ -182,7 +200,7 @@ class Centre(Gtk.Application):
     def carte(self, k, nom, desc, src, cmd, ic):
         c = boite(True, 6, "carte", "logiciel")
         h = boite(False, 10); h.append(ico(ic, 26, "c")); col = boite(True, 0, hexpand=True); col.append(label(nom, "gras"))
-        orig = {"apt": "Debian", "flatpak": "Flathub", "github": "GitHub", "web": "Site web", "deb": "Éditeur", "inclus": "OS XIII", "plexserver": "Plex"}[src.split(":")[0]]
+        orig = {"apt": "Debian", "flatpak": "Flathub", "github": "GitHub", "web": "Site web", "deb": "Éditeur", "inclus": "OS XIII", "plexserver": "Plex", "steam": "Valve", "companion": "Bitfocus"}.get(src.split(":")[0], "OS XIII")
         col.append(label(orig, "petit", "attenue")); h.append(col)
         zone = boite(False, 6, valign=Gtk.Align.CENTER); h.append(zone); c.append(h)
         c.append(label(desc, "petit", wrap=True))
@@ -212,9 +230,22 @@ class Centre(Gtk.Application):
             if not q: return
             vider(zone); zone.append(label("Recherche…", "attenue"))
             def cherche():
-                req = urllib.request.Request("https://flathub.org/api/v2/search", data=json.dumps({"query": q, "filters": []}).encode(),
-                                             headers={"Content-Type": "application/json", "User-Agent": "OS-XIII"})
-                return json.load(urllib.request.urlopen(req, timeout=20)).get("hits", [])[:30]
+                # 1. API de Flathub (plusieurs formes selon les versions de l'API) ; 2. recherche locale de flatpak
+                for corps in ({"query": q}, {"query": q, "filters": []}):
+                    try:
+                        req = urllib.request.Request("https://flathub.org/api/v2/search", data=json.dumps(corps).encode(),
+                                                     headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "OS-XIII"})
+                        H = json.load(urllib.request.urlopen(req, timeout=20)).get("hits", [])
+                        if H: return H[:30]
+                    except Exception:
+                        pass
+                subprocess.run(["flatpak", "remote-add", "--user", "--if-not-exists", "flathub", "https://dl.flathub.org/repo/flathub.flatpakrepo"], capture_output=True)
+                r = subprocess.run(["flatpak", "search", "--columns=application,name,description", q], capture_output=True, text=True, timeout=120)
+                H = []
+                for l in r.stdout.splitlines():
+                    c = l.split("\t")
+                    if len(c) >= 2 and "." in c[0]: H.append({"app_id": c[0], "name": c[1], "summary": c[2] if len(c) > 2 else ""})
+                return H[:30]
             def fin(H):
                 vider(zone)
                 if isinstance(H, Exception) or not H: zone.append(label("Aucun résultat (connexion Internet ?).", "attenue")); return

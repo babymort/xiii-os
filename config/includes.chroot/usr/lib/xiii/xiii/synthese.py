@@ -21,6 +21,18 @@ CONSIGNES = {
 def modele():
     return next((m for m in MODELES if os.path.isdir(m)), None)
 
+def telecharger_modele(progres=lambda x: None):
+    """Modèle vocal français (~40 Mo) téléchargé à la première utilisation (édition légère)."""
+    import urllib.request, zipfile, tempfile, shutil
+    d = os.path.expanduser("~/.local/share/vosk"); os.makedirs(d, exist_ok=True)
+    tmp = os.path.join(tempfile.gettempdir(), "vosk-fr.zip")
+    def av(n, bs, tot):
+        if tot > 0: progres(min(1, n * bs / tot) * .9)
+    urllib.request.urlretrieve("https://alphacephei.com/vosk/models/vosk-model-small-fr-0.22.zip", tmp, av)
+    zipfile.ZipFile(tmp).extractall(d); os.unlink(tmp)
+    shutil.rmtree(os.path.join(d, "fr"), ignore_errors=True); os.rename(os.path.join(d, "vosk-model-small-fr-0.22"), os.path.join(d, "fr"))
+    progres(1); return modele()
+
 def dossier_sortie():
     pj = config.charger().get("projet_actif")
     d = os.path.join(os.path.expanduser("~/XIII"), pj, "03_Documents", "Syntheses") if pj else os.path.join(os.path.expanduser("~/Documents"), "Synthèses")
@@ -92,7 +104,7 @@ class Synthese(Gtk.Application):
         self.b_res = bouton("Résumer avec l'IA", "sparkles", "pilule", rappel=self.resumer); self.b_res.set_sensitive(False); bas.append(self.b_res)
         v.append(bas)
         if not modele():
-            self.etat.set_text("Le modèle de reconnaissance vocale française n'est pas installé : la transcription est impossible, mais l'enregistrement fonctionne.")
+            self.etat.set_text("Le modèle de reconnaissance vocale française (~40 Mo) sera téléchargé à la première transcription.")
         self.win.set_child(v); self.win.present()
 
     def lister_micros(self):
@@ -125,7 +137,11 @@ class Synthese(Gtk.Application):
         d.open(self.win, None, fin)
 
     def traiter(self, f):
-        if not modele(): self.etat.set_text("Enregistré : %s. Transcription impossible sans le modèle vocal." % f); return
+        if not modele():
+            self.etat.set_text("Téléchargement du modèle vocal français (~40 Mo)…"); self.pb.set_visible(True)
+            def prog0(x): GLib.idle_add(lambda: (self.pb.set_fraction(x), False)[1]); S.progres("xiii-synthese.desktop", x if x < 1 else None)
+            S.en_fond(lambda: telecharger_modele(prog0), lambda r: self.traiter(f) if isinstance(r, str) else self.etat.set_text("Modèle vocal impossible à télécharger (connexion Internet ?). Enregistré : %s" % f))
+            return
         self.etat.set_text("Transcription sur ce PC… (environ la moitié de la durée de l'audio sur un vieux PC)"); self.pb.set_visible(True); self.pb.set_fraction(0)
         def prog(x): GLib.idle_add(lambda: (self.pb.set_fraction(x), False)[1])
         def fin(t):

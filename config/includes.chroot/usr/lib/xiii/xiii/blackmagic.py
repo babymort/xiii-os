@@ -50,6 +50,27 @@ def resolve():
         if os.path.exists(p): return p
     return None
 
+def installer_companion(progres=lambda f, t: None):
+    """Companion 4 et plus : les versions Linux sont publiées par l'API de Bitfocus (plus sur GitHub)."""
+    import json
+    arm = os.uname().machine in ("aarch64", "arm64")
+    cible, motif = ("linux-arm64-tgz", "arm64") if arm else ("linux-tgz", "x64")
+    req = urllib.request.Request("https://api.bitfocus.io/v1/product/companion/packages?limit=20", headers={"User-Agent": "OS-XIII"})
+    d = json.load(urllib.request.urlopen(req, timeout=30))
+    L = d if isinstance(d, list) else d.get("packages", [])
+    p = next((x for x in L if x.get("target") == cible and motif in (x.get("uri") or "")), None)
+    if not p: raise RuntimeError("pas de version Linux publiée par Bitfocus")
+    tmp = os.path.join(GLib.get_tmp_dir(), "companion.tar.gz")
+    def avance(n, bs, tot):
+        if tot > 0: progres(min(1, n * bs / tot) * .9, "Téléchargement de Companion %s : %d %%" % (p.get("version", ""), min(100, n * bs * 100 // tot)))
+    urllib.request.urlretrieve(p["uri"], tmp, avance)
+    progres(.95, "Installation…")
+    shutil.rmtree(COMPANION, ignore_errors=True); os.makedirs(COMPANION)
+    subprocess.run(["tar", "-xf", tmp, "-C", COMPANION], check=True); os.unlink(tmp)
+    c = conf(); c["companion_version"] = p.get("version", ""); sauver(c)
+    S.progres("xiii-blackmagic.desktop", None)
+    return p.get("version", "")
+
 def companion_bin():
     for p in glob.glob(COMPANION + "/**/companion-launcher", recursive=True) + glob.glob(COMPANION + "/**/companion_headless.sh", recursive=True):
         return p
@@ -129,7 +150,7 @@ class Blackmagic(Gtk.Application):
     def p_companion(self, v):
         b = companion_bin(); c = conf()
         if not b:
-            self.ligne(v, "download", "Installer Companion", "Dernière version Linux depuis GitHub (bitfocus/companion)", bouton("Installer", None, "pilule", rappel=lambda: self.installer_companion(v)))
+            self.ligne(v, "download", "Installer Companion", "Dernière version Linux publiée par Bitfocus", bouton("Installer", None, "pilule", rappel=lambda: self.installer_companion(v)))
             return
         auto = os.path.join(GLib.get_user_config_dir(), "autostart", "companion.desktop")
         def auto_(on):
@@ -147,17 +168,9 @@ class Blackmagic(Gtk.Application):
 
     def installer_companion(self, v):
         pb = Gtk.ProgressBar(show_text=True); v.append(pb); pb.set_text("Recherche de la dernière version…")
-        def tache():
-            sys.path.insert(0, "/usr/lib/xiii")
-            from xiii.store_github import requete, meilleur_fichier
-            rel = requete("/repos/bitfocus/companion/releases/latest"); a, typ = meilleur_fichier(rel["assets"])
-            if not a: raise RuntimeError("pas de version Linux")
-            tmp = os.path.join(GLib.get_tmp_dir(), a["name"])
-            urllib.request.urlretrieve(a["browser_download_url"], tmp)
-            shutil.rmtree(COMPANION, ignore_errors=True); os.makedirs(COMPANION)
-            subprocess.run(["tar", "-xf", tmp, "-C", COMPANION], check=True); os.unlink(tmp)
-            c = conf(); c["companion_version"] = rel["tag_name"]; sauver(c); return rel["tag_name"]
-        S.en_fond(tache, lambda r: (pb.set_text(("Erreur : %s" % r) if isinstance(r, Exception) else "Companion %s installé ✓" % r), self.page("companion") if not isinstance(r, Exception) else None))
+        def progres(f, t): GLib.idle_add(lambda: (pb.set_fraction(f), pb.set_text(t), False)[2])
+        S.en_fond(lambda: installer_companion(progres),
+                  lambda r: (pb.set_text(("Erreur : %s" % r) if isinstance(r, Exception) else "Companion %s installé" % r), self.page("companion") if not isinstance(r, Exception) else None))
 
     # ------------------------------------------------------------------ outils web intégrés
     def bloc_web(self, v, k, typ):
@@ -219,8 +232,9 @@ class Blackmagic(Gtk.Application):
         def tache():
             msg = []
             if companion_bin():
-                sys.path.insert(0, "/usr/lib/xiii"); from xiii.store_github import requete
-                t = requete("/repos/bitfocus/companion/releases/latest").get("tag_name")
+                d = json.load(urllib.request.urlopen(urllib.request.Request("https://api.bitfocus.io/v1/product/companion/packages?limit=20", headers={"User-Agent": "OS-XIII"}), timeout=30))
+                L = d if isinstance(d, list) else d.get("packages", [])
+                t = next((x.get("version") for x in L if (x.get("target") or "").startswith("linux")), None)
                 if t and t != c.get("companion_version"): msg.append("Companion %s" % t)
             if version_paquet("desktopvideo"):
                 o = subprocess.run(["apt-get", "-s", "upgrade"], capture_output=True, text=True).stdout

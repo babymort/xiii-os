@@ -1,0 +1,5 @@
+#!/bin/sh
+# OS XIII — ouverture des pages de connexion (OneDrive, Google Drive) en fenêtre privée : on peut se connecter à un autre compte.
+if command -v firefox-esr >/dev/null; then exec firefox-esr --private-window "$1"; fi
+if command -v chromium >/dev/null; then exec chromium --incognito "$1"; fi
+exec /usr/bin/xdg-open "$1"

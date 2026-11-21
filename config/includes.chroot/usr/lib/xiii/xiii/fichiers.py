@@ -53,6 +53,9 @@ class Fichiers(Gtk.Application):
     def activer(self):
         if getattr(self, "win", None): self.win.present(); return
         self.cfg = preparer("""
+            progressbar.indic-barre > trough { min-height: 5px; border-radius: 3px; background-color: alpha(currentColor, .15); border: none; }
+            progressbar.indic-barre > trough > progress { min-height: 5px; border-radius: 3px; background-color: @accent_bg_color; background-image: none; border: none; box-shadow: none; }
+            progressbar.indic-barre.plein > trough > progress { background-color: #e98080; }
             .barre-chemin button { padding: 2px 8px; border-radius: 8px; } .barre-chemin button:last-child label { font-weight: 700; }
             .vue-choix button { padding: 4px 10px; border-radius: 999px; } .vue-choix button.actif { background: alpha(@accent_bg_color, .22); }
             columnview { background: transparent; } columnview row:selected { background: alpha(@accent_bg_color, .22); }
@@ -135,6 +138,20 @@ class Fichiers(Gtk.Application):
         onglet("hard-drive", "Ordinateur", "/")
         b = Gtk.Button(); b.add_css_class("onglet"); bx = boite(False, 10); bx.append(ico("trash-2", 16, "c")); bx.append(label("Corbeille", hexpand=True)); b.set_child(bx)
         b.connect("clicked", lambda *_: S.detacher(["thunar", "trash:///"])); self.volet.append(b)
+        # espace restant sur chaque disque, en bas du volet
+        disques = [("Ordinateur", "/")] + [(m.get_name(), m.get_root().get_path()) for m in mounts]
+        if os.path.ismount(os.path.expanduser("~")): disques.insert(1, ("Dossier personnel", os.path.expanduser("~")))
+        bas = boite(True, 6, vexpand=True, valign=Gtk.Align.END, margin_top=14, margin_start=8, margin_end=8)
+        bas.append(label("Espace disque", "section"))
+        for nom, chemin in disques:
+            try: u = shutil.disk_usage(chemin)
+            except OSError: continue
+            r = boite(True, 2)
+            h = boite(False, 6); h.append(label(nom, "petit", "gras", hexpand=True, ellipsize=True)); h.append(label("%s libres" % S.humain(u.free), "petit", "attenue")); r.append(h)
+            pb = Gtk.ProgressBar(fraction=u.used / u.total if u.total else 0); pb.add_css_class("indic-barre")
+            if u.total and u.free / u.total < .1: pb.add_css_class("plein")
+            pb.set_tooltip_text("%s utilisés sur %s" % (S.humain(u.used), S.humain(u.total))); r.append(pb); bas.append(r)
+        self.volet.append(bas)
         self.marquer_volet()
 
     def marquer_volet(self):

@@ -125,6 +125,12 @@ class Shell(Gtk.Application):
             w = Gtk.Window(application=self)
             couche(w, LS.Layer.OVERLAY, ancres, marges, LS.KeyboardMode.EXCLUSIVE if nom in ("demarrer", "wifi", "presse", "emoji") else LS.KeyboardMode.ON_DEMAND, ns="xiii-" + nom)
             k = Gtk.EventControllerKey(); k.connect("key-pressed", self._touche); w.add_controller(k)
+            # filet de sécurité : un panneau qui perd le focus (clic dans une autre fenêtre) se ferme
+            def focus(win, _p, n=nom):
+                if win.is_active(): win._etait_actif = True
+                elif getattr(win, "_etait_actif", False) and self.ouvert == n:
+                    win._etait_actif = False; GLib.idle_add(lambda: (self.fermer() if self.ouvert == n else None, False)[1])
+            w.connect("notify::is-active", focus)
             if nom == "demarrer":
                 self.menu = MenuDemarrer(self); w.set_child(self.menu.widget); obj = self.menu
             else:
@@ -308,10 +314,25 @@ class Shell(Gtk.Application):
                 did = uri.replace("application://", "")
                 if props.get("progress-visible") is False or ("progress" not in props and "progress-visible" in props): self.progres.pop(did, None)
                 elif "progress" in props: self.progres[did] = float(props["progress"])
-                GLib.idle_add(lambda: (self.maj_taches(), False)[1])
+                GLib.idle_add(lambda: (self.maj_taches(), self.maj_telechargements(), False)[2])
             except Exception:
                 pass
         bus.signal_subscribe(None, "com.canonical.Unity.LauncherEntry", "Update", None, None, 0, signal)
+
+    def maj_telechargements(self):
+        """Barre du haut : téléchargements et installations en cours (Centre de logiciels, Store GitHub, Flathub, Console…)."""
+        b = getattr(self, "b_dl", None)
+        if not b: return
+        if not self.progres:
+            b.set_visible(False); return
+        moy = sum(self.progres.values()) / len(self.progres)
+        noms = []
+        for did in self.progres:
+            a = apps.par_id(did); noms.append(a.get_display_name() if a else did.replace(".desktop", ""))
+        bx = boite(False, 6, valign=Gtk.Align.CENTER); bx.append(ico("download", 14, "c"))
+        pb = Gtk.ProgressBar(fraction=moy, valign=Gtk.Align.CENTER); pb.add_css_class("indic-barre"); pb.set_size_request(54, -1); bx.append(pb)
+        bx.append(label("%d %%" % round(moy * 100), "petit", "gras")); b.set_child(bx)
+        b.set_tooltip_text("En cours : " + ", ".join(noms)); b.set_visible(True)
 
     def bouton_tache(self, cle, a, fs):
         b = Gtk.Button(); b.add_css_class("tb")
@@ -441,6 +462,8 @@ class Shell(Gtk.Application):
         # IA en cours (pastille au trait, comme la suite) : volet IA XIII · assistant de synthèse · téléphone
         self.b_ia = Gtk.Button(); self.b_ia.add_css_class("hb"); self.maj_bouton_ia()
         self.b_ia.connect("clicked", lambda *_: S.detacher("xiii-ia")); clic_droit(self.b_ia, lambda: self.menu_ia(self.b_ia)); outils.append(self.b_ia)
+        self.b_dl = Gtk.Button(); self.b_dl.add_css_class("hb"); self.b_dl.set_visible(False)
+        self.b_dl.connect("clicked", lambda *_: S.detacher("xiii-logiciels")); outils.append(self.b_dl)
         outils.append(self.bouton_survol("audio-lines", "Synthèse", lambda: S.detacher("xiii-synthese"), lambda: [("sparkles", "Choisir l'IA", lambda: self.menu_ia(self.b_ia))]))
         outils.append(self.bouton_survol("smartphone", "Téléphone", lambda: S.detacher("xiii-phonebox"),
                                          [("share-2", "Envoyer des fichiers (LocalSend, Transferts)", lambda: S.detacher("xiii-transferts")), ("bluetooth", "Bluetooth", lambda: self.parametres("bluetooth"))]))
@@ -788,7 +811,7 @@ class Shell(Gtk.Application):
         if premier: self.automontage()
         if premier:
             for nom, e in (c.get("ecrans") or {}).items():
-                S.en_fond(S.regler_ecran, None, nom, e.get("w"), e.get("h"), e.get("hz"), e.get("echelle"), e.get("rotation"))
+                S.en_fond(S.regler_ecran, None, nom, e.get("w"), e.get("h"), e.get("hz"), e.get("echelle"), e.get("rotation"), None, bool(e.get("perso")))
             if profils.courant(c)[0] != "normal": self.appliquer_profil(profils.courant(c)[0], silencieux=True)
             if c.get("reprise_session"): GLib.timeout_add_seconds(4, lambda: (self.reprendre_session(), False)[1])
             if c.get("jeu_console") and profils.courant(c)[0] == "jeu": S.detacher(["steam", "-gamepadui"])

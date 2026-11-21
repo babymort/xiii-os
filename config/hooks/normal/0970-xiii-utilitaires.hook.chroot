@@ -5,7 +5,9 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python
 # Reconnaissance vocale hors ligne (Vosk) + petit modèle français (~40 Mo)
 pip3 install --break-system-packages --no-cache-dir vosk || echo "vosk indisponible"
 mkdir -p /usr/share/vosk
-if curl -fsSL --retry 3 -o /tmp/vosk-fr.zip https://alphacephei.com/vosk/models/vosk-model-small-fr-0.22.zip; then
+ED=$(cat /etc/xiii/edition 2>/dev/null || echo complete)
+# édition légère : le modèle se télécharge à la première transcription
+if [ "$ED" != leger ] && curl -fsSL --retry 3 -o /tmp/vosk-fr.zip https://alphacephei.com/vosk/models/vosk-model-small-fr-0.22.zip; then
   unzip -q /tmp/vosk-fr.zip -d /tmp/vosk && mv /tmp/vosk/vosk-model-small-fr-0.22 /usr/share/vosk/fr && rm -rf /tmp/vosk /tmp/vosk-fr.zip
 else echo "modèle vocal français indisponible"; fi
 # PhoneBox (github.com/ersinkoc/phonebox) : compagnon téléphone ↔ PC, dernière version Linux

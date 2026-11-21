@@ -1,0 +1,26 @@
+#!/bin/bash
+# OS XIII — Réparer le son : relance le serveur de son, réactive les sorties muettes, choisit une vraie sortie,
+# et sur les portables Intel récents sans carte son détectée, propose le pilote son « classique » (HDA) au lieu de SOF.
+notif() { notify-send -a "Son" -i audio-volume-high "$1" "$2"; }
+cartes=$(grep -c '^ *[0-9]' /proc/asound/cards 2>/dev/null)
+if [ "${cartes:-0}" -eq 0 ]; then
+  if dmesg 2>/dev/null | grep -qiE 'sof-audio|sof_|snd_sof|dsp_driver|No SOF|skl_hda'; then
+    if pkexec sh -c 'echo "options snd-intel-dspcfg dsp_driver=1" > /etc/modprobe.d/xiii-son.conf && update-initramfs -u'; then
+      notif "Pilote son changé" "Redémarrez l'ordinateur pour activer le son (pilote HDA)."; exit 0
+    fi
+  fi
+  notif "Aucune carte son détectée" "Ouvrez Pilotes XIII pour voir les firmwares manquants."; exit 1
+fi
+# serveur de son (utilisateur) relancé
+systemctl --user restart pipewire pipewire-pulse wireplumber 2>/dev/null; sleep 2
+# toutes les commandes ALSA réactivées (Master, Speaker, Headphone, PCM) à 80 %
+for c in $(awk '/^ *[0-9]+ \[/{print $1}' /proc/asound/cards); do
+  for ctl in Master Speaker Headphone PCM Front 'Auto-Mute Mode'; do
+    [ "$ctl" = 'Auto-Mute Mode' ] && { amixer -q -c "$c" sset "$ctl" Enabled 2>/dev/null; continue; }
+    amixer -q -c "$c" sset "$ctl" 80% unmute 2>/dev/null
+  done
+done
+# une vraie sortie par défaut (pas « Dummy Output »)
+s=$(pactl list short sinks 2>/dev/null | grep -v auto_null | awk '{print $2}' | head -1)
+[ -n "$s" ] && pactl set-default-sink "$s" && pactl set-sink-mute "$s" 0 && pactl set-sink-volume "$s" 70%
+if [ -n "$s" ]; then notif "Son réparé" "Sortie : $(pactl list sinks | grep -A1 "Name: $s" | sed -n 's/.*Description: //p' | head -1)"; else notif "Pas de sortie son" "La carte est vue mais aucune sortie n'est disponible : redémarrez l'ordinateur."; fi

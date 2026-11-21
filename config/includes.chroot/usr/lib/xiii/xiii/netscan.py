@@ -6,7 +6,7 @@ import os, re, socket, subprocess, threading, ipaddress, urllib.request, ssl, js
 
 PORTS = {21: "FTP", 22: "SSH", 80: "Web", 139: "NetBIOS", 443: "Web sécurisé", 445: "Partage Windows (SMB)", 548: "AFP", 631: "Imprimante",
          2049: "NFS", 3389: "Bureau à distance (RDP)", 5000: "Web (Synology / UGREEN)", 5001: "Web sécurisé (Synology)", 5900: "VNC",
-         8080: "Web (QNAP / Asustor)", 8443: "Web sécurisé", 9000: "Portainer / web", 9910: "ATEM", 8099: "vMix", 1935: "RTMP", 5960: "NDI"}
+         8080: "Web (QNAP / Asustor)", 8181: "Web (TerraMaster TOS)", 5443: "Web sécurisé (TerraMaster)", 9999: "Web (Buffalo / Zyxel)", 8443: "Web sécurisé", 9000: "Portainer / web", 9910: "ATEM", 8099: "vMix", 1935: "RTMP", 5960: "NDI"}
 MARQUES = ["Synology", "QNAP", "Asustor", "TerraMaster", "Western Digital", "WD My Cloud", "Netgear", "ReadyNAS", "Buffalo", "UGREEN", "TrueNAS", "FreeNAS",
            "iXsystems", "Seagate", "LaCie", "Drobo", "Zyxel", "Thecus", "D-Link", "Unraid", "OpenMediaVault", "Freebox", "Livebox", "Bbox", "Apple",
            "Time Capsule", "Lenovo Iomega", "Iomega", "Netgear ReadyNAS", "Lacie", "Infortrend", "Promise", "OWC", "Blackmagic", "Dell", "HP", "Raspberry"]
@@ -100,7 +100,7 @@ def mdns():
 def titre_web(ip, port):
     try:
         ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
-        u = "%s://%s:%d/" % ("https" if port in (443, 5001, 8443) else "http", ip, port)
+        u = "%s://%s:%d/" % ("https" if port in (443, 5001, 8443, 5443) else "http", ip, port)
         r = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "OS-XIII"}), timeout=1.5, context=ctx)
         t = r.read(30000).decode("utf-8", "replace")
         m = re.search(r"<title[^>]*>([^<]{1,80})</title>", t, re.I)
@@ -114,12 +114,14 @@ def marque(app):
         if m.lower() in txt: return m
     if "diskstation" in txt or "dsm" in txt: return "Synology"
     if "qts" in txt or "quts" in txt: return "QNAP"
+    if "tnas" in txt or re.search(r"\btos\b", txt) or "terra" in txt: return "TerraMaster"
+    if 8181 in app.get("ports", []) or 5443 in app.get("ports", []): return "TerraMaster"
     if "adm" in txt and "asustor" in txt: return "Asustor"
     return ""
 
 def est_nas(app):
     s = set(app.get("ports", []))
-    return bool(marque(app) in MARQUES[:24] or (s & {445, 2049, 548}) and (s & {5000, 5001, 8080, 80, 443}) or "_smb._tcp" in app.get("services", ()))
+    return bool(marque(app) in MARQUES[:24] or (s & {445, 2049, 548}) and (s & {5000, 5001, 8080, 8181, 5443, 80, 443}) or (s & {8181, 5443}) and (s & {445, 139}) or "_smb._tcp" in app.get("services", ()))
 
 def type_appareil(app):
     s = set(app.get("ports", [])); m = marque(app); f = app.get("fabricant", "").lower()
@@ -155,7 +157,7 @@ def analyser(plage, progres=None, ports=None, arreter=lambda: False):
             a["nom"] = a["nom"] or md[ip]["nom"]; a["services"] = md[ip]["services"]; a["txt"] = md[ip]["txt"]
         a["fabricant"] = fabricant(a["mac"])
         a["ports"] = [pt for pt in ports if port_ouvert(ip, pt)]
-        for pt in (5000, 5001, 8080, 80, 443):
+        for pt in (5000, 5001, 8181, 5443, 8080, 80, 443):
             if pt in a["ports"]:
                 a["web"] = titre_web(ip, pt)
                 if a["web"]: break

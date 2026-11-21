@@ -56,7 +56,10 @@ def rclone_creer(l):
             "sftp": ["sftp", "host=" + l.get("hote", ""), "user=" + l.get("utilisateur", ""), "pass=" + l.get("mdp", "")] + (["port=" + l["port"]] if l.get("port") else []),
             "ftp": ["ftp", "host=" + l.get("hote", ""), "user=" + (l.get("utilisateur") or "anonymous"), "pass=" + l.get("mdp", "")] + (["port=" + l["port"]] if l.get("port") else []),
             "onedrive": ["onedrive", "config_type=onedrive"], "drive": ["drive", "scope=drive"]}[t]
-    r = subprocess.run(["rclone", "config", "create", rid] + args + ["--obscure"], capture_output=True, text=True, timeout=600)
+    env = dict(os.environ)
+    if t in ("onedrive", "drive"):      # navigateur en fenêtre privée : chaque connexion peut choisir un compte différent
+        env["PATH"] = "/usr/lib/xiii/prive:" + env.get("PATH", "")
+    r = subprocess.run(["rclone", "config", "create", rid] + args + ["--obscure"], capture_output=True, text=True, timeout=600, env=env)
     return r.returncode == 0, (r.stderr or r.stdout).strip()[-300:]
 
 def distant(l):
@@ -173,7 +176,13 @@ class Lecteurs(Gtk.Application):
     def formulaire(self, t, valeurs=None):
         valeurs = valeurs or {}; k, n, ic, d, champs = PAR_TYPE[t]
         sc, v = page(n, d, ic)
-        nom = Gtk.Entry(text=valeurs.get("nom") or (valeurs.get("hote") or n.split(" (")[0])); v.append(reglage_ligne("Nom du lecteur", nom))
+        defaut = valeurs.get("nom") or (valeurs.get("hote") or n.split(" (")[0])
+        if not valeurs.get("nom"):          # plusieurs comptes du même service : « OneDrive 2 », « OneDrive 3 »…
+            pris = {x["nom"] for x in lecteurs()}; base, i = defaut, 2
+            while defaut in pris: defaut = "%s %d" % (base, i); i += 1
+        nom = Gtk.Entry(text=defaut); v.append(reglage_ligne("Nom du lecteur", nom))
+        if t in ("onedrive", "drive") and any(x["type"] == t for x in lecteurs()):
+            v.append(info_boite("Un autre compte est déjà connecté : la connexion s'ouvre dans une fenêtre privée, pour choisir un autre compte."))
         E = {}
         for c in champs:
             e = Gtk.PasswordEntry(show_peek_icon=True) if c == "mdp" else Gtk.Entry(text=valeurs.get(c, ""))
