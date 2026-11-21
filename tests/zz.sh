@@ -16,7 +16,7 @@ verifier() {  # nom, motif du processus, journal
   else echo "OK        $nom" >> $R; fi
 }
 echo "== Applications" >> $R
-for a in acquisition bilan blackmagic console debit demarrage fichiers ia lecteurs logiciels qrwifi retour scanip somme store-github suite synthese taches tally timecode transferts windows bienvenue phonebox; do
+for a in archives paquets acquisition bilan blackmagic console debit demarrage fichiers ia lecteurs logiciels qrwifi retour scanip somme store-github suite synthese taches tally timecode transferts windows bienvenue phonebox; do
   command -v xiii-$a >/dev/null || { echo "ABSENTE   xiii-$a" >> $R; continue; }
   xiii-$a > /out/app-$a.log 2>&1 &
   sleep 5; grim -s 0.5 /out/app-$a.png
@@ -44,6 +44,8 @@ done
 python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, theme='sombre')"
 sleep 3; xiii-ctl demarrer-categorie; sleep 2; grim /out/menu-categorie.png; xiii-ctl fermer; sleep 0.4
 grim /out/bureau-fond.png
+cd /tmp && mkdir -p demo && echo bonjour > demo/a.txt && zip -qr demo.zip demo && cd - >/dev/null
+xiii-archives /tmp/demo.zip > /out/archives.log 2>&1 & sleep 4; grim /out/archives-zip.png; pkill -f xiii.archives
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import theme, config; c=config.charger(); print(theme.image_verrou("/usr/share/xiii/wallpapers/xiii-connexion.png", theme.palette(c)))' > /out/verrou.txt 2>&1
 cp "$(tail -1 /out/verrou.txt)" /out/verrou.png 2>/dev/null
 xiii-parametres --page connexion > /out/p.log 2>&1 & sleep 3; grim /out/page-connexion-visage.png; pkill -f xiii.parametres

@@ -1,4 +1,18 @@
 [Default Applications]
+application/zip=xiii-archives.desktop
+application/x-zip-compressed=xiii-archives.desktop
+application/vnd.rar=xiii-archives.desktop
+application/x-rar=xiii-archives.desktop
+application/x-rar-compressed=xiii-archives.desktop
+application/x-7z-compressed=xiii-archives.desktop
+application/x-tar=xiii-archives.desktop
+application/x-compressed-tar=xiii-archives.desktop
+application/x-bzip-compressed-tar=xiii-archives.desktop
+application/x-xz-compressed-tar=xiii-archives.desktop
+application/x-zstd-compressed-tar=xiii-archives.desktop
+application/gzip=xiii-archives.desktop
+application/vnd.debian.binary-package=xiii-paquets.desktop
+application/x-deb=xiii-paquets.desktop
 inode/directory=xiii-fichiers.desktop;thunar.desktop
 application/x-ms-dos-executable=xiii-windows.desktop
 application/x-msdownload=xiii-windows.desktop

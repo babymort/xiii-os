@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Archives XIII
+Comment=Ouvrir et extraire les .zip, .rar, .7z, .tar.gz
+Exec=xiii-archives %F
+Icon=xiii-archives
+Type=Application
+Categories=Utility;Archiving;XIII;
+MimeType=application/zip;application/x-zip-compressed;application/vnd.rar;application/x-rar;application/x-rar-compressed;application/x-7z-compressed;application/x-tar;application/x-compressed-tar;application/x-bzip-compressed-tar;application/x-xz-compressed-tar;application/x-zstd-compressed-tar;application/gzip;application/x-gzip;application/x-xz;application/x-bzip2;application/zstd;application/vnd.ms-cab-compressed;application/x-lzh-compressed;application/x-arj;
+Keywords=zip;rar;7z;tar;archive;extraire;décompresser;

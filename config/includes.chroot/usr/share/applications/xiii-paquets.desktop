@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Installer un logiciel (.deb)
+Comment=Installer un logiciel Linux depuis un fichier .deb, d'un double-clic
+Exec=xiii-paquets %f
+Icon=xiii-paquets
+Type=Application
+Categories=System;XIII;
+MimeType=application/vnd.debian.binary-package;application/x-deb;application/x-debian-package;
+Keywords=deb;paquet;installer;logiciel;

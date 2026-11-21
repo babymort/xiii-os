@@ -4,7 +4,7 @@
 #   • Arbre : arbre généalogique des dossiers, qu'on déplie branche par branche
 # Cloud (~/Cloud) et NAS (~/Réseau) montés par Lecteurs réseau, clés et disques, corbeille.
 # Application développée par Matthieu Lamotte.
-import os, sys, shutil, threading, time, datetime, subprocess, json
+import os, sys, re, shutil, threading, time, datetime, subprocess, json
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, Gio, GObject, Pango
@@ -374,6 +374,10 @@ class Fichiers(Gtk.Application):
             except Exception: pass
         items += [None, ("scissors", "Couper (Ctrl+X)", lambda: self.memoriser(L, True)), ("copy", "Copier (Ctrl+C)", lambda: self.memoriser(L, False))]
         if self.presse and os.path.isdir(p): items.append(("clipboard-paste", "Coller dans ce dossier", lambda: self.coller(p)))
+        if len(L) == 1 and re.search(r"\.(zip|rar|7z|tar|tgz|gz|xz|bz2|zst)$", p, re.I):
+            items += [("folder-input", "Extraire…", lambda: S.detacher(["xiii-archives", p]))]
+        if len(L) == 1 and p.lower().endswith(".deb"):
+            items += [("package", "Installer ce logiciel", lambda: S.detacher(["xiii-paquets", p]))]
         items += [("text-cursor-input", "Renommer (F2)", lambda: self.renommer(p)), ("archive", "Compresser (.zip)", lambda: self.compresser(L)),
                   ("send", "Envoyer (Transferts XIII)", lambda: S.detacher(["xiii-transferts"] + L)), ("folder-input", "Envoyer à DOSSIER XIII", lambda: S.detacher(["xiii-suite", "--dossier"] + L)),
                   None, ("link", "Copier le chemin", lambda: Gdk.Display.get_default().get_clipboard().set_text("\n".join(L))),

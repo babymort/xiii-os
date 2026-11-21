@@ -31,3 +31,9 @@ intel-microcode
 # Phase 14 — vieux PC : mémoire compressée, protection contre le gel
 zram-tools
 earlyoom
+# Archives XIII et installation des .deb
+7zip
+p7zip-full
+unar
+zip
+unzip
