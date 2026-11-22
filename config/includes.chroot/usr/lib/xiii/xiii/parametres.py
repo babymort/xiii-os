@@ -1363,7 +1363,7 @@ class Parametres(Gtk.Application):
                                                                                 lambda v, k=k: self.regler(coins=dict(self.cfg.get("coins", {}), **{k: v})), 220)))
         c.append(groupe_titre("Écran de veille"))
         c.append(reglage("timer", "Écran de veille", "Affiché après inactivité, avant le verrouillage",
-                         droite=deroulant([("aucun", "Aucun"), ("horloge", "Horloge plateau"), ("mire", "Mire de barres"), ("conducteur", "Conducteur CONDUCO")],
+                         droite=deroulant([("aucun", "Aucun"), ("horloge", "Horloge plateau"), ("mire", "Mire de barres"), ("conducteur", "Conducteur CONDUCO"), ("flip", "Horloge à volets"), ("logo", "Logo XIII flottant")],
                                           cfg.get("veille_mode", "horloge"), lambda v: self.regler(veille_mode=v), 220)))
         c.append(reglage("timer", "Délai", None, droite=deroulant([(str(s), t) for s, t in ((60, "1 minute"), (180, "3 minutes"), (300, "5 minutes"), (600, "10 minutes"))],
                                                                   str(cfg.get("veille_delai", 300)), lambda v: self.regler(veille_delai=int(v)))))

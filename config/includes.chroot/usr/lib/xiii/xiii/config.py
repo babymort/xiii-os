@@ -44,6 +44,11 @@ DEFAUTS = {
     "haut_pourcentage": True,
     "horloge_24h": True,
     "ne_pas_deranger": False,
+    # saison 3 — phase B (graphisme)
+    "accent_auto": False, "icones_tierces": True, "fond_anime": False,
+    "sons_systeme": True, "sons_volume": 70,
+    "connexion_avatar": "", "connexion_fond": "", "connexion_flou": False, "connexion_position": "centre", "connexion_horloge": "%H:%M  ·  %a %d %b",
+    "widgets_bureau": [], "compte_nom": "", "compte_date": "",
     "notif_apercu": True,
     "notif_bloquees": [],
     "meteo_ville": "Paris",
