@@ -89,12 +89,22 @@ def lancer_outil(t, i):
         elif i == "xiii-blackmagic.desktop": S.detacher(["xiii-parametres", "--page", "acquisition"])
     else: S.detacher(i)
 
+SECOURS = {"index": "layout-grid", "documents": "file-text", "planno": "lightbulb", "matos": "package", "casto": "users", "decoup": "scissors",
+           "xiii-blackmagic.desktop": "video", "xiii-tally.desktop": "radio-tower"}
+
+def _icone_existe(nom):
+    try: return Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).has_icon(nom)
+    except Exception: return True
+
 def icone_outil(t, i, ic, taille=40):
     if t == "suite":
-        return gicon_image(Gio.ThemedIcon.new("xiii-suite-" + i if i != "index" else "xiii-suite"), taille)
+        nom = "xiii-suite-" + i if i != "index" else "xiii-suite"
+        if not _icone_existe(nom): return ico(SECOURS.get(i, "app-window"), int(taille * .8), "c")
+        return gicon_image(Gio.ThemedIcon.new(nom), taille)
     a = apps.par_id(i) if t == "app" else None
-    if a and a.get_icon(): return gicon_image(a.get_icon(), taille)
-    return ico(ic or "app-window", taille, "c")
+    g = a.get_icon() if a else None
+    if g and (not isinstance(g, Gio.ThemedIcon) or any(_icone_existe(n) for n in g.get_names())): return gicon_image(g, taille)
+    return ico(SECOURS.get(i) or ic or "app-window", int(taille * .8), "c")
 
 
 class VueMode:
