@@ -7,8 +7,8 @@ set -e
 DERNIER=$(ls /boot/vmlinuz-* 2>/dev/null | sed 's|/boot/vmlinuz-||' | sort -V | tail -1)
 [ -n "$DERNIER" ] || { echo "[xiii] aucun noyau trouvé"; exit 1; }
 echo "[xiii] noyau gardé : $DERNIER"
-for p in $(dpkg-query -W -f '${Package}\n' 'linux-image-[0-9]*' 2>/dev/null); do
-  v=${p#linux-image-}
+for p in $(dpkg-query -W -f '${db:Status-Abbrev} ${Package}\n' 'linux-image-[0-9]*' 2>/dev/null | awk '$1 ~ /^[ih]i/ {print $2}'); do
+  v=${p#linux-image-}; v=${v%-unsigned}
   if [ "$v" != "$DERNIER" ]; then
     echo "[xiii] ancien noyau retiré : $v"
     DEBIAN_FRONTEND=noninteractive dpkg --purge --force-depends "$p" >/dev/null 2>&1 || true
