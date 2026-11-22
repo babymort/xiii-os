@@ -121,6 +121,17 @@ xiii-fichiers /root/Rushes > /out/f-galerie.log 2>&1 & sleep 6; grim -s 0.5 /out
 xiii-fichiers --infos /root/Rushes/A001/A001_C001.mov > /out/f-infos.log 2>&1 & sleep 6; grim -s 0.5 /out/fichiers-infos.png; verifier "Fichiers › Informations" "xiii.fichiers" /out/f-infos.log; pkill -f xiii.fichiers; sleep 0.5
 xiii-fichiers --corbeille /root > /out/f-corb.log 2>&1 & sleep 4; grim -s 0.5 /out/fichiers-corbeille.png; verifier "Fichiers › Corbeille" "xiii.fichiers" /out/f-corb.log; pkill -f xiii.fichiers
 python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, fichiers_vue='windows')"
+echo "== Mode Production (barre latérale + tableau)" >> $R
+CFG='import sys,time; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; '
+python3 -c "$CFG"'t=int(time.time()); config.modifier(production_page="accueil", projet_actif="Test", production_recents=[["suite","callsheeto","CALL SHEETO",None,t-300],["suite","plano","PLANO",None,t-7200],["suite","deviso","DEVISO",None,t-90000],["suite","dossier","DOSSIER",None,t-200000],["app","xiii-blackmagic.desktop","Blackmagic","video",t-400000]], mode_bureau="production")'
+sleep 4; grim -s 0.5 /out/production-accueil.png
+for pg in tableau planning; do
+  python3 -c "$CFG"'config.modifier(mode_bureau="classique")'; sleep 2
+  python3 -c "$CFG"'config.modifier(production_page="'$pg'", mode_bureau="production")'; sleep 4; grim -s 0.5 /out/production-$pg.png
+done
+python3 -c "$CFG"'config.modifier(mode_bureau="classique")'; sleep 2
+journalctl --user -n 0 >/dev/null 2>&1; echo "OK        mode Production capturé (accueil, tableau, planning)" >> $R
+
 echo "== Phase E (régie, déchargement → BACKUPO + DOSSIER)" >> $R
 mkdir -p /root/Navette
 python3 - >> $R 2>&1 <<'PY'

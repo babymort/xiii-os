@@ -231,6 +231,25 @@ label {{ color: {p['texte']}; }}
 .tuile-mode {{ background: {p['panneau_verre'] if p['verre'] else p['carte']}; border: 1px solid {p['bord']}; border-radius: {p['rayon']}; padding: 18px 10px; min-height: 110px; transition: background 150ms ease, border-color 150ms ease; }}
 .tuile-mode:hover, .tuile-mode:focus-visible {{ background: alpha({p['accent']}, .16); border-color: {p['accent']}; }}
 .tuile-plus {{ border-style: dashed; background: transparent; }}
+/* mode Production : barre latérale d'icônes + tableau façon Trello */
+.rail-prod {{ background: alpha({p['fond']}, .55); border-right: 1px solid {p['bord']}; padding: 16px 10px 12px 10px; min-width: 52px; }}
+.rail-logo {{ font-size: 18px; margin-bottom: 8px; }}
+.rail-btn {{ border-radius: 14px; padding: 9px; background: transparent; border: none; box-shadow: none; min-width: 32px; min-height: 32px; }}
+.rail-btn:hover, .rail-btn:focus-visible {{ background: alpha({p['texte']}, .08); }}
+.rail-btn.actif {{ background: alpha({p['accent']}, .24); }}
+.hero-prod {{ background: {p['panneau_verre'] if p['verre'] else p['carte']}; border: 1px solid {p['bord']}; border-radius: {p['rayon']}; padding: 14px; }}
+.surtitre {{ font-size: 11px; letter-spacing: 3px; font-weight: 700; color: {p['accent_texte']}; }}
+.hero-titre {{ font-size: 28px; font-weight: 700; }}
+.tuile-recent {{ background: transparent; border: none; box-shadow: none; padding: 4px; border-radius: 14px; }}
+.tuile-recent:hover, .tuile-recent:focus-visible {{ background: alpha({p['accent']}, .14); }}
+.badge-couv {{ background: rgba(0,0,0,.6); color: #fff; border-radius: 6px; padding: 1px 7px; font-size: 11px; font-weight: 700; }}
+.colonne-kanban {{ background: alpha({p['texte']}, .045); border: 1px solid alpha({p['bord']}, .6); border-radius: {p['rayon']}; padding: 12px; }}
+.badge-nb {{ background: alpha({p['texte']}, .1); border-radius: 999px; padding: 0 8px; font-size: 11px; }}
+.carte-kanban {{ background: {p['panneau_verre'] if p['verre'] else p['carte']}; border: 1px solid {p['bord']}; border-radius: 14px; padding: 0; transition: border-color 150ms ease, box-shadow 150ms ease; }}
+.carte-kanban:hover, .carte-kanban:focus-visible {{ border-color: {p['accent']}; box-shadow: 0 4px 16px alpha(#000, .3); }}
+.etiquette-kanban {{ background: alpha({p['texte']}, .08); border-radius: 6px; padding: 1px 7px; font-size: 10.5px; }}
+.ajout-kanban {{ background: transparent; border: 1px dashed {p['bord']}; border-radius: 12px; padding: 10px; }}
+.ajout-kanban:hover {{ background: alpha({p['accent']}, .12); }}
 .onglets-mode {{ background: alpha({p['texte']}, .05); border-radius: 999px; padding: 4px; }}
 .onglet-mode {{ border-radius: 999px; padding: 6px 16px; background: transparent; border: none; }}
 .onglet-mode.actif {{ background: {p['accent']}; }}

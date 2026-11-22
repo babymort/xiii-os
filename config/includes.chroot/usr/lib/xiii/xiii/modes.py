@@ -39,6 +39,48 @@ OUTILS = {
 ONGLETS = {"fiction": ["scripto", "callsheeto", "decoup", "cadro"], "multicam": ["conduco", "melango", "graphico", "runo"]}
 WIDGETS = {"production": ["projet", "plan", "meteo", "offload"], "fiction": ["timecode", "plan", "meteo", "projet"], "multicam": ["timecode", "conducteur", "ndi", "duo"]}
 
+# colonnes du tableau du mode Production (étapes d'un projet)
+COLONNES = [("Développement", "#a371f7", ["index", "syno", "dossier", "documents"]),
+            ("Préparation", "#58a6ff", ["deviso", "plano", "planno", "casto", "matos", "decoup"]),
+            ("Tournage", "#f0883e", ["callsheeto", "xiii-blackmagic.desktop", "xiii-tally.desktop"]),
+            ("Post-production", "#3fb950", ["encodo"])]
+DESC = {"index": "Accueil de la suite, projets et fiches", "syno": "Synopsis, notes d'intention, traitement", "dossier": "Dossier de production prêt à envoyer en PDF",
+        "documents": "Contrats, autorisations, modèles", "deviso": "Devis et budget", "plano": "Plan de travail et planning", "planno": "Plans de feu et implantation",
+        "casto": "Casting et comédiens", "matos": "Liste du matériel", "decoup": "Découpage technique", "callsheeto": "Feuilles de service de l'équipe",
+        "encodo": "Encodage et exports", "xiii-blackmagic.desktop": "ATEM, caméras et logiciels Blackmagic", "xiii-tally.desktop": "Lampes de tally des caméras"}
+
+# couvertures dessinées (ciel, soleil, collines) : une palette stable par outil ou par projet
+PALETTES = [("#2b2a7a", "#4a2d8c", "#f5c36b", "#3b2a7a", "#1c1647"), ("#4f8a3a", "#9cc25a", "#f3efc4", "#3d6b2e", "#24451d"),
+            ("#5a1a6b", "#c03a7a", "#f5c74e", "#6a1f6e", "#3a0f45"), ("#8fc3ea", "#dcecf8", "#ffffff", "#6f9fcf", "#4a78ad"),
+            ("#7a2a0f", "#e07a2a", "#f7d36a", "#8a3412", "#4a1a08"), ("#0f4c5c", "#3aa0a8", "#f2e6b0", "#1d6a73", "#0c3640"),
+            ("#283b6b", "#e0906a", "#ffe2a8", "#3a3f6e", "#1f2347"), ("#3a3f47", "#7d8590", "#f0f3f6", "#4b525c", "#23272d")]
+
+def _rgb(h): h = h.lstrip("#"); return tuple(int(h[k:k + 2], 16) / 255 for k in (0, 2, 4))
+
+def couverture(cle, l, h, soleil_x=.5, collines=True):
+    import zlib, math
+    pal = PALETTES[zlib.crc32(str(cle).encode()) % len(PALETTES)]
+    da = Gtk.DrawingArea(); da.set_content_width(l); da.set_content_height(h); da.set_size_request(l, h); da.add_css_class("couverture")
+    def dessin(_a, cr, w, hh):
+        r = 12
+        cr.new_sub_path(); cr.arc(w - r, r, r, -math.pi / 2, 0); cr.arc(w - r, hh - r, r, 0, math.pi / 2); cr.arc(r, hh - r, r, math.pi / 2, math.pi); cr.arc(r, r, r, math.pi, 3 * math.pi / 2); cr.close_path(); cr.clip()
+        import cairo
+        g = cairo.LinearGradient(0, 0, 0, hh); g.add_color_stop_rgb(0, *_rgb(pal[0])); g.add_color_stop_rgb(1, *_rgb(pal[1])); cr.set_source(g); cr.paint()
+        if collines:
+            cr.set_source_rgb(*_rgb(pal[2])); cr.arc(w * soleil_x, hh * .42, min(w, hh) * .2, 0, 2 * math.pi); cr.fill()
+            for k, (base, amp, coul) in enumerate(((.62, .1, pal[3]), (.78, .08, pal[4]))):
+                cr.move_to(0, hh)
+                for x in range(0, int(w) + 9, 8): cr.line_to(x, hh * base - math.sin(x / w * math.pi * (1.3 + k) + k) * hh * amp)
+                cr.line_to(w, hh); cr.close_path(); cr.set_source_rgb(*_rgb(coul)); cr.fill()
+        else:
+            cr.set_source_rgba(*_rgb(pal[2]), .35); cr.arc(w * .82, hh * .2, hh * .55, 0, 2 * math.pi); cr.fill()
+    da.set_draw_func(dessin)
+    return da
+
+def depuis(ts):
+    s = max(0, int(time.time() - (ts or 0)))
+    return "%d min" % max(1, s // 60) if s < 3600 else ("%d h" % (s // 3600) if s < 86400 else "%d j" % (s // 86400))
+
 def lancer_outil(t, i):
     if t == "suite": S.detacher(["xiii-suite", i])
     elif t == "app":
@@ -73,7 +115,7 @@ class VueMode:
         if mode == "classique":
             self.w.set_visible(False); return
         vider(self.corps)
-        getattr(self, "v_" + ("tuiles" if mode in ("production", "fiction", "multicam") else mode))(mode)
+        getattr(self, "v_" + ("tuiles" if mode in ("fiction", "multicam") else mode))(mode)
         self.w.present()
 
     def arreter(self):
@@ -185,6 +227,156 @@ class VueMode:
                 b.connect("clicked", lambda _b, a=a: (pop.popdown(), self.epingler(mode, a.get_id(), True))); lst.append(b)
         e.connect("search-changed", remplir); remplir()
         pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
+
+    # ----------------------------------------------------------------- Production : barre latérale + tableau façon Trello
+    PAGES_PROD = [("accueil", "house", "Accueil"), ("tableau", "square-kanban", "Tableau des outils"),
+                  ("planning", "calendar-days", "Planning et tournage"), ("direct", "radio-tower", "En direct")]
+
+    def ouvrir(self, t, i, nom, ic):
+        """Lance un outil et le garde en tête des « Récents » du mode Production."""
+        L = [r for r in self.shell.cfg.get("production_recents", []) if r[1] != i]
+        L.insert(0, [t, i, nom, ic, int(time.time())]); config.modifier(production_recents=L[:12])
+        lancer_outil(t, i)
+
+    def v_production(self, mode):
+        tout = boite(False, 0, vexpand=True); self.corps.append(tout)
+        rail = boite(True, 6, "rail-prod"); tout.append(rail)
+        rail.append(label("XIII", "titre-astoria", "rail-logo", xalign=0.5))
+        self.pile = Gtk.Stack(hexpand=True, vexpand=True, transition_type=Gtk.StackTransitionType.CROSSFADE, transition_duration=160)
+        self.rail_btns = {}
+        def aller(k):
+            self.pile.set_visible_child_name(k)
+            for kk, b in self.rail_btns.items():
+                (b.add_css_class if kk == k else b.remove_css_class)("actif")
+            if self.shell.cfg.get("production_page") != k: config.modifier(_histo=False, production_page=k)
+        for k, ic, tip in self.PAGES_PROD:
+            b = Gtk.Button(tooltip_text=tip); b.add_css_class("rail-btn"); b.set_child(ico(ic, 20))
+            b.connect("clicked", lambda _b, k=k: aller(k)); rail.append(b); self.rail_btns[k] = b
+        rail.append(Gtk.Separator(margin_top=6, margin_bottom=6))
+        # tous les outils, un par icône (survol = nom, clic = ouverture)
+        sc_o = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER); vo = boite(True, 4); sc_o.set_child(vo); rail.append(sc_o)
+        for t, i, nom, ic in self.outils_prod():
+            b = Gtk.Button(tooltip_text=nom); b.add_css_class("rail-btn"); b.set_child(icone_outil(t, i, ic, 22))
+            b.connect("clicked", lambda _b, t=t, i=i, nom=nom, ic=ic: self.ouvrir(t, i, nom, ic)); vo.append(b)
+        bas = boite(True, 4); rail.append(bas)
+        en_ligne = S.DEMO or bool(Gio.NetworkMonitor.get_default().get_network_available())
+        bas.append(ico("wifi" if en_ligne else "wifi-off", 18, "#3fb950" if en_ligne else "d"))
+        bp = Gtk.Button(tooltip_text="Réglages du bureau"); bp.add_css_class("rail-btn"); bp.set_child(ico("settings", 18, "d"))
+        bp.connect("clicked", lambda *_: self.shell.parametres("bureau")); bas.append(bp)
+        tout.append(self.pile)
+        from .widgets import Tableau
+        self.tb = Tableau(self.shell)
+        self.pile.add_named(self.p_accueil(), "accueil")
+        self.pile.add_named(self.p_tableau(mode), "tableau")
+        self.pile.add_named(self.p_widgets(["plan", "compte", "calendrier", "meteo"]), "planning")
+        self.pile.add_named(self.p_widgets(["projet", "offload", "systeme", "conducteur"]), "direct")
+        aller(self.shell.cfg.get("production_page") if self.shell.cfg.get("production_page") in self.rail_btns else "accueil")
+        def tic():
+            try: self.tb.tic()
+            except Exception: pass
+            return True
+        self._src = GLib.timeout_add(2000, tic); tic()
+
+    def outils_prod(self):
+        L = []
+        for t, i, nom, ic in OUTILS["production"] + [("app", e, None, None) for e in self.shell.cfg.get("mode_epingles", {}).get("production", [])]:
+            a = apps.par_id(i) if t == "app" else None
+            if t == "app" and not a and i != "xiii-blackmagic.desktop": continue
+            L.append((t, i, nom or (a.get_display_name() if a else i), ic))
+        return L
+
+    def page(self, titre, sous=None):
+        sc = Gtk.ScrolledWindow(vexpand=True, hexpand=True); v = boite(True, 16, margin_start=28, margin_end=28, margin_top=22, margin_bottom=24); sc.set_child(v)
+        h = boite(False, 12); c = boite(True, 0, hexpand=True); c.append(label(titre, "grand-titre"))
+        if sous: c.append(label(sous, "attenue"))
+        h.append(c)
+        pj = self.shell.cfg.get("projet_actif")
+        h.append(bouton(pj or "Choisir un projet", "folder-kanban", "fantome", rappel=lambda: self.shell.menu_projets()))
+        v.append(h)
+        return sc, v
+
+    def p_accueil(self):
+        from . import projets
+        sc, v = self.page("Production", "Tableau de bord des outils de production")
+        pj = self.shell.cfg.get("projet_actif") or ""
+        hero = boite(False, 18, "hero-prod")
+        hero.append(couverture(pj or "XIII", 360, 170, soleil_x=.3))
+        d = boite(True, 6, hexpand=True, valign=Gtk.Align.CENTER)
+        d.append(label("PROJET EN COURS", "surtitre"))
+        d.append(label(pj or "Aucun projet choisi", "hero-titre", wrap=True))
+        r = projets.resume(pj) if pj else ""
+        d.append(label(r or ("Choisissez un projet en haut à gauche : ses dossiers et sa fiche suivent dans tous les outils." if not pj else "Pas encore de fiche : remplissez-la dans la Suite XIII."), "attenue", wrap=True))
+        rec = self.shell.cfg.get("production_recents", [])
+        if rec:
+            d.append(label("Dernier outil : %s · il y a %s" % (rec[0][2], depuis(rec[0][4])), "petit", "attenue"))
+        bx = boite(False, 8, margin_top=8)
+        bx.append(bouton("Changer de projet", "folder-kanban", "fantome", rappel=lambda: self.shell.menu_projets()))
+        if pj: bx.append(bouton("Ouvrir le dossier", "folder-open", "fantome", rappel=lambda: S.detacher(["xdg-open", os.path.expanduser("~/XIII/" + pj)])))
+        bx.append(bouton("Suite XIII", "layout-grid", "pilule", rappel=lambda: self.ouvrir("suite", "index", "Suite XIII", None)))
+        d.append(bx); hero.append(d); v.append(hero)
+        # récents (ou les outils principaux tant que rien n'a été ouvert)
+        v.append(label("RÉCENTS  ·  CLIC POUR OUVRIR" if rec else "POUR COMMENCER  ·  CLIC POUR OUVRIR", "surtitre", margin_top=6))
+        L = [tuple(x[:4]) + (x[4],) for x in rec][:8] or [o + (None,) for o in OUTILS["production"][1:9]]
+        fl = Gtk.FlowBox(max_children_per_line=8, min_children_per_line=3, selection_mode=Gtk.SelectionMode.NONE, column_spacing=14, row_spacing=14, homogeneous=True)
+        for t, i, nom, ic, ts in L:
+            b = Gtk.Button(); b.add_css_class("tuile-recent")
+            col = boite(True, 6)
+            ov = Gtk.Overlay(); ov.set_child(couverture(i, 128, 150))
+            im = icone_outil(t, i, ic, 42); im.set_valign(Gtk.Align.START); im.set_margin_top(34); ov.add_overlay(im)
+            if ts:
+                bd = label(depuis(ts), "badge-couv"); bd.set_halign(Gtk.Align.END); bd.set_valign(Gtk.Align.END); bd.set_margin_end(6); bd.set_margin_bottom(6); ov.add_overlay(bd)
+            col.append(ov); col.append(label(nom, "petit", "attenue", xalign=0.5, ellipsize=True)); b.set_child(col)
+            b.connect("clicked", lambda _b, t=t, i=i, nom=nom, ic=ic: self.ouvrir(t, i, nom, ic)); fl.append(b)
+        v.append(fl)
+        return sc
+
+    def p_tableau(self, mode):
+        sc, v = self.page("Tableau des outils", "Les outils rangés par étape de production. Clic droit sur une carte de « Mes apps » pour la retirer.")
+        hs = Gtk.ScrolledWindow(vexpand=True, vscrollbar_policy=Gtk.PolicyType.NEVER)
+        rang = boite(False, 14, valign=Gtk.Align.START); hs.set_child(rang)
+        dispo = {i: (t, i, nom, ic) for t, i, nom, ic in self.outils_prod()}
+        for titre, couleur, ids in COLONNES:
+            cartes = [dispo[i] for i in ids if i in dispo]
+            if cartes: rang.append(self.colonne(titre, couleur, cartes, mode))
+        ep = [dispo[e] for e in self.shell.cfg.get("mode_epingles", {}).get("production", []) if e in dispo]
+        rang.append(self.colonne("Mes apps", "#8b949e", ep, mode, ajout=True))
+        v.append(hs)
+        return sc
+
+    def colonne(self, titre, couleur, cartes, mode, ajout=False):
+        c = boite(True, 10, "colonne-kanban", valign=Gtk.Align.START); c.set_size_request(250, -1)
+        h = boite(False, 8); h.append(ico("circle", 12, couleur)); h.append(label(titre, "gras", hexpand=True)); h.append(label(str(len(cartes)), "badge-nb")); c.append(h)
+        for t, i, nom, ic in cartes:
+            b = Gtk.Button(); b.add_css_class("carte-kanban")
+            col = boite(True, 0)
+            ov = Gtk.Overlay(); ov.set_child(couverture(i, 228, 72, collines=False))
+            im = icone_outil(t, i, ic, 34); ov.add_overlay(im); col.append(ov)
+            txt = boite(True, 4, margin_start=12, margin_end=12, margin_top=10, margin_bottom=12)
+            txt.append(label(nom, "gras", ellipsize=True))
+            txt.append(label(DESC.get(i) or ("Application épinglée" if t == "app" else ""), "petit", "attenue", wrap=True, largeur=30))
+            pied = boite(False, 6, margin_top=4)
+            pied.append(label("Suite XIII" if t == "suite" else "Application", "etiquette-kanban"))
+            if (self.shell.cfg.get("production_recents") or [[None, None]])[0][1] == i: pied.append(label("dernier ouvert", "etiquette-kanban", "accent"))
+            txt.append(pied); col.append(txt); b.set_child(col)
+            b.connect("clicked", lambda _b, t=t, i=i, nom=nom, ic=ic: self.ouvrir(t, i, nom, ic))
+            if ajout:
+                clic_droit(b, lambda b=b, i=i: popover_menu(b, [("pin-off", "Retirer de « Mes apps »", lambda: self.epingler(mode, i, False))]))
+            c.append(b)
+        if ajout:
+            p = Gtk.Button(); p.add_css_class("ajout-kanban"); bx = boite(False, 8); bx.append(ico("plus", 16, "d")); bx.append(label("Ajouter une carte", "attenue")); p.set_child(bx)
+            p.connect("clicked", lambda b: self.choisir_app(b, mode)); c.append(p)
+        return c
+
+    def p_widgets(self, cles):
+        sc, v = self.page("Planning et tournage" if "plan" in cles else "En direct")
+        gw = Gtk.FlowBox(max_children_per_line=3, min_children_per_line=1, selection_mode=Gtk.SelectionMode.NONE, column_spacing=14, row_spacing=14, homogeneous=True)
+        for k in cles:
+            fn = getattr(self.tb, "w_" + k, None)
+            if fn:
+                try: gw.append(fn())
+                except Exception as e: gw.append(self.tb.carte(k, k, "circle-alert", label(str(e), "attenue", "petit", wrap=True)))
+        v.append(gw)
+        return sc
 
     # ----------------------------------------------------------------- Backup
     def v_backup(self, mode):
