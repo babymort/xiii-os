@@ -93,7 +93,7 @@ class Recuperer(Gtk.Application):
         vider(self.zone)
         if isinstance(L, Exception) or not L:
             self.zone.append(label("Aucun ancien Windows ou Mac trouvé. Branchez le disque de l'ancien ordinateur (ou un disque de sauvegarde), puis :", "attenue", wrap=True))
-            self.zone.append(bouton("Chercher à nouveau", "refresh-cw", "pilule", rappel=self.chercher)); return
+            b = bouton("Chercher à nouveau", "refresh-cw", "pilule", rappel=self.chercher); b.set_halign(Gtk.Align.START); self.zone.append(b); return
         self.choix = []
         for d, c, err in L:
             nom = (d.get("label") or d.get("path")) + " · " + S.humain(int(d.get("size") or 0))
