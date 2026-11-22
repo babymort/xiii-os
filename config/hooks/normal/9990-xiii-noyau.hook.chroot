@@ -1,0 +1,23 @@
+#!/bin/sh
+# OS XIII — un seul noyau sur la clé : le plus récent.
+# Quand Debian publie une mise à jour de sécurité du noyau pendant la construction, deux noyaux se retrouvent dans le
+# système ; l'ancien était proposé en premier au démarrage alors que le ménage avait retiré ses modules
+# (« Failed to find module autofs4 », pas de zram, pas de bureau). On garde le plus récent et on vérifie ses modules.
+set -e
+DERNIER=$(ls /boot/vmlinuz-* 2>/dev/null | sed 's|/boot/vmlinuz-||' | sort -V | tail -1)
+[ -n "$DERNIER" ] || { echo "[xiii] aucun noyau trouvé"; exit 1; }
+echo "[xiii] noyau gardé : $DERNIER"
+for p in $(dpkg-query -W -f '${Package}\n' 'linux-image-[0-9]*' 2>/dev/null); do
+  v=${p#linux-image-}
+  if [ "$v" != "$DERNIER" ]; then
+    echo "[xiii] ancien noyau retiré : $v"
+    DEBIAN_FRONTEND=noninteractive dpkg --purge --force-depends "$p" >/dev/null 2>&1 || true
+    rm -rf "/usr/lib/modules/$v" "/boot/vmlinuz-$v" "/boot/initrd.img-$v" "/boot/System.map-$v" "/boot/config-$v"
+  fi
+done
+# les modules du noyau gardé doivent être là, sinon la clé ne démarrerait pas correctement : on arrête la construction
+for m in autofs4 zram squashfs overlay; do
+  find "/usr/lib/modules/$DERNIER" -name "$m.ko*" | grep -q . || { echo "[xiii] ERREUR : module $m absent pour $DERNIER"; exit 1; }
+done
+[ -f "/boot/initrd.img-$DERNIER" ] || update-initramfs -c -k "$DERNIER"
+echo "[xiii] modules du noyau $DERNIER présents ($(find /usr/lib/modules/$DERNIER -name '*.ko*' | wc -l) modules)"
