@@ -75,6 +75,14 @@ class Shell(Gtk.Application):
         GLib.timeout_add_seconds(1, self.tic)
         GLib.timeout_add_seconds(6, self.maj_icones_periodique)
         GLib.timeout_add_seconds(1800, self.maj_meteo)
+        # fiabilité : annonce d'un retour arrière / mode sans échec, santé des disques (une fois par semaine)
+        def _fiab():
+            try:
+                from . import fiabilite; fiabilite.au_demarrage()
+                GLib.timeout_add_seconds(86400, lambda: (fiabilite.verifier_sante(), True)[1])
+            except Exception as e: print("[xiii] fiabilité :", e)
+            return False
+        if not S.DEMO: GLib.timeout_add_seconds(25, _fiab)
         self.maj_icones(); self.maj_meteo(); self.maj_taches(); self.tic(); self.demarrer_timecode()
         if not self.cfg.get("visite_faite") and not os.path.isdir("/run/live/medium"):
             GLib.timeout_add_seconds(3, lambda: (self.visite(), False)[1])

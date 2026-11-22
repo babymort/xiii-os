@@ -1,0 +1,59 @@
+#!/bin/bash
+# OS XIII — menu de réparation en mode texte (entrée « Réparer OS XIII » du menu de démarrage).
+EV=/var/log/xiii/evenements.log
+journal() { mkdir -p /var/log/xiii; printf '%s|%s|%s\n' "$(date -Iseconds)" "$1" "$2" >> "$EV" 2>/dev/null; }
+mount -o remount,rw / 2>/dev/null
+W() { whiptail --backtitle "OS XIII — Réparation" "$@" 3>&1 1>&2 2>&3; }
+attendre() { echo; read -rp "  Appuyez sur Entrée pour revenir au menu…" _; }
+while true; do
+  c=$(W --title "Que voulez-vous faire ?" --menu "\nLe bureau n'a pas été lancé. Choisissez une réparation :" 20 74 9 \
+    1 "Réparer le démarrage (image de démarrage et menu)" \
+    2 "Revenir à un état précédent (instantané)" \
+    3 "Terminer les installations interrompues" \
+    4 "Remettre l'apparence et le bureau par défaut" \
+    5 "Libérer de la place sur le disque" \
+    6 "Vérifier le disque système" \
+    7 "Ouvrir un terminal (experts)" \
+    8 "Redémarrer normalement" \
+    9 "Éteindre") || c=8
+  clear
+  case $c in
+  1) echo "== Reconstruction de l'image de démarrage…"
+     dpkg --configure -a; update-initramfs -c -k all 2>/dev/null || update-initramfs -u -k all
+     ok=1; for i in /boot/initrd.img-*; do lsinitramfs "$i" 2>/dev/null | grep -qx init && echo "  $(basename $i) : bonne" || { echo "  $(basename $i) : abîmée"; ok=0; }; done
+     echo "== Menu de démarrage…"
+     if [ -d /sys/firmware/efi ] && mountpoint -q /boot/efi; then
+       grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=OS-XIII --recheck >/dev/null 2>&1
+       grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable --recheck >/dev/null 2>&1
+     else grub-install --target=i386-pc --recheck "/dev/$(lsblk -no PKNAME "$(findmnt -no SOURCE / | sed 's/\[.*//')" | head -1)" >/dev/null 2>&1; fi
+     update-grub >/dev/null 2>&1
+     journal reparation "Démarrage réparé depuis le menu de réparation"
+     [ $ok = 1 ] && echo "  Terminé : vous pouvez redémarrer." || echo "  Une image reste abîmée : essayez « Revenir à un état précédent »."
+     attendre;;
+  2) L=$(/usr/local/sbin/xiii-instantanes liste 2>/dev/null | tac)
+     if [ -z "$L" ]; then W --msgbox "Aucun instantané disponible.\n\nLes instantanés demandent une installation en Btrfs (choix par défaut des nouvelles installations d'OS XIII)." 12 70; continue; fi
+     args=(); while IFS='|' read -r n d t de; do args+=("$n" "$(date -d "$d" '+%d/%m/%Y %H:%M' 2>/dev/null) — ${de:0:40}"); done <<< "$L"
+     n=$(W --title "Revenir à…" --menu "\nLe système redeviendra tel qu'il était à ce moment.\nVos fichiers personnels (dossier /home) ne changent pas." 22 76 10 "${args[@]}") || continue
+     if W --yesno "Revenir à l'instantané n°$n ?\n\nLe système actuel est gardé 7 jours au cas où." 11 60; then
+       /usr/local/sbin/xiii-instantanes restaurer "$n" manuel && { W --msgbox "C'est fait. L'ordinateur va redémarrer." 8 50; systemctl reboot; }
+       attendre
+     fi;;
+  3) echo "== Installations interrompues…"; dpkg --configure -a && apt-get -o Dpkg::Options::=--force-confold -f install -y --no-download 2>&1 | tail -15
+     journal reparation "Installations interrompues terminées"; attendre;;
+  4) for h in /home/*; do u=$(basename "$h"); [ -d "$h/.config/xiii" ] || continue
+       d="$h/.config/xiii.avant-reparation-$(date +%Y%m%d-%H%M)"; mv "$h/.config/xiii" "$d"
+       for x in labwc; do [ -d "$h/.config/$x" ] && mv "$h/.config/$x" "$d-$x"; done
+       cp -a /etc/skel/.config/labwc "$h/.config/" 2>/dev/null; chown -R "$u:" "$h/.config"
+       echo "  $u : réglages mis de côté dans $(basename "$d")"; done
+     journal reparation "Apparence et bureau remis par défaut (anciens réglages gardés)"; attendre;;
+  5) apt-get clean; journalctl --vacuum-size=100M >/dev/null 2>&1
+     [ -f /etc/snapper/configs/root ] && snapper --no-dbus -c root cleanup number >/dev/null 2>&1
+     /usr/local/sbin/xiii-instantanes nettoyer; df -h / | tail -1 | awk '{print "  Place libre : "$4}'; attendre;;
+  6) if [ "$(findmnt -no FSTYPE /)" = btrfs ]; then echo "  Btrfs : vérification en ligne…"; btrfs scrub start -B / | tail -5
+     else echo "  Vérification (lecture seule)…"; e2fsck -fn "$(findmnt -no SOURCE /)" 2>&1 | tail -6
+       echo "  En cas d'erreurs : démarrez sur la clé OS XIII et lancez « Réparer OS XIII »."; fi; attendre;;
+  7) echo "  Terminal administrateur. Tapez « exit » pour revenir au menu."; bash;;
+  8) systemctl reboot; exit;;
+  9) systemctl poweroff; exit;;
+  esac
+done

@@ -1,0 +1,63 @@
+#!/bin/sh
+# OS XIII — entrées de secours du menu de démarrage :
+#   • Démarrage de secours (dernier noyau + image de démarrage qui ont fonctionné)
+#   • Mode sans échec graphique (pilote d'affichage de base, rendu logiciel)
+#   • Réparer OS XIII (outil de réparation en mode texte, sans bureau)
+#   • Revenir à un état précédent… (instantanés Btrfs : le système redevient tel qu'il était)
+set -e
+. /usr/share/grub/grub-mkconfig_lib
+export TEXTDOMAIN=grub
+UUID="${GRUB_DEVICE_UUID:-$(findmnt -no UUID /)}"
+FS=$(findmnt -no FSTYPE /)
+SV=""; [ "$FS" = btrfs ] && SV="rootflags=subvol=$(findmnt -no FSROOT / | sed 's#^/##')"
+DEV=$(${grub_probe} --target=device /boot)
+PREP=$(prepare_grub_to_access_device "$DEV" | sed 's/^/\t/')
+chemin() { ${grub_mkrelpath} "$1"; }
+K=$(ls -1 /boot/vmlinuz-* 2>/dev/null | sort -V | tail -1); V=${K#/boot/vmlinuz-}
+
+entree() {  # titre, noyau, initrd, options
+  cat <<G
+menuentry '$1' --class xiii --class os {
+	load_video
+	insmod gzio
+$PREP
+	echo	'$1…'
+	linux	$2 root=UUID=$UUID ro $SV $4
+	initrd	$3
+}
+G
+}
+if [ -f /boot/xiii-secours/vmlinuz ] && [ -f /boot/xiii-secours/initrd.img ]; then
+  entree "OS XIII — démarrage de secours (noyau $(cat /boot/xiii-secours/version 2>/dev/null))" "$(chemin /boot/xiii-secours/vmlinuz)" "$(chemin /boot/xiii-secours/initrd.img)" "quiet splash"
+  RK=/boot/xiii-secours/vmlinuz; RI=/boot/xiii-secours/initrd.img
+else
+  RK=$K; RI=/boot/initrd.img-$V
+fi
+[ -n "$V" ] && entree "OS XIII — mode sans échec graphique" "$(chemin "$K")" "$(chemin /boot/initrd.img-$V)" "nomodeset xiii.sans-echec"
+[ -f "$RK" ] && entree "Réparer OS XIII" "$(chemin "$RK")" "$(chemin "$RI")" "systemd.unit=xiii-reparation.target xiii.reparation"
+
+# instantanés (les 6 plus récents) : démarre sur l'instantané en lecture seule, qui remplace alors le système puis redémarre
+if [ "$FS" = btrfs ] && [ -d /.snapshots ] && [ -x /usr/local/sbin/xiii-instantanes ]; then
+  L=$(/usr/local/sbin/xiii-instantanes liste | tail -6 | tac)
+  if [ -n "$L" ]; then
+    echo "submenu 'OS XIII — revenir à un état précédent…' --class xiii {"
+    echo "$L" | while IFS='|' read -r N D T DESC; do
+      S=/.snapshots/$N/snapshot
+      SK=$(ls -1 $S/boot/vmlinuz-* 2>/dev/null | sort -V | tail -1); [ -n "$SK" ] || continue
+      SVV=${SK##*/vmlinuz-}; [ -f "$S/boot/initrd.img-$SVV" ] || continue
+      J=$(date -d "$D" '+%d/%m/%Y %H:%M' 2>/dev/null || echo "$D")
+      TXT=$(printf '%s' "$DESC" | tr -d "'" | cut -c1-50)
+      cat <<G
+	menuentry 'Revenir au $J — $TXT' --class xiii {
+		load_video
+		insmod gzio
+	$PREP
+		echo	'Retour à l'\''état du $J…'
+		linux	$(chemin "$SK") root=UUID=$UUID ro rootflags=subvol=@snapshots/$N/snapshot xiii.restaurer=$N quiet splash
+		initrd	$(chemin "$S/boot/initrd.img-$SVV")
+	}
+G
+    done
+    echo "}"
+  fi
+fi

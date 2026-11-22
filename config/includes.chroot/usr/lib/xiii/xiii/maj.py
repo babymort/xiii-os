@@ -52,7 +52,18 @@ def log(m):
     try: open(JOURNAL, "a").write(l + "\n")
     except OSError: pass
 
+def evenement(typ, msg):
+    try:
+        os.makedirs("/var/log/xiii", exist_ok=True)
+        with open("/var/log/xiii/evenements.log", "a") as o: o.write("%s|%s|%s\n" % (datetime.datetime.now().astimezone().isoformat(timespec="seconds"), typ, msg))
+    except OSError: pass
+
 def instantane():
+    # Btrfs : instantané instantané et sans copie, avec « Revenir à… » dans le menu de démarrage
+    if os.path.exists("/etc/snapper/configs/root") and os.path.exists("/usr/local/sbin/xiii-instantanes"):
+        r = subprocess.run(["/usr/local/sbin/xiii-instantanes", "creer", "Avant mise à jour OS XIII"], capture_output=True, text=True, timeout=600)
+        log("Instantané : " + ("n°" + r.stdout.strip() if r.returncode == 0 else "impossible"))
+        if r.returncode == 0: return True
     if not shutil.which("timeshift"): log("Timeshift absent : pas d'instantané"); return False
     r = subprocess.run(["timeshift", "--create", "--comments", "Avant mise à jour OS XIII", "--tags", "O", "--scripted"], capture_output=True, text=True, timeout=3600)
     log("Instantané Timeshift : " + ("créé" if r.returncode == 0 else "impossible (%s)" % (r.stdout + r.stderr).strip()[-200:]))
@@ -191,6 +202,7 @@ def finaliser(sha, canal):
         pass
     os.makedirs(os.path.dirname(VERSION), exist_ok=True); json.dump(v, open(VERSION, "w"))
     log("OS XIII est à jour : %s" % v["version"])
+    evenement("maj", "OS XIII mis à jour (%s, %s)" % (canal, sha[:7]))
 
 def appliquer(canal, sha, avec_instantane=True):
     if os.geteuid() != 0: raise SystemExit("à lancer en administrateur (pkexec)")

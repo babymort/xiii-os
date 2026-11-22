@@ -45,10 +45,16 @@ jobs:
           chmod +x tests/zz.sh
           timeout 2400 dbus-run-session -- labwc -s tests/zz.sh > /out/labwc.log 2>&1 || true
           ls -la /out
-      - name: Publier les captures (branche zz)
+      - name: Tests visuels (comparaison avec la vérification précédente)
         if: always()
         run: |
           apt-get install -y -qq git >/dev/null
+          git clone -q --depth 1 -b zz "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" /prec 2>/dev/null || true
+          python3 tests/comparer.py /prec /out || true
+          cat /out/regressions.txt | head -40
+      - name: Publier les captures (branche zz)
+        if: always()
+        run: |
           cd /out && git init -q -b zz && git config user.name "CI XIII" && git config user.email "ci@xiii.local"
           git add -A && git commit -qm "Vérification ZZ $GITHUB_SHA"
           git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" zz

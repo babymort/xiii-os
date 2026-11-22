@@ -1,0 +1,5 @@
+[Unit]
+Description=OS XIII — mode réparation (sans bureau)
+Requires=sysinit.target xiii-reparation.service
+After=sysinit.target xiii-reparation.service
+AllowIsolate=yes

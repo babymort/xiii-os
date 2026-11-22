@@ -1,0 +1,89 @@
+#!/bin/bash
+# OS XIII — instantanés du système (Btrfs + Snapper) et retour arrière.
+#   Disposition (installateur OS XIII) : @ → /   @home → /home   @snapshots → /.snapshots   @log, @cache.
+#   xiii-instantanes etat                → « btrfs » / « ext4 » … + nombre d'instantanés
+#   xiii-instantanes init                → prépare Snapper (une fois, au premier démarrage)
+#   xiii-instantanes creer "description" → nouvel instantané
+#   xiii-instantanes liste               → N|date|type|description (le plus récent en dernier)
+#   xiii-instantanes restaurer N [auto]  → @ actuel mis de côté, @ refait depuis l'instantané N ; redémarrage nécessaire
+#   xiii-instantanes nettoyer            → supprime les anciens systèmes mis de côté (plus de 7 jours)
+set -u
+EV=/var/log/xiii/evenements.log
+journal() { mkdir -p /var/log/xiii; printf '%s|%s|%s\n' "$(date -Iseconds)" "$1" "$2" >> "$EV"; chmod 644 "$EV" 2>/dev/null; }
+R=${XIII_RACINE:-/}                  # autre racine : uniquement pour les tests automatiques
+SN=${XIII_RACINE:-}/.snapshots
+fs=$(findmnt -no FSTYPE "$R")
+racine_dev() { findmnt -no SOURCE "$R" | sed 's/\[.*//'; }
+sous_vol() { findmnt -no FSROOT "$R" | sed 's#^/##'; }      # « @ » normalement
+
+haut() {   # monte le niveau supérieur du Btrfs (subvolid=5)
+  T=${XIII_HAUT:-/run/xiii-btrfs}; mkdir -p $T
+  mountpoint -q $T || mount -o subvolid=5 "$(racine_dev)" $T || return 1
+  echo $T
+}
+
+case "${1:-etat}" in
+etat)
+  n=0; [ -d $SN ] && n=$(ls -d $SN/[0-9]* 2>/dev/null | wc -l)
+  echo "$fs $n $(sous_vol)";;
+init)
+  [ "$fs" = btrfs ] || { echo "Racine en $fs : instantanés indisponibles (ils demandent une installation en Btrfs)"; exit 0; }
+  command -v snapper >/dev/null || exit 0
+  [ -f /etc/snapper/configs/root ] && exit 0
+  T=$(haut) || exit 1
+  [ -d $T/@snapshots ] || btrfs subvolume create $T/@snapshots >/dev/null
+  # snapper veut créer lui-même /.snapshots : on le laisse faire puis on le remplace par @snapshots (hors de @ : survit au retour arrière)
+  umount /.snapshots 2>/dev/null; rmdir /.snapshots 2>/dev/null
+  [ -d /.snapshots ] && btrfs subvolume delete /.snapshots >/dev/null 2>&1
+  snapper --no-dbus -c root create-config / || exit 1
+  btrfs subvolume delete /.snapshots >/dev/null 2>&1; mkdir -p /.snapshots
+  U=$(findmnt -no UUID /)
+  grep -q '[[:space:]]/.snapshots[[:space:]]' /etc/fstab || echo "UUID=$U /.snapshots btrfs subvol=/@snapshots,noatime,compress=zstd:1 0 0" >> /etc/fstab
+  mount /.snapshots; chmod 755 /.snapshots   # liste lisible par Paramètres (les instantanés gardent les droits des fichiers d'origine)
+  # peu de place prise : instantanés avant/après chaque installation (apt) + 1 par jour gardé 5 jours
+  snapper --no-dbus -c root set-config NUMBER_LIMIT=12 NUMBER_LIMIT_IMPORTANT=6 TIMELINE_CREATE=yes TIMELINE_LIMIT_HOURLY=0 \
+    TIMELINE_LIMIT_DAILY=5 TIMELINE_LIMIT_WEEKLY=2 TIMELINE_LIMIT_MONTHLY=0 TIMELINE_LIMIT_YEARLY=0 SPACE_LIMIT=0.3 FREE_LIMIT=0.2
+  systemctl enable --now snapper-timeline.timer snapper-cleanup.timer >/dev/null 2>&1
+  snapper --no-dbus -c root create -t single -c important -d "Installation d'OS XIII"
+  journal instantane "Instantanés activés : premier point de retour créé"
+  update-grub >/dev/null 2>&1 || true;;
+creer)
+  [ -f /etc/snapper/configs/root ] || { echo "Instantanés non activés"; exit 1; }
+  N=$(snapper --no-dbus -c root create -t single -c important -p -d "${2:-Point de retour manuel}")
+  journal instantane "Instantané n°$N : ${2:-Point de retour manuel}"
+  update-grub >/dev/null 2>&1 || true; echo "$N";;
+liste)
+  [ -d $SN ] || exit 0
+  for i in $(ls $SN | grep -E '^[0-9]+$' | sort -n); do
+    f=$SN/$i/info.xml; [ -f "$f" ] && [ -d $SN/$i/snapshot ] || continue
+    t=$(sed -n 's:.*<type>\(.*\)</type>.*:\1:p' "$f"); d=$(sed -n 's:.*<date>\(.*\)</date>.*:\1:p' "$f")
+    de=$(sed -n 's:.*<description>\(.*\)</description>.*:\1:p' "$f")
+    echo "$i|$d|$t|${de:-Instantané}"
+  done;;
+restaurer)
+  N=${2:?numéro}
+  [ "$fs" = btrfs ] || { echo "Racine pas en Btrfs"; exit 1; }
+  T=$(haut) || exit 1
+  [ -d "$T/@snapshots/$N/snapshot" ] || { echo "Instantané $N introuvable"; exit 1; }
+  V=$(sous_vol); case "$V" in @snapshots/*) V=@;; esac   # démarré sur l'instantané lui-même → c'est @ qu'on remplace
+  D=$(date +%Y%m%d-%H%M%S)
+  mv "$T/$V" "$T/@ancien-$D" || { echo "Impossible de mettre l'ancien système de côté"; exit 1; }
+  if ! btrfs subvolume snapshot "$T/@snapshots/$N/snapshot" "$T/$V" >/dev/null; then
+    mv "$T/@ancien-$D" "$T/$V"; echo "Échec de la restauration, rien n'a changé"; exit 1
+  fi
+  mkdir -p "$T/$V/var/lib/xiii"
+  printf '%s|%s|%s\n' "$N" "${3:-manuel}" "@ancien-$D" > "$T/$V/var/lib/xiii/restauration.txt"
+  rm -f "$T/$V/var/lib/xiii/echecs-demarrage"
+  journal restauration "Système ramené à l'instantané n°$N ($([ "${3:-}" = auto ] && echo automatiquement après des démarrages ratés || echo à votre demande)) ; l'ancien est gardé 7 jours"
+  sync; echo "OK";;
+nettoyer)
+  [ "$fs" = btrfs ] || exit 0
+  T=$(haut) || exit 0
+  for a in "$T"/@ancien-*; do
+    [ -d "$a" ] || continue
+    [ $(( ( $(date +%s) - $(stat -c %Y "$a") ) / 86400 )) -ge 7 ] || continue
+    btrfs subvolume list -o "$a" 2>/dev/null | awk '{print $NF}' | sort -r | while read -r s; do btrfs subvolume delete "$T/$s" >/dev/null 2>&1; done
+    btrfs subvolume delete "$a" >/dev/null 2>&1 && journal nettoyage "Ancien système $(basename "$a") supprimé"
+  done;;
+*) echo "usage : xiii-instantanes etat|init|creer|liste|restaurer N|nettoyer"; exit 2;;
+esac

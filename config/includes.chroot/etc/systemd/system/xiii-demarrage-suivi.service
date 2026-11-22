@@ -1,0 +1,15 @@
+[Unit]
+Description=OS XIII — suivi des démarrages ratés et retour arrière automatique
+DefaultDependencies=no
+After=local-fs.target systemd-remount-fs.service
+Before=sysinit.target
+ConditionPathExists=!/run/live/medium
+ConditionKernelCommandLine=!boot=live
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/xiii-demarrage-suivi debut
+TimeoutStartSec=5min
+
+[Install]
+WantedBy=sysinit.target

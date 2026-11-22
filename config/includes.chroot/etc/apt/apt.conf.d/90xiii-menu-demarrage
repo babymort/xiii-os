@@ -1,0 +1,2 @@
+// OS XIII — après chaque installation : menu de démarrage mis à jour (nouveaux instantanés « Revenir à… »)
+DPkg::Post-Invoke { "if [ -x /usr/local/sbin/xiii-instantanes ] && [ -f /etc/snapper/configs/root ] && command -v update-grub >/dev/null && [ ! -d /run/live ]; then update-grub >/dev/null 2>&1 || true; fi"; };

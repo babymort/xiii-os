@@ -2,6 +2,10 @@
 # OS XIII — lance le bureau, avec repli automatique si la carte graphique pose problème.
 mkdir -p ~/.cache/xiii; LOG=~/.cache/xiii/bureau.log; : > "$LOG"
 export XDG_CURRENT_DESKTOP=labwc XDG_SESSION_TYPE=wayland XCURSOR_THEME=XIII-curseur XCURSOR_SIZE=24
+# mode sans échec graphique (menu de démarrage) : pilote d'affichage de base, rendu logiciel, pas d'effets
+if grep -qw xiii.sans-echec /proc/cmdline; then
+  export WLR_RENDERER=pixman WLR_NO_HARDWARE_CURSORS=1 GSK_RENDERER=cairo XIII_SANS_ECHEC=1; echo "[xiii] mode sans échec graphique" >>"$LOG"
+fi
 if systemd-detect-virt -q 2>/dev/null || ! ls /dev/dri/renderD* >/dev/null 2>&1; then
   export WLR_RENDERER=pixman WLR_NO_HARDWARE_CURSORS=1; echo "[xiii] rendu logiciel (VM ou pas de 3D)" >>"$LOG"
 fi

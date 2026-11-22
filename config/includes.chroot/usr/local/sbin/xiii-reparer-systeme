@@ -9,16 +9,20 @@ RACINE=""
 for p in $(lsblk -lnpo NAME,FSTYPE | awk '$2 ~ /ext4|btrfs|xfs/ {print $1}'); do
   findmnt -rn -S "$p" >/dev/null && continue
   mount -o ro "$p" $M 2>/dev/null || continue
+  if [ -d $M/@ ] && [ ! -d $M/etc ]; then umount $M; mount -o ro,subvol=@ "$p" $M 2>/dev/null || continue; fi
   if grep -qs 'NAME="OS XIII"' $M/etc/os-release && [ -d $M/boot ]; then RACINE=$p; umount $M; break; fi
   umount $M
 done
 [ -n "$RACINE" ] || { echo "ERREUR Aucun OS XIII installé trouvé sur les disques."; exit 1; }
 etape "Système trouvé sur $RACINE"
-mount "$RACINE" $M || { echo "ERREUR montage impossible"; exit 1; }
+OPT=""; mount -o ro "$RACINE" $M 2>/dev/null && { [ -d $M/@ ] && [ ! -d $M/etc ] && OPT="-o subvol=@"; umount $M; }
+mount $OPT "$RACINE" $M || { echo "ERREUR montage impossible"; exit 1; }
 # partitions /boot et /boot/efi déclarées dans fstab
 while read -r src pt typ _; do
-  case "$pt" in /boot|/boot/efi|/efi) ;; *) continue;; esac
-  dev=$(findfs "$src" 2>/dev/null || echo "$src"); mkdir -p "$M$pt"; mount "$dev" "$M$pt" 2>/dev/null && echo "INFO $pt monté"
+  case "$pt" in /boot|/boot/efi|/efi|/var/log|/var/cache|/.snapshots) ;; *) continue;; esac
+  dev=$(findfs "$src" 2>/dev/null || echo "$src"); mkdir -p "$M$pt"
+  o=$(grep -v '^#' $M/etc/fstab | awk -v p="$pt" '$2==p {print $4}' | grep -o 'subvol=[^,]*' | head -1)
+  mount ${o:+-o $o} "$dev" "$M$pt" 2>/dev/null && echo "INFO $pt monté"
 done < <(grep -v '^#' $M/etc/fstab)
 for d in dev dev/pts proc sys run; do mount --bind /$d $M/$d; done
 [ -d /sys/firmware/efi/efivars ] && mount -t efivarfs efivarfs $M/sys/firmware/efi/efivars 2>/dev/null

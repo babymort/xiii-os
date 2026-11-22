@@ -1,0 +1,6 @@
+#!/bin/sh
+# OS XIII — notification d'un rapport de plantage (lancée détachée par rapport.py)
+f="$1"; app="$2"
+r=$(notify-send -a "OS XIII" -i dialog-warning --action=voir="Voir le rapport" --action=dossier="Ouvrir le dossier" \
+  "$app a rencontré une erreur" "Un rapport a été écrit : vous pouvez l'envoyer pour qu'on corrige le problème.")
+case "$r" in voir) exec xdg-open "$f";; dossier) exec xdg-open "$(dirname "$f")";; esac

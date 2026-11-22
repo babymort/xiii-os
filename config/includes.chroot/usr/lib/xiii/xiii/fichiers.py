@@ -47,7 +47,38 @@ class Fichiers(Gtk.Application):
         d = Gio.File.new_for_commandline_arg_and_cwd(a[0], cl.get_cwd() or "/").get_path() if a else os.path.expanduser("~")
         if d and os.path.isfile(d): d = os.path.dirname(d)
         self.activer(); self.aller(d or os.path.expanduser("~"))
+        if "--test-colonnes" in cl.get_arguments(): GLib.timeout_add(1500, self.test_colonnes)
         return 0
+
+    def test_colonnes(self):
+        """Test automatique (vérification ZZ) de la vue Mac : un clic remplace les colonnes à droite au lieu d'en ajouter."""
+        base = os.path.expanduser("~/xiii-test-colonnes")
+        for p in ("a/b/c", "z/y"): os.makedirs(os.path.join(base, p), exist_ok=True)
+        open(os.path.join(base, "f.txt"), "w").write("test\n")
+        self.changer_vue("mac"); self.aller(base)
+        def cols(): 
+            n, c = [], self.mac_boite.get_first_child()
+            while c: n.append(c); c = c.get_next_sibling()
+            return n
+        def liste(col): return col.get_child().get_child() if isinstance(col.get_child(), Gtk.Viewport) else col.get_child()
+        def choisir(col, nom):
+            lb = liste(col); r = lb.get_first_child()
+            while r:
+                if getattr(r, "_chemin", "").endswith("/" + nom): lb.select_row(r); return True
+                r = r.get_next_sibling()
+            return False
+        res = []
+        def etape(txt, attendu):
+            n = len(cols()); res.append("%s %s : %d colonne(s), attendu %d" % ("OK      " if n == attendu else "ÉCHEC   ", txt, n, attendu)); return n
+        n0 = etape("ouverture", len(cols()))
+        c0 = cols()[-1]
+        choisir(c0, "a"); etape("clic sur a", n0 + 1)
+        choisir(cols()[-1], "b"); etape("clic sur a/b", n0 + 2)
+        choisir(c0, "z"); etape("retour, clic sur z (remplace a et b)", n0 + 1)
+        choisir(c0, "z"); choisir(c0, "f.txt"); etape("clic sur un fichier (aperçu)", n0 + 1)
+        self.changer_vue("arbre"); res.append("OK       vue Arbre ouverte"); self.changer_vue("windows"); res.append("OK       vue Windows ouverte")
+        print("\n".join("COLONNES " + r for r in res), flush=True)
+        self.quit(); return False
 
     # =================================================================== fenêtre
     def activer(self):

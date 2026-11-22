@@ -1,0 +1,14 @@
+name: Fiabilité (retour arrière Btrfs)
+on:
+  push:
+    branches: [beta]
+    paths: ['config/includes.chroot/usr/local/sbin/xiii-instantanes', 'config/includes.chroot/usr/local/sbin/xiii-demarrage-suivi', 'config/includes.chroot/etc/grub.d/**', 'tests/instantanes.sh', '.github/workflows/fiabilite.yml']
+  workflow_dispatch:
+jobs:
+  retour-arriere:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get install -y -qq btrfs-progs >/dev/null
+      - run: sudo bash tests/instantanes.sh

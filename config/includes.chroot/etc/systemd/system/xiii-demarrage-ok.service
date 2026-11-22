@@ -1,0 +1,14 @@
+[Unit]
+Description=OS XIII — démarrage réussi (compteur remis à zéro, noyau de secours)
+After=graphical.target
+ConditionKernelCommandLine=!boot=live
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/sleep 45
+ExecStart=/usr/local/sbin/xiii-demarrage-suivi ok
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=graphical.target

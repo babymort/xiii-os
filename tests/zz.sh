@@ -60,6 +60,20 @@ if command -v wlrctl >/dev/null; then
   done
   echo "INFO      clic en dehors : voir clic-*-avant/apres.png" >> $R
 fi
+echo "== Fichiers : vue Mac (colonnes) et Arbre" >> $R
+timeout 60 xiii-fichiers --test-colonnes > /out/colonnes.log 2>&1
+grep "^COLONNES" /out/colonnes.log | sed 's/^COLONNES //' >> $R
+grep -q "^COLONNES" /out/colonnes.log || { echo "ÉCHEC     test des colonnes non exécuté" >> $R; tail -5 /out/colonnes.log | sed 's/^/          /' >> $R; }
+echo "== Fiabilité (phase A)" >> $R
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import fiabilite as F; L=F.evenements(); print("OK        journal des événements :", len(L), "entrée(s)")' >> $R 2>&1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import raccourcis as R; L=R.lire(); print("OK        raccourcis clavier :", len(L), "lus,", sum(1 for s in L if s["categorie"]=="Personnalisés"), "sans nom")' >> $R 2>&1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); import xiii; from xiii import rapport, fiabilite as F
+try: 1/0
+except ZeroDivisionError: f=rapport.ecrire(*sys.exc_info())
+print("OK        rapport de plantage écrit :", f.split("/")[-1])' >> $R 2>&1
+xiii-parametres --page evenements > /out/p.log 2>&1 & sleep 4; grim -s 0.5 /out/page-evenements-rempli.png; pkill -f xiii.parametres
+for s in /etc/grub.d/41_xiii_secours /usr/local/sbin/xiii-instantanes /usr/local/sbin/xiii-demarrage-suivi /usr/local/sbin/xiii-reparer-menu; do
+  bash -n $s && echo "OK        syntaxe $(basename $s)" >> $R || echo "ÉCHEC     syntaxe $(basename $s)" >> $R; done
 echo "== Bureau" >> $R
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  xiii-shell" >> $R; grep -A8 Traceback /out/shell.log | tail -12 >> $R; } || echo "OK        xiii-shell (aucune erreur Python)" >> $R
 pgrep -f xiii.shell >/dev/null || echo "FERMÉE    xiii-shell" >> $R

@@ -1495,8 +1495,81 @@ class Parametres(Gtk.Application):
     def p_sauvegarde(self, c, cle):
         c.append(info("Deux protections complémentaires : vos dossiers (photos, documents, projets) sur un disque externe ou en ligne, et des instantanés du système pour revenir en arrière après une mauvaise mise à jour."))
         c.append(reglage("archive", "Sauvegarde de mes dossiers", "Automatique, chiffrée, sur disque externe ou en ligne (Déjà Dup)", droite=bouton("Configurer", None, "pilule", rappel=lambda: S.detacher("deja-dup"))))
-        c.append(reglage("history", "Instantanés du système", "Façon Time Machine : restaurer le système à une date précédente (Timeshift)", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher("pkexec timeshift-launcher"))))
         c.append(reglage("rotate-ccw", "Restaurer un fichier", "Retrouver une version précédente d'un fichier ou d'un dossier", droite=bouton("Restaurer", None, "fantome", rappel=lambda: S.detacher(["deja-dup", "--restore"]))))
+        c.append(groupe_titre("Instantanés du système"))
+        etat = (S.out("/usr/local/sbin/xiii-instantanes etat 2>/dev/null") or "? 0").split()
+        fs = etat[0] if etat else "?"
+        if fs == "btrfs" and os.path.exists("/etc/snapper/configs/root"):
+            c.append(info("Un instantané est pris avant chaque installation ou mise à jour, et chaque jour. Ils ne copient rien : ils ne prennent presque pas de place. "
+                          "Si l'ordinateur ne démarre plus, choisissez « Revenir à un état précédent » dans le menu de démarrage ; après trois démarrages ratés, OS XIII revient tout seul en arrière. "
+                          "Vos fichiers personnels ne sont jamais touchés."))
+            c.append(reglage("camera", "Créer un point de retour maintenant", "Avant une manipulation risquée", droite=bouton("Créer", "plus", "pilule", rappel=lambda: demander(self.win, "Nouveau point de retour", "Description (facultative)", "",
+                     lambda t: S.en_fond(lambda: subprocess.run(["pkexec", "/usr/local/sbin/xiii-instantanes", "creer", t or "Point de retour manuel"]).returncode,
+                                         lambda r: (self.toast("Point de retour créé" if r == 0 else "Création annulée"), self.aller("sauvegarde", False)))))))
+            L = [l.split("|", 3) for l in (S.out("/usr/local/sbin/xiii-instantanes liste 2>/dev/null") or "").splitlines() if l.count("|") >= 3]
+            TY = {"pre": "Avant installation", "post": "Après installation", "single": "Point de retour"}
+            for n, d, t, de in reversed(L[-15:]):
+                try: dd = datetime.datetime.strptime(d, "%Y-%m-%d %H:%M:%S").replace(tzinfo=datetime.timezone.utc).astimezone().strftime("%d/%m/%Y à %H:%M")
+                except ValueError: dd = d
+                if "timeline" in de: de = "Instantané quotidien"
+                c.append(reglage("history", dd, "%s — %s" % (TY.get(t, t), de), droite=bouton("Revenir", None, "fantome", rappel=lambda n=n, dd=dd: confirmer(self.win, "Revenir à l'état du %s ?" % dd,
+                         "Le système (logiciels et réglages) redeviendra tel qu'il était. Vos fichiers personnels ne changent pas. Le système actuel est gardé 7 jours. L'ordinateur redémarrera.", "Revenir et redémarrer",
+                         lambda _: S.en_fond(lambda: subprocess.run(["pkexec", "/usr/local/sbin/xiii-instantanes", "restaurer", n, "manuel"]).returncode,
+                                             lambda r: S.detacher(["systemctl", "reboot"]) if r == 0 else self.toast("Retour annulé ou impossible"))))))
+            if not L: c.append(info("Aucun instantané pour le moment : le premier sera créé au prochain démarrage."))
+        elif fs == "btrfs":
+            c.append(info("Les instantanés seront activés automatiquement une minute après le prochain démarrage."))
+        else:
+            c.append(info("Cet ordinateur a été installé en %s : les instantanés instantanés demandent Btrfs, le choix par défaut des nouvelles installations d'OS XIII. "
+                          "En attendant, Timeshift peut faire des copies du système (plus lentes, elles prennent de la place) et le menu de démarrage propose toujours un démarrage de secours." % fs))
+            c.append(reglage("history", "Copies du système (Timeshift)", "Restaurer le système à une date précédente", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher("pkexec timeshift-launcher"))))
+        c.append(groupe_titre("Si l'ordinateur ne démarre plus"))
+        c.append(info("Au démarrage, le menu OS XIII propose : démarrage de secours (dernier noyau qui a fonctionné), mode sans échec graphique, Réparer OS XIII (menu de réparation sans bureau) "
+                      "et Revenir à un état précédent. Depuis la clé OS XIII, l'outil « Réparer OS XIII » refait aussi le démarrage."))
+
+    def p_evenements(self, c, cle):
+        from . import fiabilite as F
+        c.append(info("Tout ce qui est arrivé au système ces 30 derniers jours, en clair."))
+        haut = boite(False, 8)
+        filtre = [None]; liste = boite(True, 0)
+        TY = F.TYPES
+        def remplir():
+            vider(liste); n = 0
+            for d, t, msg in EV:
+                if filtre[0] and t != filtre[0]: continue
+                ic, nom = TY.get(t, ("info", t))
+                sous = d.strftime("%d/%m/%Y à %H:%M") + " · " + nom
+                droite = None
+                if t == "plantage":
+                    f = os.path.join(os.path.expanduser("~/Rapports XIII"), msg.split("rapport : ")[-1])
+                    droite = bouton("Voir", None, "fantome", rappel=lambda f=f: S.detacher(["xdg-open", f]))
+                liste.append(reglage(ic, msg, sous, droite=droite)); n += 1
+                if n >= 200: break
+            if not n: liste.append(info("Rien à signaler."))
+        EV = []
+        types = [(None, "Tout"), ("echec", "Démarrages ratés"), ("arret", "Arrêts brutaux"), ("restauration", "Retours arrière"), ("plantage", "Plantages"),
+                 ("logiciel", "Logiciels"), ("maj", "Mises à jour"), ("disque", "Disque"), ("demarrage", "Démarrages")]
+        haut.append(dim(deroulant(types, None, lambda v: (filtre.__setitem__(0, v or None), remplir())), 220))
+        haut.append(boite(False, 0, hexpand=True))
+        haut.append(bouton("Dossier des rapports", "folder-open", "fantome", rappel=lambda: (os.makedirs(os.path.expanduser("~/Rapports XIII"), exist_ok=True), S.detacher(["xdg-open", os.path.expanduser("~/Rapports XIII")]))))
+        c.append(haut)
+        c.append(groupe_titre("Santé des disques"))
+        sd = boite(True, 0); c.append(sd); sd.append(info("Vérification…"))
+        def sante(L):
+            vider(sd)
+            if not L: sd.append(info("L'état de santé des disques n'est pas disponible sur cet ordinateur.")); return
+            IC = {"bon": ("circle-check", "Bon état"), "attention": ("triangle-alert", "À surveiller"), "critique": ("octagon-alert", "En danger"), "inconnu": ("circle-help", "Inconnu")}
+            for d in L:
+                ic, et = IC.get(d["etat"], IC["inconnu"])
+                plus = []
+                if d.get("temperature"): plus.append("%d °C" % d["temperature"])
+                if d.get("heures"): plus.append("%d h d'utilisation" % d["heures"])
+                sd.append(reglage(ic, "%s (%s) — %s" % (d["nom"], d["taille"], et), d["detail"] + ((" · " + " · ".join(plus)) if plus else "")))
+        S.en_fond(F.sante_disques, sante)
+        c.append(groupe_titre("Événements"))
+        c.append(liste); liste.append(info("Chargement…"))
+        def charge(L): EV[:] = L; remplir()
+        S.en_fond(F.evenements, charge)
 
     def p_projet(self, c, cle):
         base = os.path.expanduser("~/XIII"); cur = self.cfg.get("projet_actif", "")
@@ -1915,6 +1988,32 @@ class Parametres(Gtk.Application):
             c.append(info("Avec une webcam ordinaire, une photo de vous pourrait suffire à tromper la reconnaissance : gardez un mot de passe sur un PC qui sort du bureau."))
         c.append(groupe_titre("Au verrouillage"))
         c.append(info("Tapez votre mot de passe, ou appuyez simplement sur Entrée : OS XIII regarde alors la caméra (visage), puis attend votre doigt sur le lecteur (empreinte)."))
+        c.append(reglage("shield-check", "Tester le déverrouillage", "Essai à blanc, exactement comme sur l'écran verrouillé : visage (6 s au plus), puis empreinte (10 s au plus)",
+                         droite=bouton("Tester", None, "fantome", rappel=self.tester_verrou)))
+        c.append(info("Quoi qu'il arrive, le mot de passe reste accepté immédiatement : la caméra ou le lecteur ne peuvent plus bloquer l'écran verrouillé."))
+
+    def tester_verrou(self):
+        d = Gtk.Window(transient_for=self.win, modal=True, title="Test du déverrouillage", default_width=420); d.add_css_class("parametres")
+        v = boite(True, 12, margin_top=20, margin_bottom=20, margin_start=24, margin_end=24)
+        v.append(label("Test du déverrouillage", "page-titre"))
+        msg = label("Regardez la caméra, puis posez un doigt enregistré sur le lecteur si on vous le demande…", "attenue", wrap=True); v.append(msg)
+        sp = Gtk.Spinner(spinning=True, halign=Gtk.Align.CENTER); sp.set_size_request(32, 32); v.append(sp)
+        r = boite(False, 8, halign=Gtk.Align.END); r.append(bouton("Fermer", None, "fantome", rappel=d.close)); v.append(r)
+        d.set_child(v); d.present()
+        def essai():
+            t = time.time()
+            env = dict(os.environ, PAM_USER=pwd.getpwuid(os.getuid()).pw_name)
+            try: rc = subprocess.run(["/usr/local/lib/xiii/verrou-biometrie"], env=env, timeout=25, capture_output=True).returncode
+            except subprocess.TimeoutExpired: rc = 99
+            return rc, time.time() - t
+        def fin(res):
+            sp.set_spinning(False); sp.set_visible(False)
+            if isinstance(res, Exception): msg.set_text("Le test n'a pas pu se lancer : %s" % res); return
+            rc, dt = res
+            if rc == 0: msg.set_text("Reconnu en %.1f s : le déverrouillage par visage ou empreinte fonctionne." % dt)
+            elif rc == 99: msg.set_text("Pas de réponse au bout de 25 s : la caméra ou le lecteur ne répond pas. Le mot de passe, lui, marche toujours.")
+            else: msg.set_text("Non reconnu (%.1f s). Vérifiez l'éclairage ou réenregistrez votre visage / votre empreinte. Le mot de passe marche toujours." % dt)
+        S.en_fond(essai, fin)
 
     def empreinte(self, u):
         d = Gtk.Window(transient_for=self.win, modal=True, title="Empreinte digitale", default_width=420); d.add_css_class("parametres")

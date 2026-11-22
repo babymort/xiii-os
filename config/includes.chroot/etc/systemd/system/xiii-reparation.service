@@ -1,0 +1,16 @@
+[Unit]
+Description=OS XIII — menu de réparation
+After=sysinit.target plymouth-quit-wait.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=idle
+ExecStartPre=-/bin/plymouth quit
+ExecStart=/usr/local/sbin/xiii-reparer-menu
+StandardInput=tty-force
+StandardOutput=inherit
+StandardError=inherit
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+Environment=TERM=linux LANG=fr_FR.UTF-8 NEWT_COLORS=root=,black:window=white,black:border=yellow,black:title=yellow,black:button=black,yellow:actbutton=black,yellow:listbox=white,black:actlistbox=black,yellow:textbox=white,black

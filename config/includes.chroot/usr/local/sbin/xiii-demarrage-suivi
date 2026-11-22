@@ -1,0 +1,58 @@
+#!/bin/bash
+# OS XIII — suivi des démarrages.
+#   debut : tout tôt au démarrage. Compte les démarrages qui n'ont pas abouti ; au 3e d'affilée, si un instantané
+#           pris avant la dernière installation existe, le système revient automatiquement en arrière.
+#           Avec « xiii.restaurer=N » (menu de démarrage « Revenir à… »), restaure l'instantané N puis redémarre.
+#   ok    : une fois le bureau atteint et stable. Remet le compteur à zéro, garde une copie du noyau qui marche
+#           (entrée « Démarrage de secours »), note un éventuel arrêt brutal précédent.
+set -u
+V=/var/lib/xiii; C=$V/echecs-demarrage; BON=$V/dernier-bon-demarrage; mkdir -p $V
+EV=/var/log/xiii/evenements.log
+journal() { mkdir -p /var/log/xiii; printf '%s|%s|%s\n' "$(date -Iseconds)" "$1" "$2" >> "$EV"; chmod 644 "$EV" 2>/dev/null; }
+case "${1:-}" in
+debut)
+  N=$(sed -n 's/.*xiii\.restaurer=\([0-9]\+\).*/\1/p' /proc/cmdline)
+  if [ -n "$N" ]; then
+    plymouth display-message --text="OS XIII revient à l'instantané $N…" 2>/dev/null
+    if /usr/local/sbin/xiii-instantanes restaurer "$N" manuel; then sleep 2; systemctl reboot; exit 0; fi
+    plymouth display-message --text="Retour impossible, démarrage normal" 2>/dev/null; sleep 3; exit 0
+  fi
+  grep -qw "xiii.reparation\|systemd.unit=xiii-reparation.target" /proc/cmdline && exit 0
+  n=$(( $(cat $C 2>/dev/null || echo 0) + 1 )); echo $n > $C
+  [ $n -ge 2 ] && journal echec "Le démarrage précédent n'est pas allé jusqu'au bureau ($((n-1)) fois d'affilée)"
+  if [ $n -ge 3 ] && [ ! -f $V/retour-auto-fait ] && [ -f /etc/snapper/configs/root ]; then
+    # dernier instantané « avant installation » plus récent que le dernier démarrage réussi
+    ref=$(stat -c %Y $BON 2>/dev/null || echo 0); cible=""
+    while IFS='|' read -r num date type desc; do
+      [ "$type" = pre ] || [ "$type" = single ] || continue
+      t=$(date -d "$date" +%s 2>/dev/null || echo 0)
+      [ "$t" -le "$ref" ] && cible=$num
+    done < <(/usr/local/sbin/xiii-instantanes liste)
+    if [ -n "$cible" ]; then
+      plymouth display-message --text="Démarrages ratés : OS XIII revient au dernier état qui marchait…" 2>/dev/null
+      touch $V/retour-auto-fait
+      /usr/local/sbin/xiii-instantanes restaurer "$cible" auto && { sleep 3; systemctl reboot; }
+    fi
+  fi;;
+ok)
+  echo 0 > $C; rm -f $V/retour-auto-fait; touch $BON
+  # le démarrage précédent s'est-il terminé proprement ?
+  if journalctl -b -1 -n 0 >/dev/null 2>&1 && ! journalctl -b -1 _PID=1 -o cat 2>/dev/null | tail -n 40 | grep -qiE "Reached target.*(Power-Off|Reboot|Halt|Kexec)|Shutting down|System Power Off|System Reboot"; then
+    [ -f $V/arret-brutal-note ] && [ "$(cat $V/arret-brutal-note)" = "$(journalctl --list-boots -q 2>/dev/null | tail -2 | head -1 | awk '{print $2}')" ] || {
+      journalctl --list-boots -q 2>/dev/null | tail -2 | head -1 | awk '{print $2}' > $V/arret-brutal-note
+      journal arret "L'arrêt précédent n'a pas été propre (coupure de courant ou bouton maintenu)"; }
+  fi
+  # copie de secours du noyau et de l'image de démarrage qui viennent de fonctionner
+  K=$(uname -r); S=/boot/xiii-secours; mkdir -p $S
+  if [ -f /boot/vmlinuz-$K ] && [ -f /boot/initrd.img-$K ] && ! cmp -s /boot/initrd.img-$K $S/initrd.img 2>/dev/null; then
+    if lsinitramfs /boot/initrd.img-$K 2>/dev/null | grep -qx init; then
+      cp /boot/vmlinuz-$K $S/vmlinuz.tmp && cp /boot/initrd.img-$K $S/initrd.img.tmp && mv $S/vmlinuz.tmp $S/vmlinuz && mv $S/initrd.img.tmp $S/initrd.img && echo "$K" > $S/version
+      update-grub >/dev/null 2>&1
+    fi
+  fi
+  # après un retour arrière : message pour l'utilisateur à la prochaine session
+  if [ -f $V/restauration.txt ]; then cp $V/restauration.txt $V/restauration-a-annoncer.txt; chmod 644 $V/restauration-a-annoncer.txt; rm -f $V/restauration.txt; fi
+  /usr/local/sbin/xiii-instantanes nettoyer >/dev/null 2>&1
+  [ -f /etc/snapper/configs/root ] || /usr/local/sbin/xiii-instantanes init >/dev/null 2>&1
+  true;;
+esac

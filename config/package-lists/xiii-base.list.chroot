@@ -37,3 +37,7 @@ p7zip-full
 unar
 zip
 unzip
+# instantanés du système (Btrfs) et réparation en mode texte
+btrfs-progs
+snapper
+whiptail
