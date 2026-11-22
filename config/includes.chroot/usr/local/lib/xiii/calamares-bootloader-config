@@ -18,7 +18,8 @@ GRUB_DISTRIBUTOR="OS XIII"
 GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"
 GRUB_CMDLINE_LINUX=""
 GRUB_DISABLE_OS_PROBER=false
-GRUB_GFXMODE=auto
+GRUB_GFXMODE=1920x1080,1366x768,1280x1024,1024x768,auto
+GRUB_THEME=/usr/share/grub/themes/xiii/theme.txt
 G
 ARCH=$(chroot "$CHROOT" dpkg --print-architecture)
 ESPOK=0; for e in /boot/efi /efi; do mountpoint -q "$CHROOT$e" && ESPOK=1; done

@@ -5,6 +5,9 @@ sleep 1
 wlr-randr --output HEADLESS-1 --custom-mode 1600x900 >/dev/null 2>&1
 mkdir -p /root/.config /root/Bureau /root/XIII/Concert-Dome/03_Documents; echo "XDG_DESKTOP_DIR=\"\$HOME/Bureau\"" > /root/.config/user-dirs.dirs
 touch /root/Bureau/Notes.txt
+# faux logiciels Blackmagic installés par Wine (comme sur le PC de Matthieu) : Blackmagic XIII doit les trouver
+mkdir -p "/root/.local/share/applications/wine/Programs/Blackmagic Design/ATEM"
+for n in "ATEM Software Control" "ATEM Setup"; do printf '[Desktop Entry]\nName=%s\nExec=env WINEPREFIX="/root/.wine" wine "C:\\\\Program Files\\\\Blackmagic Design\\\\%s.exe"\nType=Application\nIcon=atem\n' "$n" "$n" > "/root/.local/share/applications/wine/Programs/Blackmagic Design/ATEM/$n.desktop"; done
 R=/out/zz.txt; : > $R
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(_histo=False, visite_faite=True)'
 xiii-shell > /out/shell.log 2>&1 &
@@ -74,6 +77,18 @@ print("OK        rapport de plantage écrit :", f.split("/")[-1])' >> $R 2>&1
 xiii-parametres --page evenements > /out/p.log 2>&1 & sleep 4; grim -s 0.5 /out/page-evenements-rempli.png; pkill -f xiii.parametres
 for s in /etc/grub.d/41_xiii_secours /usr/local/sbin/xiii-instantanes /usr/local/sbin/xiii-demarrage-suivi /usr/local/sbin/xiii-reparer-menu; do
   bash -n $s && echo "OK        syntaxe $(basename $s)" >> $R || echo "ÉCHEC     syntaxe $(basename $s)" >> $R; done
+echo "== Phase B (graphisme)" >> $R
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import theme
+for f in ("/usr/share/xiii/wallpapers/xiii-sombre.png","/usr/share/xiii/wallpapers/xiii-clair.png"): print("OK        accent tiré du fond", f.split("/")[-1], ":", theme.accent_du_fond(f))' >> $R 2>&1
+for m in flip logo; do xiii-veille $m > /out/veille-$m.log 2>&1 & sleep 3; grim -s 0.5 /out/veille-$m.png; verifier "Écran de veille $m" "xiii.veille" /out/veille-$m.log; pkill -f xiii.veille; sleep 0.4; done
+python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, widgets_bureau=['calendrier','disques','compte','systeme'], compte_nom='Concert Dôme', compte_date='2026-12-12')"
+sleep 3; grim -s 0.5 /out/bureau-widgets.png
+python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, fond_anime=True)"
+sleep 4; grim -s 0.5 /out/bureau-fond-anime.png; pgrep -f xiii.fond_anime >/dev/null && echo "OK        fond animé lancé" >> $R || echo "ÉCHEC     fond animé non lancé" >> $R
+python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, fond_anime=False, widgets_bureau=[])"
+xiii-blackmagic > /out/bm.log 2>&1 & sleep 5; grim -s 0.5 /out/blackmagic-mes-logiciels.png; verifier "Blackmagic XIII (logiciels détectés)" "xiii.blackmagic" /out/bm.log; pkill -f xiii.blackmagic
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import blackmagic as B; L=B.logiciels_installes(); print("OK        Blackmagic détectés :", {k:[x["nom"] for x in v] for k,v in L.items()})' >> $R 2>&1
+for s in /usr/share/sounds/XIII/stereo/*.wav; do :; done; echo "OK        sons système : $(ls /usr/share/sounds/XIII/stereo | wc -l) fichiers" >> $R
 echo "== Bureau" >> $R
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  xiii-shell" >> $R; grep -A8 Traceback /out/shell.log | tail -12 >> $R; } || echo "OK        xiii-shell (aucune erreur Python)" >> $R
 pgrep -f xiii.shell >/dev/null || echo "FERMÉE    xiii-shell" >> $R

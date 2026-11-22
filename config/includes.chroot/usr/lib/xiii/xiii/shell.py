@@ -83,6 +83,10 @@ class Shell(Gtk.Application):
             except Exception as e: print("[xiii] fiabilité :", e)
             return False
         if not S.DEMO: GLib.timeout_add_seconds(25, _fiab)
+        # son d'ouverture de session (une fois)
+        if not S.DEMO:
+            from . import sons
+            GLib.timeout_add(2500, lambda: (sons.jouer("desktop-login", self.cfg), False)[1])
         self.maj_icones(); self.maj_meteo(); self.maj_taches(); self.tic(); self.demarrer_timecode()
         if not self.cfg.get("visite_faite") and not os.path.isdir("/run/live/medium"):
             GLib.timeout_add_seconds(3, lambda: (self.visite(), False)[1])
@@ -531,7 +535,7 @@ class Shell(Gtk.Application):
         from .modes import PAR_CLE
         k = k if k in PAR_CLE else "classique"
         self.vue_mode.appliquer(k)
-        self.bureau.w.set_visible(k == "classique" and bool(self.cfg.get("icones_bureau", True)))
+        self.bureau.w.set_visible(k == "classique" and bool(self.cfg.get("icones_bureau", True) or self.cfg.get("widgets_bureau")))
         prof = PAR_CLE[k][4]
         avant = getattr(self, "_mode_prec", None); self._mode_prec = k
         if not premier and avant != k:
@@ -701,6 +705,7 @@ class Shell(Gtk.Application):
             self.b_meteo.set_child(boite(False, 6)); self.b_meteo.get_child().append(ico("cloud-off" if os.path.exists(theme.LUCIDE + "/cloud-off.svg") else "cloud", 20, "d"))
             GLib.timeout_add_seconds(120, lambda: (self.maj_meteo(), False)[1]); return
         self._meteo = m
+        if hasattr(self, "bureau") and "meteo" in self.cfg.get("widgets_bureau", []): self.bureau.wb.maj(force=True)
         ic, nom = P.METEO.get(m["code"], ("cloud", ""))
         bx = boite(False, 8, margin_start=4, margin_end=4); bx.append(ico(ic, 22, "c"))
         v = boite(True, 0, valign=Gtk.Align.CENTER); v.append(label("%d°C" % m["t"], "meteo-t")); v.append(label(nom, "horloge-d", ellipsize=True, largeur=16))
@@ -809,7 +814,11 @@ class Shell(Gtk.Application):
     def services(self, premier=False):
         c = self.cfg
         if os.path.exists(c["fond"]):
-            self.processus("fond", ["swaybg", "-m", c["fond_mode"], "-i", c["fond"]])
+            # fond animé (dérive lente + lueur, ou vidéo) ; sinon image fixe — une vidéo choisie comme fond est toujours animée
+            if c.get("fond_anime") or c["fond"].lower().endswith((".mp4", ".webm", ".mkv", ".mov", ".m4v")):
+                self.processus("fond", ["xiii-fond-anime", c["fond"], theme.palette(c)["accent"]])   # nouvel accent → relancé avec la bonne lueur
+            else:
+                self.processus("fond", ["swaybg", "-m", c["fond_mode"], "-i", c["fond"]])
         if c["lumiere_nocturne"]:
             t = int(c["nocturne_temp"]); self.processus("nuit", ["wlsunset", "-t", str(t), "-T", str(t + 1), "-S", "00:00", "-s", "23:59", "-d", "60"])
         else:
@@ -856,6 +865,9 @@ class Shell(Gtk.Application):
                 S.en_fond(attendre, lambda r: S.detacher(["xiii-fichiers", chemin]) if r == "ouvrir" else None)
             vol.mount(Gio.MountMountFlags.NONE, Gtk.MountOperation.new(None), None, fini)
         self._vm.connect("volume-added", ajout)
+        from . import sons
+        self._vm.connect("volume-added", lambda *_: sons.jouer("device-added", self.cfg))
+        self._vm.connect("volume-removed", lambda *_: sons.jouer("device-removed", self.cfg))
 
     def theme_auto(self):
         """Thème Auto : passe au clair au lever du soleil, au sombre au coucher."""

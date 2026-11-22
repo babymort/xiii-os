@@ -20,6 +20,9 @@ WIDGETS = [  # clé, nom, icône, description
     ("timecode", "Timecode LTC", "clock", "Timecode reçu sur une entrée audio (application Timecode LTC ouverte)"),
     ("notes", "Notes", "notebook-pen", "Bloc-notes rapide, enregistré automatiquement"),
     ("raccourcis", "Raccourcis", "folder", "Dossiers et liens utiles"),
+    ("calendrier", "Calendrier", "calendar", "Mois en cours, aujourd'hui en surbrillance"),
+    ("disques", "Disques", "hard-drive", "Place libre sur chaque disque (interne, clés, cartes, NAS)"),
+    ("compte", "Compte à rebours", "timer", "Jours avant le tournage du projet actif (ou une date de votre choix)"),
 ]
 NOTES = os.path.join(GLib.get_user_data_dir(), "xiii", "notes.txt")
 
@@ -115,6 +118,7 @@ def jauge(nom, ic):
 # ------------------------------------------------------------------------------------------------ tableau
 class Tableau:
     largeur = 760
+    CLE = "widgets"
     def __init__(self, shell):
         self.shell = shell; self.mes = Mesures(); self._src = 0
         w = boite(True, 12, "panneau"); w.set_size_request(self.largeur, -1); self.widget = w
@@ -144,7 +148,7 @@ class Tableau:
         mois = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
         self.l_date.set_text("%s %d %s" % (jours[n.weekday()].capitalize(), n.day, mois[n.month - 1]))
         vider(self.grille)
-        for cle in self.shell.cfg.get("widgets", [w[0] for w in WIDGETS]):
+        for cle in self.shell.cfg.get(self.CLE, [w[0] for w in WIDGETS] if self.CLE == "widgets" else []):
             fn = getattr(self, "w_" + cle, None)
             if fn:
                 try:
@@ -352,6 +356,48 @@ class Tableau:
         v.append(bouton("Ouvrir la Suite XIII", "external-link", "fantome", taille=14, rappel=lambda: (self.shell.fermer(), S.detacher(["xdg-open", "https://suite-xiii.netlify.app/"]))))
         return v
 
+    def w_calendrier(self):
+        cal = Gtk.Calendar(); cal.set_can_focus(False)
+        return self.carte("calendrier", "Calendrier", "calendar", cal)
+
+    def w_disques(self):
+        v = boite(True, 8)
+        vus = set()
+        for p in ["/", os.path.expanduser("~")] + sorted(glob.glob("/media/*/*") + glob.glob("/run/media/*/*") + glob.glob(os.path.join(GLib.get_user_runtime_dir(), "gvfs", "*"))):
+            try:
+                st = os.statvfs(p); cle = (st.f_blocks, st.f_bfree)
+            except OSError: continue
+            if cle in vus or st.f_blocks == 0: continue
+            vus.add(cle)
+            tot, libre = st.f_blocks * st.f_frsize, st.f_bavail * st.f_frsize
+            nom = "Ordinateur" if p == "/" else ("Dossier personnel" if p == os.path.expanduser("~") else os.path.basename(p))
+            j = jauge(nom, "hard-drive" if p in ("/", os.path.expanduser("~")) else "usb"); pc = 100 * (tot - libre) / tot
+            j._lb.set_value(pc); j._val.set_text("%s libres" % S.humain(libre)); v.append(j)
+            if len(vus) >= 5: break
+        return self.carte("disques", "Disques", "hard-drive", v, lambda: S.detacher("xiii-fichiers"))
+
+    def w_compte(self):
+        from . import projets
+        cfg = self.shell.cfg; nom, cible = cfg.get("compte_nom"), cfg.get("compte_date")
+        if not cible:
+            pj = cfg.get("projet_actif")
+            fi = projets.fiche_de(pj) if pj else None
+            if isinstance(fi, dict):
+                for k in ("start", "dateStart", "debut", "date", "startDate", "shootStart"):
+                    if isinstance(fi.get(k), str) and len(fi[k]) >= 10: cible, nom = fi[k][:10], fi.get("title") or pj; break
+                if not cible and isinstance(fi.get("dates"), list) and fi["dates"]:
+                    d0 = fi["dates"][0]; d0 = d0.get("start") or d0.get("date") if isinstance(d0, dict) else d0
+                    if isinstance(d0, str) and len(d0) >= 10: cible, nom = d0[:10], fi.get("title") or pj
+        v = boite(True, 4)
+        try:
+            j = (datetime.date.fromisoformat(cible) - datetime.date.today()).days
+        except (TypeError, ValueError):
+            v.append(label("Aucune date : choisissez-en une dans Paramètres › Widgets, ou remplissez les dates du projet dans la Suite XIII.", "attenue", "petit", wrap=True))
+            return self.carte("compte", "Compte à rebours", "timer", v, lambda: self.shell.parametres("widgets"))
+        v.append(label("J-%d" % j if j > 0 else ("C'est aujourd'hui !" if j == 0 else "Il y a %d jour%s" % (-j, "s" if j < -1 else "")), "meteo-grand", xalign=0.5))
+        v.append(label("%s · %s" % (nom or "Tournage", datetime.date.fromisoformat(cible).strftime("%d/%m/%Y")), "attenue", "petit", xalign=0.5, wrap=True))
+        return self.carte("compte", "Compte à rebours", "timer", v, lambda: self.shell.parametres("widgets"))
+
     def w_projet(self):
         o = dernier_lien("project")
         if not o: return self.carte("projet", "Projet XIII", "clapperboard", self.vide_xiii("projet"))
@@ -398,3 +444,23 @@ class Tableau:
             for s in (j.get("scenes") or [])[:4]:
                 v.append(label("Séq. %s · %s %s · %s" % (s.get("seq", ""), s.get("ie", ""), s.get("decor", ""), s.get("effet", "")), "petit", ellipsize=True))
         return self.carte("plan", "Prochain tournage", "calendar-days", v)
+
+
+# ------------------------------------------------------------------------------------------------ widgets posés sur le bureau
+class WidgetsBureau(Tableau):
+    """Les mêmes widgets, épinglés en colonne sur le bureau (Paramètres › Widgets › Sur le bureau)."""
+    CLE = "widgets_bureau"
+    def __init__(self, shell):
+        self.shell = shell; self.mes = Mesures(); self._src = 0; self._liste = None
+        self.widget = boite(True, 10, "widgets-bureau", halign=Gtk.Align.END, valign=Gtk.Align.START, margin_top=56, margin_end=22)
+        self.widget.set_size_request(330, -1)
+        self.grille = boite(True, 10); self.widget.append(self.grille)
+        self.l_heure = Gtk.Label(); self.l_date = Gtk.Label()        # non affichés (l'heure est dans la barre)
+
+    def maj(self, force=False):
+        L = list(self.shell.cfg.get("widgets_bureau", []))
+        self.widget.set_visible(bool(L))
+        if L != self._liste or force:
+            self._liste = L
+            if L: self.rafraichir()
+            else: self.stop()

@@ -57,6 +57,12 @@ class Serveur:
                 n = Notification(nid, app, icone, titre, corps, list(actions), dict(hints), delai)
                 self.liste[nid] = n
                 self.nouvelle(n, bool(remp and remp == nid))
+                if not (remp and remp == nid):
+                    try:
+                        from . import sons
+                        h = {k: (v.unpack() if hasattr(v, "unpack") else v) for k, v in dict(hints).items()}
+                        sons.pour_notification(app, icone, titre, h)
+                    except Exception: pass
                 inv.return_value(GLib.Variant("(u)", (nid,)))
             elif methode == "CloseNotification":
                 (nid,) = params.unpack()

@@ -109,6 +109,45 @@ def jour():
         return 7 <= datetime.datetime.now().hour < 19
 
 
+def _leger():
+    """Édition légère ou PC sans carte 3D : pas d'ombres de fenêtres (rendu logiciel)."""
+    try:
+        if open("/etc/xiii/edition").read().strip() == "leger": return True
+    except OSError: pass
+    return bool(os.environ.get("WLR_RENDERER") == "pixman")
+
+_ACC_FOND = {}
+def accent_du_fond(chemin, clair=False):
+    """Couleur d'accent tirée du fond d'écran : teinte vive la plus présente (pixels saturés pondérés),
+    ramenée à une luminosité qui reste lisible sur le thème (clair ou sombre)."""
+    import colorsys
+    try: cle = (chemin, os.path.getmtime(chemin), clair)
+    except OSError: return None
+    if cle in _ACC_FOND: return _ACC_FOND[cle]
+    try:
+        from gi.repository import GdkPixbuf
+        pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(chemin, 64, 64, False)
+    except Exception:
+        return None
+    px, n, rs = pb.get_pixels(), pb.get_n_channels(), pb.get_rowstride()
+    bacs = [0.0] * 36; somme = [[0.0, 0.0, 0.0] for _ in range(36)]
+    for y in range(pb.get_height()):
+        for x in range(pb.get_width()):
+            i = y * rs + x * n; r, g, b = px[i] / 255, px[i + 1] / 255, px[i + 2] / 255
+            h, l, sat = colorsys.rgb_to_hls(r, g, b)
+            if sat < .25 or l < .12 or l > .92: continue
+            poids = sat * (1 - abs(l - .5) * 1.4)
+            k = int(h * 36) % 36; bacs[k] += poids
+            somme[k][0] += h * poids; somme[k][1] += sat * poids; somme[k][2] += l * poids
+    if max(bacs) < 1:          # fond presque gris : accent XIII par défaut
+        _ACC_FOND[cle] = None; return None
+    k = max(range(36), key=lambda i: bacs[i] + .5 * (bacs[i - 1] + bacs[(i + 1) % 36]))
+    h, sat = somme[k][0] / bacs[k], min(.85, max(.55, somme[k][1] / bacs[k]))
+    l = .42 if clair else .66
+    r, g, b = colorsys.hls_to_rgb(h, l, sat)
+    hx = "#%02x%02x%02x" % (int(r * 255), int(g * 255), int(b * 255))
+    _ACC_FOND[cle] = hx; return hx
+
 def theme_effectif(cfg):
     t = cfg.get("theme", "sombre")
     if t == "auto": return "clair" if jour() else "sombre"
@@ -245,7 +284,11 @@ calendar > grid > label.today {{ box-shadow: inset 0 0 0 2px {p['accent']}; bord
 calendar > grid > label.other-month {{ color: alpha({p['texte']},0.3); }}
 tooltip {{ background: {p['panneau_plein']}; border: 1px solid alpha({p['accent']},0.4); border-radius: 6px; color: {p['texte']}; }}
 tooltip label {{ color: {p['texte']}; }}
-"""
+""" + ('''
+@keyframes xiii-ouvrir { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+window.background:not(.xiii-surface):not(.veille) > * { animation: xiii-ouvrir 190ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+popover > contents { animation: xiii-ouvrir 140ms ease-out; }
+''' if p.get("anim", "none") != "none" else "")
 
 # --------------------------------------------------------------------------------------------- CSS du bureau
 def css_shell(cfg):
@@ -336,7 +379,8 @@ button.emoji {{ font-size: 22px; padding: 2px; min-width: 36px; min-height: 36px
 # --------------------------------------------------------------------------------------------- CSS Paramètres
 def css_parametres(cfg):
     p = palette(cfg)
-    return css_commun(p) + f"""
+    return css_commun(p) + f""".avatar-rond {{ border-radius: 999px; }}
+
 window.parametres {{ background: {p['fond']}; }}
 .nav {{ background: {p['carte2']}; border-right: 1px solid {p['bord']}; }}
 .nav-titre {{ font-family: Astoria, sans-serif; font-size: 24px; color: {p['accent_texte']}; }}
@@ -483,15 +527,24 @@ def fond_assorti(cfg):
     return cfg.get("fond")
 
 def nom_icones(cfg):
-    """Thème d'icônes : XIII (cuivre) ou copie teintée à la couleur d'accent du thème."""
+    """Thème d'icônes : XIII (cuivre) ou copie teintée à la couleur d'accent du thème ;
+    sans les icônes XIII des logiciels tiers si l'utilisateur préfère leurs logos d'origine."""
     A = palette(cfg)["accent"].lower()
-    if A == "#f0b378": return "XIII"
-    dest = os.path.join(GLib.get_user_data_dir(), "icons", "XIII-accent")
+    tierces = cfg.get("icones_tierces", True)
+    if A == "#f0b378" and tierces: return "XIII"
+    nom = "XIII-accent" if tierces else "XIII-marques"
+    dest = os.path.join(GLib.get_user_data_dir(), "icons", nom)
     marque = os.path.join(dest, ".accent")
+    try: sig = A + "|%d" % os.path.getmtime("/usr/share/icons/XIII/scalable/apps")      # nouvelles icônes après une mise à jour → copie refaite
+    except OSError: sig = A
     try:
-        if open(marque).read() == A: return "XIII-accent"
+        if open(marque).read() == sig: return nom
     except OSError:
         pass
+    exclus = set()
+    if not tierces:
+        try: exclus = {l.strip() + ".svg" for l in open("/usr/share/xiii/icones-tierces.txt") if l.strip()}
+        except OSError: pass
     import shutil
     shutil.rmtree(dest, True)
     for racine, dossiers, fichiers in os.walk("/usr/share/icons/XIII"):
@@ -499,12 +552,13 @@ def nom_icones(cfg):
         for f in fichiers:
             src = os.path.join(racine, f)
             if f.endswith(".svg"):
+                if rel.endswith("apps") and f in exclus: continue
                 txt = open(src).read().replace("#f0b378", A)
                 open(os.path.join(dest, rel, f), "w").write(txt)
             elif f == "index.theme":
-                open(os.path.join(dest, rel, f), "w").write(open(src).read().replace("Name=XIII", "Name=XIII-accent"))
-    open(marque, "w").write(A)
-    return "XIII-accent"
+                open(os.path.join(dest, rel, f), "w").write(open(src).read().replace("Name=XIII", "Name=" + nom))
+    open(marque, "w").write(sig)
+    return nom
 
 
 def couleur_pleine(c, fond="#000000"):
@@ -587,6 +641,8 @@ gtk-cursor-theme-name=XIII-curseur
 gtk-cursor-theme-size={curseur}
 gtk-xft-dpi={dpi}
 gtk-enable-animations={anim}
+gtk-sound-theme-name=XIII
+gtk-enable-event-sounds={"true" if cfg.get("sons_systeme", True) else "false"}
 """)
     _ecrire(f"{conf}/gtk-3.0/gtk.css", "/* OS XIII : couleurs dans ~/.local/share/themes/XIII-perso */\n")
     # GTK 4 : couleurs nommées d'Adwaita + réglages de base
@@ -649,7 +705,25 @@ osd.border.color: {A}
 osd.label.text.color: {p['texte']}
 window.switcher.width: 600
 border.width: {1 if p['rayon'] != '0px' else 2}
+window.active.shadow.size: {0 if p['rayon'] == '0px' else 18}
+window.inactive.shadow.size: {0 if p['rayon'] == '0px' else 10}
+window.active.shadow.color: {'#00000040' if p['clair'] else '#00000080'}
+window.inactive.shadow.color: {'#00000022' if p['clair'] else '#00000050'}
 """)
+    # coins arrondis et ombres : mêmes rayons que les panneaux XIII (rc.xml › theme)
+    try:
+        import xml.etree.ElementTree as ET
+        rc = f"{conf}/labwc/rc.xml"; t = ET.parse(rc); r = t.getroot()
+        th = r.find("theme")
+        if th is None: th = ET.SubElement(r, "theme")
+        rayon = int(re.sub(r"\D", "", p['rayon']) or 0)
+        for cle, val in (("cornerRadius", str(min(12, rayon))), ("dropShadows", "no" if rayon == 0 or _leger() else "yes")):
+            e = th.find(cle)
+            if e is None: e = ET.SubElement(th, cle)
+            e.text = val
+        t.write(rc, encoding="unicode", xml_declaration=True)
+    except Exception:
+        pass
     _ecrire(f"{conf}/swaylock/config", f"""image={image_verrou(cfg.get('verrou_fond', '/usr/share/xiii/wallpapers/xiii-connexion.png'), p)}
 scaling=fill
 indicator-radius=90
@@ -686,7 +760,13 @@ def appliquer_connexion(cfg):
     """Écran de connexion (LightDM) et animation de démarrage (Plymouth) aux couleurs du thème — droits administrateur."""
     p = palette(cfg)
     r, g, b = (v / 255 for v in hex_rgb(p["fond"]))
-    data = {"css": css_gtk3(p), "fond": fond_assorti(cfg) if fond_par_defaut(cfg.get("fond")) else cfg.get("fond"), "rgb": [round(r, 3), round(g, 3), round(b, 3)], "police": p["police"]}
+    data = {"css": css_gtk3(p), "fond": cfg.get("connexion_fond") or (fond_assorti(cfg) if fond_par_defaut(cfg.get("fond")) else cfg.get("fond")),
+            "rgb": [round(r, 3), round(g, 3), round(b, 3)], "police": p["police"],
+            "flou": bool(cfg.get("connexion_flou")), "position": cfg.get("connexion_position", "centre"), "horloge": cfg.get("connexion_horloge", "%H:%M  ·  %a %d %b")}
+    av = cfg.get("connexion_avatar")
+    if av and os.path.exists(av):
+        import pwd
+        data["avatar"] = {"user": pwd.getpwuid(os.getuid()).pw_name, "image": av}
     import json, tempfile
     f = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False); json.dump(data, f); f.close()
     return subprocess.run(["pkexec", "/usr/local/bin/xiii-theme-systeme", f.name]).returncode == 0

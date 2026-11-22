@@ -1,0 +1,20 @@
+#!/bin/sh
+# OS XIII — thème du menu de démarrage des systèmes installés : polices GRUB depuis IBM Plex, thème réglé dans /etc/default/grub
+# xiii-maj: relancer
+T=/usr/share/grub/themes/xiii
+if command -v grub-mkfont >/dev/null; then
+  # GRUB nomme la police « <famille> <style> <taille> » (ex. « IBM Plex Sans Bold 20 ») : -n ne donne que la famille
+  for f in "IBM Plex Sans:IBMPlexSans-Regular" "IBM Plex Sans:IBMPlexSans-Bold" "IBM Plex Mono:IBMPlexMono-Regular"; do
+    nom=${f%%:*}; fic=$(fc-list | grep -m1 "/${f##*:}\.\(otf\|ttf\)" | cut -d: -f1)
+    [ -n "$fic" ] || { echo "[xiii] police absente : ${f##*:}"; continue; }
+    for s in 16 20; do grub-mkfont -s $s -n "$nom" -o "$T/${f##*:}-$s.pf2" "$fic" 2>/dev/null; done
+  done
+  ls $T/*.pf2 2>/dev/null | sed 's/^/[xiii] police GRUB : /'
+fi
+# système déjà installé (mise à jour d'OS XIII) : on active le thème
+if [ -f /etc/default/grub ] && [ ! -d /run/live ] && grep -q 'OS XIII' /etc/default/grub; then
+  grep -q '^GRUB_THEME=' /etc/default/grub || echo "GRUB_THEME=$T/theme.txt" >> /etc/default/grub
+  sed -i 's|^GRUB_GFXMODE=.*|GRUB_GFXMODE=1920x1080,1366x768,1280x1024,1024x768,auto|' /etc/default/grub
+  command -v update-grub >/dev/null && update-grub >/dev/null 2>&1 || true
+fi
+true

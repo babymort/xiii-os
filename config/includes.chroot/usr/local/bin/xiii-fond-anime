@@ -1,0 +1,4 @@
+#!/bin/sh
+LS=$(ls /usr/lib/*/libgtk4-layer-shell.so.0 2>/dev/null | head -1)
+[ -n "$LS" ] && export LD_PRELOAD="$LS${LD_PRELOAD:+:$LD_PRELOAD}"
+exec python3 -c 'import sys; sys.path.insert(0, "/usr/lib/xiii"); from xiii.fond_anime import main; main()' "$@"

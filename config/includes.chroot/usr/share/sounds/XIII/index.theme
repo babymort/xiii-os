@@ -1,0 +1,8 @@
+[Sound Theme]
+Name=XIII
+Comment=Sons système d'OS XIII (synthétisés, sans licence tierce)
+Inherits=freedesktop
+Directories=stereo
+
+[stereo]
+OutputProfile=stereo

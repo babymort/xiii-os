@@ -110,6 +110,16 @@ def historique():
 def modifier(_histo=True, **kw):
     """Enregistre des réglages ; garde l'ancienne valeur pour pouvoir annuler (Paramètres › Historique)."""
     c = charger()
+    # accent assorti au fond d'écran : recalculé à chaque changement de fond (ou de thème clair / sombre)
+    if (kw.get("accent_auto") or (c.get("accent_auto") and kw.get("accent_auto") is not False)) and ("fond" in kw or "theme" in kw or kw.get("accent_auto")) and "accent" not in kw:
+        try:
+            from . import theme
+            f = kw.get("fond", c.get("fond"))
+            t = theme.theme_effectif(dict(c, **kw))
+            a = theme.accent_du_fond(f, clair=t in ("clair", "sobrec", "soleil", "sepia")) if f and not theme.fond_par_defaut(f) else None
+            if a: kw["accent"] = a
+        except Exception:
+            pass
     avant = {k: c.get(k) for k in kw if c.get(k) != kw[k]}
     c.update(kw); enregistrer(c)
     if _histo and avant and not (set(avant) <= SANS_HISTO):

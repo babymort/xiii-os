@@ -8,11 +8,33 @@ open(os.path.join(T, "gtk.css"), "w").write(d["css"])
 fond = "/usr/share/xiii/wallpapers/xiii-connexion-theme.png"
 if d.get("fond") and os.path.exists(d["fond"]): shutil.copy(d["fond"], fond)
 else: fond = "/usr/share/xiii/wallpapers/xiii-connexion.png"
+if d.get("flou"):          # fond flouté : réduit puis agrandi deux fois (flou doux, sans dépendance)
+    try:
+        import gi; gi.require_version("GdkPixbuf", "2.0"); from gi.repository import GdkPixbuf
+        pb = GdkPixbuf.Pixbuf.new_from_file(fond); w, h = pb.get_width(), pb.get_height()
+        for k in (24, 12):
+            pb = pb.scale_simple(max(1, w // k), max(1, h // k), GdkPixbuf.InterpType.BILINEAR).scale_simple(w, h, GdkPixbuf.InterpType.BILINEAR)
+        flou = "/usr/share/xiii/wallpapers/xiii-connexion-flou.png"; pb.savev(flou, "png", [], []); fond = flou
+    except Exception as e: print("flou impossible :", e)
+# photo de profil (affichée par l'écran de connexion via AccountsService)
+av = d.get("avatar") or {}
+if av.get("user") and re.match(r"^[a-z_][a-z0-9_-]*$", av["user"]) and os.path.exists(av.get("image", "")):
+    os.makedirs("/var/lib/AccountsService/icons", exist_ok=True); os.makedirs("/var/lib/AccountsService/users", exist_ok=True)
+    ic = "/var/lib/AccountsService/icons/" + av["user"]; shutil.copy(av["image"], ic); os.chmod(ic, 0o644)
+    u = "/var/lib/AccountsService/users/" + av["user"]
+    try: tu = open(u).read()
+    except OSError: tu = "[User]\n"
+    tu = re.sub(r"(?m)^Icon=.*\n?", "", tu).rstrip("\n") + "\nIcon=%s\n" % ic
+    open(u, "w").write(tu)
 c = "/etc/lightdm/lightdm-gtk-greeter.conf"
 t = open(c).read()
 t = re.sub(r"(?m)^theme-name=.*$", "theme-name=XIII-connexion", t)
 t = re.sub(r"(?m)^background=.*$", "background=" + fond, t)
 t = re.sub(r"(?m)^font-name=.*$", "font-name=%s 11" % d.get("police", "IBM Plex Sans"), t)
+POS = {"gauche": "12%,start 50%,center", "centre": "50%,center 50%,center", "droite": "88%,end 50%,center"}
+t = re.sub(r"(?m)^position=.*$", "position=" + POS.get(d.get("position"), POS["centre"]), t)
+if d.get("horloge"): t = re.sub(r"(?m)^clock-format=.*$", "clock-format=" + d["horloge"].replace("\n", " "), t)
+if av.get("user"): t = re.sub(r"(?m)^round-user-image=.*$", "round-user-image=true", t)
 open(c, "w").write(t)
 s = "/usr/share/plymouth/themes/xiii/xiii.script"
 if os.path.exists(s):

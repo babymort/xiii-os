@@ -14,7 +14,7 @@ from .panneaux import METEO
 
 FONDS_PERSO = os.path.join(GLib.get_user_data_dir(), "xiii", "fonds")
 RC = os.path.join(GLib.get_user_config_dir(), "labwc", "rc.xml")
-CLES_THEME = {"theme", "accent", "transparence", "animations", "taille_texte", "curseur_taille", "police", "verrou_fond", "theme_perso", "contraste", "densite"}
+CLES_THEME = {"theme", "accent", "icones_tierces", "transparence", "animations", "taille_texte", "curseur_taille", "police", "verrou_fond", "theme_perso", "contraste", "densite"}
 
 # ------------------------------------------------------------------------------------------------ rc.xml de labwc
 def rc_lire():
@@ -124,8 +124,9 @@ class Parametres(Gtk.Application):
         """Enregistre des réglages ; propage le thème au système si besoin."""
         if {"theme", "accent", "theme_perso"} & set(kw) and "fond" not in kw and theme.fond_par_defaut(self.cfg.get("fond")):
             c2 = dict(self.cfg); c2.update(kw); kw["fond"] = theme.fond_assorti(c2)
+        acc_avant = self.cfg.get("accent")
         self.cfg = config.modifier(**kw)
-        if CLES_THEME & set(kw):
+        if CLES_THEME & set(kw) or self.cfg.get("accent") != acc_avant:
             Gtk.Settings.get_default().set_property("gtk-icon-theme-name", theme.nom_icones(self.cfg))
             theme.appliquer_systeme(self.cfg)
             couleurs(self.cfg); theme._cache.clear(); self.css.load_from_string(theme.css_parametres(self.cfg))
@@ -345,6 +346,17 @@ class Parametres(Gtk.Application):
                          droite=bouton("Réparer", None, "pilule", rappel=lambda: (self.toast("Réparation du son…"), S.detacher("xiii-reparer-son")))))
         c.append(reglage("cpu", "Pilotes et firmwares", "Recherche approfondie du matériel son, graphique, Wi-Fi", clic=lambda: S.detacher("xiii-bilan --pilotes")))
 
+        # ---- sons système (thème XIII)
+        from . import sons
+        c.append(groupe_titre("Sons système"))
+        c.append(reglage("bell-ring", "Sons d'OS XIII", "Ouverture de session, notifications, clé USB branchée ou retirée, capture, erreurs. Silencieux en Ne pas déranger",
+                         droite=interrupteur(self.cfg.get("sons_systeme", True), lambda on: self.regler(sons_systeme=on))))
+        c.append(reglage("volume-1", "Volume des sons système", "", droite=dim(curseur(int(self.cfg.get("sons_volume", 70)), lambda v: self.regler(_histo=False, sons_volume=int(v)), 5, 100, 5), 260)))
+        fl = Gtk.FlowBox(max_children_per_line=4, selection_mode=Gtk.SelectionMode.NONE, column_spacing=6, row_spacing=6)
+        for k, n in (("desktop-login", "Ouverture"), ("message-new-instant", "Notification"), ("device-added", "Clé branchée"), ("device-removed", "Clé retirée"),
+                     ("screen-capture", "Capture"), ("complete", "Terminé"), ("dialog-warning", "Attention"), ("dialog-error", "Erreur"), ("battery-low", "Batterie faible"), ("desktop-logout", "Fermeture")):
+            fl.append(bouton(n, "play", "fantome", taille=13, rappel=lambda k=k: sons.jouer(k, self.cfg, force=True)))
+        c.append(fl)
     def p_notifications(self, c, cle):
         cfg = self.cfg
         c.append(reglage("bell-off", "Ne pas déranger", "Les notifications arrivent en silence dans le volet",
@@ -1135,15 +1147,19 @@ class Parametres(Gtk.Application):
             if hx.lower() == cfg["accent"].lower(): b.add_css_class("sel")
             pr = Gtk.CssProvider(); pr.load_from_string("button { background: %s; }" % hx)
             b.get_style_context().add_provider(pr, 900); b.set_tooltip_text(n)
-            b.connect("clicked", lambda _b, hx=hx: self.regler(accent=hx)); fl.append(b)
+            b.connect("clicked", lambda _b, hx=hx: self.regler(accent=hx, accent_auto=False)); fl.append(b)
         r.append(fl); c.append(r)
         dlg = Gtk.ColorDialog(with_alpha=False); cb = Gtk.ColorDialogButton(dialog=dlg)
         rg = Gdk.RGBA(); rg.parse(cfg["accent"]); cb.set_rgba(rg)
         def couleur(btn, _p):
             x = btn.get_rgba(); hx = "#%02x%02x%02x" % (int(x.red * 255), int(x.green * 255), int(x.blue * 255))
-            if hx != self.cfg["accent"]: self.regler(accent=hx)
+            if hx != self.cfg["accent"]: self.regler(accent=hx, accent_auto=False)
         cb.connect("notify::rgba", couleur)
         c.append(reglage("palette", "Couleur personnalisée", "Choisissez n'importe quelle couleur", droite=cb))
+        c.append(reglage("shapes", "Icônes XIII pour les logiciels tiers", "Firefox, VLC, OBS, Resolve, LibreOffice, Steam… dessinés au trait XIII (130 icônes). Désactivez pour garder leurs logos d'origine",
+                         droite=interrupteur(cfg.get("icones_tierces", True), lambda on: self.regler(icones_tierces=on))))
+        c.append(reglage("pipette", "Assortir l'accent au fond d'écran", "La couleur vive dominante de votre image devient l'accent, ajustée pour rester lisible ; elle suit chaque changement de fond",
+                         droite=interrupteur(cfg.get("accent_auto", False), lambda on: self.regler(accent_auto=on))))
         # ---- effets, typographie
         c.append(groupe_titre("Effets et typographie"))
         c.append(reglage("sparkles", "Effets de transparence (glassglow)", "Verre teinté, lueur ambre, action principale en pilule lumineuse",
@@ -1183,7 +1199,12 @@ class Parametres(Gtk.Application):
 
     def p_fond(self, c, cle):
         cfg = self.cfg
-        pic = vignette(cfg["fond"], 640, 260)
+        video = cfg["fond"].lower().endswith((".mp4", ".webm", ".mkv", ".mov", ".m4v"))
+        if video:
+            m = Gtk.MediaFile.new_for_filename(cfg["fond"]); m.set_loop(True); m.set_muted(True); m.play()
+            pic = Gtk.Picture.new_for_paintable(m); pic.set_size_request(640, 260); pic.set_content_fit(Gtk.ContentFit.COVER)
+        else:
+            pic = vignette(cfg["fond"], 640, 260)
         f = Gtk.Frame(); f.set_child(pic); c.append(f)
         c.append(groupe_titre("Images récentes et fonds XIII"))
         fl = Gtk.FlowBox(max_children_per_line=5, min_children_per_line=3, selection_mode=Gtk.SelectionMode.NONE, column_spacing=8, row_spacing=8, homogeneous=True)
@@ -1195,14 +1216,21 @@ class Parametres(Gtk.Application):
             b.set_child(im); b.set_tooltip_text(os.path.basename(p)); b.connect("clicked", lambda _b, p=p: self.regler(fond=p)); fl.append(b)
         c.append(fl)
         c.append(reglage("image", "Choisir une photo", "JPG, PNG, WebP…", droite=bouton("Parcourir les photos", None, "pilule", rappel=lambda: self.choisir_image("fond"))))
+        c.append(groupe_titre("Animation"))
+        leger = theme._leger()
+        c.append(reglage("wind", "Fond animé", ("L'image dérive très lentement sous une lueur de l'accent. " +
+                         ("Déconseillé sur ce PC (rendu sans carte 3D) : " if leger else "") + "En pause sur batterie et en mode Tournage."),
+                         droite=interrupteur(cfg.get("fond_anime", False), lambda on: self.regler(fond_anime=on))))
+        c.append(reglage("clapperboard", "Vidéo en fond d'écran", "Une boucle vidéo (MP4, WebM…) sans le son ; en pause sur batterie",
+                         droite=bouton("Choisir une vidéo", None, "fantome", rappel=lambda: self.choisir_image("fond", video=True))))
         c.append(reglage("sparkles", "Fond assorti au thème", "Fond du thème « %s », lueur de l'accent, logo XIII en filigrane — suit les changements de thème" % theme.NOMS_THEMES.get(cfg["theme"], cfg["theme"]),
                          droite=bouton("Utiliser", None, "fantome", rappel=lambda: S.en_fond(theme.fond_theme, lambda f: self.regler(fond=f) if isinstance(f, str) else None, dict(self.cfg)))))
-        c.append(reglage("move-horizontal", "Ajustement", "", droite=deroulant([("fill", "Remplir"), ("fit", "Ajuster"), ("stretch", "Étirer"), ("center", "Centrer"), ("tile", "Mosaïque")],
+        if not video: c.append(reglage("move-horizontal", "Ajustement", "", droite=deroulant([("fill", "Remplir"), ("fit", "Ajuster"), ("stretch", "Étirer"), ("center", "Centrer"), ("tile", "Mosaïque")],
                                                                                 cfg["fond_mode"], lambda v: self.regler(fond_mode=v))))
 
-    def choisir_image(self, cle):
-        d = Gtk.FileDialog(title="Choisir une image")
-        ff = Gtk.FileFilter(); ff.set_name("Images"); ff.add_mime_type("image/*")
+    def choisir_image(self, cle, video=False):
+        d = Gtk.FileDialog(title="Choisir une vidéo" if video else "Choisir une image")
+        ff = Gtk.FileFilter(); ff.set_name("Vidéos" if video else "Images"); ff.add_mime_type("video/*" if video else "image/*")
         st = Gio.ListStore.new(Gtk.FileFilter); st.append(ff); d.set_filters(st)
         def fini(dlg, res):
             try: f = dlg.open_finish(res)
@@ -1222,6 +1250,25 @@ class Parametres(Gtk.Application):
         c.append(reglage("image", "Utiliser le fond d'écran actuel", "", droite=bouton("Utiliser", None, "fantome", rappel=lambda: self.regler(verrou_fond=cfg["fond"]))))
         c.append(reglage("timer", "Verrouillage automatique", "Délai et options", clic=lambda: self.aller("alimentation")))
         c.append(reglage("lock", "Verrouiller maintenant", "Super + L", droite=bouton("Verrouiller", None, "fantome", rappel=lambda: S.detacher("swaylock -f"))))
+        # ---- écran de connexion (au démarrage, avant d'ouvrir la session)
+        c.append(groupe_titre("Écran de connexion"))
+        av = cfg.get("connexion_avatar")
+        r = reglage("circle-user-round", "Photo de profil", "Affichée en rond au-dessus du mot de passe",
+                    droite=bouton("Choisir…", None, "fantome", rappel=lambda: self.choisir_image("connexion_avatar")))
+        if av and os.path.exists(av):
+            im = vignette(av, 44, 44); im.add_css_class("avatar-rond"); im.set_overflow(Gtk.Overflow.HIDDEN); r.prepend(im)
+        c.append(r)
+        c.append(reglage("image", "Image de fond", os.path.basename(cfg.get("connexion_fond") or "") or "Fond d'écran du bureau (ou fond XIII du thème)",
+                         droite=bouton("Choisir…", None, "fantome", rappel=lambda: self.choisir_image("connexion_fond"))))
+        c.append(reglage("droplets", "Fond flouté", "Image adoucie pour mettre le formulaire en valeur",
+                         droite=interrupteur(cfg.get("connexion_flou", False), lambda on: self.regler(connexion_flou=on))))
+        c.append(reglage("align-horizontal-justify-center", "Position du formulaire", "",
+                         droite=deroulant([("gauche", "À gauche"), ("centre", "Au centre"), ("droite", "À droite")], cfg.get("connexion_position", "centre"), lambda v: self.regler(connexion_position=v))))
+        c.append(reglage("clock", "Horloge", "",
+                         droite=deroulant([("%H:%M  ·  %a %d %b", "14:30 · dim. 22 nov."), ("%H:%M", "14:30"), ("%H:%M:%S", "14:30:05"), ("%A %d %B  ·  %H:%M", "dimanche 22 novembre · 14:30")],
+                                          cfg.get("connexion_horloge", "%H:%M  ·  %a %d %b"), lambda v: self.regler(connexion_horloge=v), 260)))
+        c.append(reglage("log-in", "Appliquer à l'écran de connexion", "Demande le mot de passe administrateur ; visible au prochain démarrage ou à la prochaine déconnexion",
+                         droite=bouton("Appliquer", None, "pilule", rappel=lambda: S.en_fond(theme.appliquer_connexion, lambda ok: self.toast("Écran de connexion mis à jour" if ok is True else "Annulé"), dict(self.cfg)))))
 
     def p_barre(self, c, cle):
         cfg = self.cfg
@@ -1285,6 +1332,24 @@ class Parametres(Gtk.Application):
             for k, nom, ic, desc in autres:
                 c.append(reglage(ic, nom, desc, droite=interrupteur(False, lambda on, k=k: (self.regler(widgets=self.cfg["widgets"] + [k]), self.aller("widgets", False)))))
         c.append(reglage("cloud-sun", "Ville de la météo", self.cfg["meteo_ville"], clic=lambda: self.aller("meteo")))
+        # ---- widgets posés sur le bureau
+        c.append(groupe_titre("Sur le bureau"))
+        c.append(info("Épinglez des widgets en colonne, en haut à droite du bureau : toujours visibles, sous les fenêtres."))
+        sb = list(self.cfg.get("widgets_bureau", []))
+        for k, nom, ic, desc in WIDGETS:
+            c.append(reglage(ic, nom, None, droite=interrupteur(k in sb, lambda on, k=k: (self.regler(widgets_bureau=[x for x in self.cfg.get("widgets_bureau", []) if x != k] + ([k] if on else []))))))
+        c.append(groupe_titre("Compte à rebours"))
+        e_nom = Gtk.Entry(text=self.cfg.get("compte_nom") or "", placeholder_text="Nom (ex. Tournage Concert Dôme)", hexpand=True)
+        e_date = Gtk.Entry(text=self.cfg.get("compte_date") or "", placeholder_text="AAAA-MM-JJ", width_chars=12)
+        def ok(*_):
+            d = e_date.get_text().strip()
+            try:
+                if d: datetime.date.fromisoformat(d)
+            except ValueError:
+                self.toast("Date à écrire sous la forme 2026-12-31"); return
+            self.regler(compte_nom=e_nom.get_text().strip(), compte_date=d); self.toast("Compte à rebours enregistré")
+        r = boite(False, 8, "reglage"); r.append(e_nom); r.append(e_date); r.append(bouton("Enregistrer", None, "pilule", rappel=ok)); c.append(r)
+        c.append(info("Laissez la date vide pour compter jusqu'au premier jour du projet actif (fiche projet de la Suite XIII)."))
 
     def p_bureau(self, c, cle):
         from .vues import ACTIONS_COINS

@@ -1,0 +1,43 @@
+# OS XIII — thème du menu de démarrage (système installé)
+# Résolution choisie par /etc/default/grub (1920×1080, sinon 1366×768, 1280×1024, 1024×768) : jamais de texte minuscule en 4K.
+desktop-image: "fond.png"
+desktop-image-scale-method: "crop"
+desktop-color: "#141210"
+title-text: ""
+message-font: "IBM Plex Sans Regular 16"
+message-color: "#c9c3bb"
+terminal-font: "IBM Plex Mono Regular 16"
++ boot_menu {
+  left = 24%
+  top = 52%
+  width = 52%
+  height = 34%
+  item_font = "IBM Plex Sans Regular 20"
+  selected_item_font = "IBM Plex Sans Bold 20"
+  item_color = "#c9c3bb"
+  selected_item_color = "#f0b378"
+  item_height = 34
+  item_padding = 8
+  item_spacing = 4
+  scrollbar = false
+}
++ label {
+  left = 0
+  top = 93%
+  width = 100%
+  align = "center"
+  font = "IBM Plex Sans Regular 16"
+  color = "#6d675f"
+  text = "Entrée : démarrer   ·   ↑ ↓ : choisir   ·   e : options   ·   En cas de souci : « Réparer OS XIII » ou « Revenir à un état précédent »"
+}
++ progress_bar {
+  id = "__timeout__"
+  left = 38%
+  top = 88%
+  width = 24%
+  height = 5
+  fg_color = "#f0b378"
+  bg_color = "#35302b"
+  border_color = "#35302b"
+  text = ""
+}

@@ -27,6 +27,9 @@ class Bureau:
                                   margin_top=14, margin_start=14)
         fond = Gtk.Box(hexpand=True, vexpand=True); ov = Gtk.Overlay(); ov.set_child(fond); ov.add_overlay(self.grille)
         ov.set_measure_overlay(self.grille, False)
+        from .widgets import WidgetsBureau
+        self.wb = WidgetsBureau(shell); ov.add_overlay(self.wb.widget); ov.set_measure_overlay(self.wb.widget, False)
+        GLib.timeout_add_seconds(1800, lambda: (self.wb.maj(force=True), True)[1])      # météo, calendrier, compte à rebours
         w.set_child(ov)
         g = Gtk.GestureClick(button=3); g.connect("pressed", self.menu_bureau); fond.add_controller(g)
         g1 = Gtk.GestureClick(button=1); g1.connect("pressed", lambda *_: self.shell.fermer() if self.shell.ouvert else None); fond.add_controller(g1)
@@ -36,7 +39,9 @@ class Bureau:
         self.remplir(); self.maj()
 
     def maj(self):
-        self.w.set_visible(bool(self.shell.cfg.get("icones_bureau", True)) and self.shell.cfg.get("mode_bureau", "classique") == "classique")
+        self.w.set_visible(bool(self.shell.cfg.get("icones_bureau", True) or self.shell.cfg.get("widgets_bureau")) and self.shell.cfg.get("mode_bureau", "classique") == "classique")
+        self.grille.set_visible(bool(self.shell.cfg.get("icones_bureau", True)))
+        if hasattr(self, "wb"): self.wb.maj()
 
     def remplir(self):
         vider(self.grille)
