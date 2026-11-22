@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Mesure audio XIII
+Comment=Sonie LUFS, crête vraie, LRA : EBU R128, web, Netflix
+Exec=xiii-mesure-audio %F
+Icon=xiii-mesure-audio
+Type=Application
+Categories=AudioVideo;Audio;XIII;
+Keywords=lufs;loudness;sonie;ebu;r128;niveau;crête;true peak;vu-mètre;

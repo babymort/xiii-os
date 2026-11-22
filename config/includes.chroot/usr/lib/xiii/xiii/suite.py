@@ -96,6 +96,12 @@ class Gestion(http.server.SimpleHTTPRequestHandler):
         p = urllib.parse.urlparse(self.path).path
         if p == "/sw.js": return self._brut(SW_NEUTRE, "text/javascript")
         if p == "/__xiii/vide.html": return self._brut(VIDE, "text/html; charset=utf-8")
+        if p == "/__xiii/timecode":            # timecode de l'ordinateur pour les outils de la Suite (RUNO, CONDUCO, SCRIPTO…)
+            from . import ltc
+            c = config.charger(); fps = int(c.get("timecode_fps", 25)) or 25; t = time.time(); lt = time.localtime(t)
+            l = ltc.lire_partage(1.5) if c.get("timecode_source") == "ltc" else None
+            tc = l or "%02d:%02d:%02d:%02d" % (lt.tm_hour, lt.tm_min, lt.tm_sec, int((t % 1) * fps))
+            return self._brut(json.dumps({"timecode": tc, "fps": fps, "source": "ltc" if l else "horloge", "epoch": t}).encode(), "application/json")
         if p.startswith("/__xiii/depot/"):
             d = DEPOT.get(p.rsplit("/", 1)[-1])
             if not d: self.send_error(404); return
@@ -168,6 +174,38 @@ JS_RESTAURER = r"""
     setTimeout(() => location.reload(), 1800);
     return 'ok';
   } catch (e) { dire('⚠️ ' + (e.message || e)); return 'erreur'; }
+})()
+"""
+
+JS_BACKUPO = r"""
+(async () => {
+  // Déchargement fait par OS XIII → entrée complète du journal de BACKUPO (le projet ouvert est gardé, rien n'est remplacé)
+  const R = %s;
+  for (let i = 0; i < 60 && (typeof P === 'undefined' || !P || !Array.isArray(P.log)); i++) await new Promise(r => setTimeout(r, 200));
+  if (typeof P === 'undefined' || !P || !Array.isArray(P.log)) return 'absent';
+  const d = R.data || {}, F = d.fichiers || [];
+  const roll = ((d.premier || d.support || '').match(/^([A-Z]\d{3})/i) || [null, d.support || 'ROLL'])[1].toUpperCase().slice(0, 14);
+  const lettre = roll[0];
+  let cam = P.cams.find(c => (c.letter || '').toUpperCase() === lettre) || P.cams[0];
+  const list = F.map(f => [f.nom, f.taille, f.empreinte]);
+  let fp = ''; try { if (typeof fingerprint === 'function') fp = await fingerprint(list); } catch (e) {}
+  const ok = (d.destinations || []).map(x => x.statut === 'OK');
+  const exige = +((P.prod || {}).copiesReq || 1), nok = ok.filter(Boolean).length;
+  const dests = (P.dests || []).map((n, i) => ({ name: n, st: i < ok.length ? (ok[i] ? 'ok' : 'ko') : 'pending' }));
+  const deja = P.log.find(e => e.src === 'OS XIII · ' + d.date && e.roll === roll);
+  if (deja) { if (typeof toast === 'function') toast('ℹ️ Ce déchargement est déjà dans le journal (' + roll + ')'); return 'deja'; }
+  const hm = (d.debut || '').slice(11, 16) || (typeof nowHM === 'function' ? nowHM() : '');
+  const e = { id: (typeof uid === 'function' ? uid() : 'x' + Date.now()), day: P.curDay, time: hm, cam: cam ? cam.id : null, roll, card: d.support || '',
+    files: F.length, bytes: d.octets || F.reduce((s, f) => s + (f.taille || 0), 0), first: d.premier || '', last: d.dernier || '',
+    folder: (d.destination || '').split('/').slice(-3).join('/'), algo: d.algo || 'xxh64', fp,
+    dests, status: (F.length && d.ok === F.length && nok >= exige) ? 'verifiee' : (d.ok === F.length ? 'copie' : 'erreur'),
+    dit: d.dit || (P.prod || {}).dit || '', mode: 'os', src: 'OS XIII · ' + d.date, dur: d.duree_s || 0,
+    list: list.length <= 5000 ? list : null, errors: F.filter(f => f.statut !== 'OK' || (f.statut2 && f.statut2 !== 'OK')).map(f => f.nom),
+    notes: 'Déchargé par OS XIII (' + (d.machine || '') + ') · ' + (d.destinations || []).map((x, i) => 'copie ' + (i + 1) + ' : ' + x.chemin + ' (' + x.statut + ')').join(' · ') };
+  P.log.push(e);
+  try { dirty(); } catch (x) {} try { renderAll(); } catch (x) {} try { setView('log'); } catch (x) {}
+  if (typeof toast === 'function') toast('💽 Déchargement ' + roll + ' ajouté au journal : ' + F.length + ' fichiers, ' + nok + ' copie(s) vérifiée(s)', 5000);
+  return 'ok';
 })()
 """
 
@@ -261,6 +299,8 @@ class Suite(Gtk.Application):
         absolu = lambda f: f if os.path.isabs(f) else os.path.join(cwd, f)
         if f := self._opt(a, "--ouvrir"):
             for x in f: self.ouvrir_fichier(absolu(x))
+        elif f := self._opt(a, "--backupo"):
+            for x in f: self.vers_backupo(absolu(x))
         elif f := self._opt(a, "--restaurer"):
             for x in f: self.restaurer(absolu(x))
         elif f := self._opt(a, "--dossier"):
@@ -434,6 +474,13 @@ class Suite(Gtk.Application):
         w._vue.load_uri(self.base() + "/__xiii/vide.html")
         self.notifier("Envoyé à DOSSIER XIII", "%d document(s) ajouté(s) au dossier" % len(L))
 
+    def vers_backupo(self, f):
+        """Rapport de déchargement d'OS XIII → nouvelle entrée du journal de BACKUPO."""
+        try: o = json.load(open(f, encoding="utf-8"))
+        except Exception: return
+        self.fenetre("backupo", apres=JS_BACKUPO % json.dumps(o, ensure_ascii=False))
+        self.notifier("Envoyé à BACKUPO XIII", "Déchargement « %s » ajouté au journal" % ((o.get("data") or {}).get("titre") or os.path.basename(f)))
+
     def restaurer(self, f):
         """Projet complet de la Suite (.xiii) : toutes les données des outils restaurées dans la Suite de l'ordinateur."""
         if not os.path.isfile(f): return
@@ -454,6 +501,8 @@ class Suite(Gtk.Application):
         if isinstance(o, dict) and o.get("format") == "os-xiii-reglages":
             Gio.Subprocess.new(["xiii-parametres", "--page", "xiii"], 0)
             return self.notifier("Réglages d'OS XIII", "Importez-les avec « Importer des réglages » dans Paramètres › Suite XIII.")
+        if isinstance(o, dict) and o.get("format") == "xiii-link" and o.get("kind") == "backupo":
+            return self.vers_backupo(f)
         if isinstance(o, dict) and o.get("format") == "xiii-link":
             kind = o.get("kind", "")
             if kind == "document": return self.vers_dossier([f])

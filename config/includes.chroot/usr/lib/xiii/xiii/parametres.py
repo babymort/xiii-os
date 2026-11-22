@@ -1814,6 +1814,8 @@ class Parametres(Gtk.Application):
                          droite=interrupteur(cfg.get("timecode", False), lambda on: self.regler(timecode=on))))
         c.append(reglage("film", "Images par seconde", None, droite=deroulant([(str(f), "%s i/s" % f) for f in (24, 25, 30, 50, 60)], str(cfg.get("timecode_fps", 25)),
                                                                               lambda v: self.regler(timecode_fps=int(v)))))
+        c.append(reglage("radio", "Source du timecode", "Horloge (synchronisée par Internet) ou LTC reçu par l'application Timecode LTC ; partagé avec les outils de la Suite XIII",
+                         droite=deroulant([("horloge", "Horloge de l'ordinateur"), ("ltc", "LTC reçu (sinon horloge)")], cfg.get("timecode_source", "horloge"), lambda v: self.regler(timecode_source=v))))
         c.append(info("Pour caler plusieurs PC d'un plateau : activez « Régler l'heure automatiquement » (Heure et langue) sur chacun."))
         c.append(groupe_titre("Timecode LTC (entrée audio)"))
         c.append(reglage("audio-waveform", "Lire le timecode d'une entrée son", "SMPTE LTC venant d'une caméra, d'un enregistreur ou d'un générateur (Tentacle, Deity…) : grand affichage plateau et widget",

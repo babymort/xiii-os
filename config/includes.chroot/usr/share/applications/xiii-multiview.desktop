@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Multiview NDI XIII
+Comment=Sources NDI du réseau en mosaïque 2×2, 3×3, 4×4
+Exec=xiii-multiview %F
+Icon=xiii-multiview
+Type=Application
+Categories=AudioVideo;Video;XIII;
+Keywords=ndi;multiview;mosaïque;moniteur;sources;régie;

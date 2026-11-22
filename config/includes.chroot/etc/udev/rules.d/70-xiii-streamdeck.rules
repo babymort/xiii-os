@@ -1,0 +1,10 @@
+# OS XIII — pupitres de régie USB utilisables sans droits administrateur (Bitfocus Companion, apps XIII) :
+# Elgato Stream Deck (0fd9), P.I. Engineering X-keys (05f3), Loupedeck (2ec2), Contour ShuttlePro (0b33)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="0fd9", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="05f3", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="05f3", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2ec2", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="2ec2", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0b33", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="0b33", TAG+="uaccess"

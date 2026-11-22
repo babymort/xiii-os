@@ -980,9 +980,18 @@ class Shell(Gtk.Application):
         on = bool(self.cfg.get("timecode")); self.l_tc.set_visible(on)
         if not on: return
         fps = int(self.cfg.get("timecode_fps", 25)) or 25
+        from . import ltc
+        etat = {"ntp": None, "n": 0}
         def tic():
             t = time.time(); lt = time.localtime(t)
-            self.l_tc.set_text("%02d:%02d:%02d:%02d" % (lt.tm_hour, lt.tm_min, lt.tm_sec, int((t % 1) * fps)))
+            l = ltc.lire_partage(1.5) if self.cfg.get("timecode_source") == "ltc" else None
+            self.l_tc.set_text(l or "%02d:%02d:%02d:%02d" % (lt.tm_hour, lt.tm_min, lt.tm_sec, int((t % 1) * fps)))
+            etat["n"] += 1
+            if etat["n"] % (fps * 60) == 1 and not S.DEMO:        # une fois par minute : l'horloge est-elle synchronisée (NTP) ?
+                etat["ntp"] = S.out(["timedatectl", "show", "-p", "NTPSynchronized", "--value"], 2).strip() == "yes"
+            self.l_tc.set_tooltip_text(("Timecode LTC reçu" if l else "Timecode de l'horloge") + (" · heure synchronisée par Internet (NTP)" if etat["ntp"] else " · ⚠ heure NON synchronisée" if etat["ntp"] is False else "")
+                                       + " · partagé avec la Suite XIII")
+            (self.l_tc.add_css_class if etat["ntp"] is False and not l else self.l_tc.remove_css_class)("attenue")
             return True
         self._tc_src = GLib.timeout_add(int(1000 / fps), tic); tic()
 

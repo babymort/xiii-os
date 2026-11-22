@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Mires XIII
+Comment=Barres, PLUGE, gamma, damier, grille, synchro son-image
+Exec=xiii-mires %F
+Icon=xiii-mires
+Type=Application
+Categories=AudioVideo;Video;XIII;
+Keywords=mire;barres;smpte;calibration;écran;pluge;synchro;

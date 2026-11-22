@@ -28,9 +28,12 @@ OUTILS = {
                    ("app", "xiii-blackmagic.desktop", "Blackmagic", "video"), ("app", "xiii-tally.desktop", "Tally XIII", None)],
     "fiction": [("suite", "scripto", "SCRIPTO", None), ("suite", "callsheeto", "CALL SHEETO", None), ("suite", "decoup", "DECOUP", None), ("suite", "cadro", "CADRO", None),
                 ("suite", "storyboardo", "STORYBOARDO", None), ("suite", "repero", "REPERO", None), ("suite", "sono", "SONO", None), ("suite", "lumo", "LUMO", None),
-                ("suite", "backupo", "BACKUPO", None), ("app", "xiii-timecode.desktop", "Timecode LTC", None)],
+                ("suite", "backupo", "BACKUPO", None), ("app", "xiii-timecode.desktop", "Timecode LTC", None), ("app", "xiii-lut.desktop", "LUT", None),
+                ("app", "xiii-mesure-audio.desktop", "Mesure audio", None), ("app", "xiii-prompteur.desktop", "Prompteur", None)],
     "multicam": [("suite", "conduco", "CONDUCO", None), ("suite", "melango", "MELANGO", None), ("suite", "graphico", "GRAPHICO", None), ("suite", "runo", "RUNO", None),
                  ("app", "xiii-tally.desktop", "Tally XIII", None), ("app", "xiii-retour.desktop", "Retour plateau", None), ("app", "xiii-ndi.desktop", "NDI XIII", None),
+                 ("app", "xiii-regie.desktop", "Régie", None), ("app", "xiii-multiview.desktop", "Multiview NDI", None), ("app", "xiii-prompteur.desktop", "Prompteur", None),
+                 ("app", "xiii-mesure-audio.desktop", "Mesure audio", None), ("app", "xiii-mires.desktop", "Mires", None),
                  ("app", "xiii-blackmagic.desktop", "Blackmagic", "video"), ("app", "xiii-terminal.desktop", "Invite de commande", None), ("app", "xiii-timecode.desktop", "Timecode LTC", None)],
 }
 ONGLETS = {"fiction": ["scripto", "callsheeto", "decoup", "cadro"], "multicam": ["conduco", "melango", "graphico", "runo"]}
@@ -195,6 +198,28 @@ class VueMode:
         dest = self.backup.destination()
         ld = label(dest.replace(os.path.expanduser("~"), "~"), "petit", "attenue", ellipsize=True); gauche.append(ld)
         gauche.append(bouton("Changer de destination…", "folder-cog", "fantome", rappel=lambda: self.backup.choisir_destination(lambda: self.recharger())))
+        d2 = self.backup.destination2()
+        gauche.append(label("Deuxième copie", "section"))
+        gauche.append(label(d2.replace(os.path.expanduser("~"), "~") if d2 else "Aucune (une seule copie)", "petit", "attenue", ellipsize=True))
+        r2 = boite(False, 6)
+        r2.append(bouton("Choisir…", "copy-plus", "fantome", rappel=lambda: self.backup.choisir_destination2(lambda: self.recharger())))
+        if d2: r2.append(bouton("Retirer", "x", "plat", rappel=lambda: (config.modifier(backup_destination2=""), self.recharger())))
+        gauche.append(r2)
+        gauche.append(label("Après le déchargement", "section"))
+        c = self.shell.cfg
+        for cle, txt in (("backup_vers_suite", "Envoyer le rapport à BACKUPO et DOSSIER"), ("backup_ejecter", "Éjecter la carte si tout est vérifié")):
+            cb = Gtk.CheckButton(label=txt, active=bool(c.get(cle, cle == "backup_vers_suite")))
+            cb.connect("toggled", lambda w, k=cle: config.modifier(_histo=False, **{k: w.get_active()})); gauche.append(cb)
+        px = boite(False, 8); px.append(label("Proxies", "petit", hexpand=True))
+        kinds = ["non", "h264", "prores"]; dd = Gtk.DropDown.new_from_strings(["Aucun", "H.264 540p (léger)", "ProRes Proxy 720p"])
+        dd.set_selected(kinds.index(c.get("backup_proxies", "non")) if c.get("backup_proxies", "non") in kinds else 0)
+        dd.connect("notify::selected", lambda w, *_: config.modifier(_histo=False, backup_proxies=kinds[w.get_selected()])); px.append(dd); gauche.append(px)
+        def journee():
+            f = self.backup.rapport_journee()
+            S.detacher(["notify-send", "-a", "Backup", "-i", "file-text", "Rapport de tournage", ("PDF créé et envoyé à DOSSIER : " + os.path.basename(f)) if f else "Aucun déchargement aujourd'hui."])
+            if f: S.detacher(["xdg-open", f])
+        gauche.append(bouton("Rapport de la journée de tournage", "file-text", "fantome", rappel=journee))
+        gauche.append(label("Destination", "section"))
         gauche.append(arbre(dest))
         corps.append(gauche)
         # supports, transferts, historique
@@ -239,7 +264,11 @@ class VueMode:
             c = boite(True, 6, "carte")
             h = boite(False, 8); h.append(ico({"copie": "copy", "verification": "shield-check", "fini": "circle-check", "erreur": "triangle-alert"}[t["etat"]], 18, "c" if t["etat"] != "erreur" else "d"))
             h.append(label("%s → %s" % (t["nom_support"], t["dossier"].replace(os.path.expanduser("~"), "~")), "gras", hexpand=True, ellipsize=True))
-            if t["etat"] == "fini": h.append(bouton(None, "folder-open", "plat", tip="Ouvrir le dossier", rappel=lambda d=t["dossier"]: S.detacher(["thunar", d])))
+            if t["etat"] in ("fini", "erreur") and t.get("pdf"): h.append(bouton(None, "file-text", "plat", tip="Rapport PDF", rappel=lambda p=t["pdf"]: S.detacher(["xdg-open", p])))
+            if t["etat"] in ("fini", "erreur") and t.get("lien"):
+                h.append(bouton(None, "send", "plat", tip="Renvoyer à BACKUPO et DOSSIER", rappel=lambda t=t: (S.detacher(["xiii-suite", "--backupo", t["lien"]]),
+                                S.detacher(["xiii-suite", "--dossier"] + [x for x in (t.get("pdf"), t.get("mhl")) if x]))))
+            if t["etat"] == "fini": h.append(bouton(None, "folder-open", "plat", tip="Ouvrir le dossier", rappel=lambda d=t["dossier"]: S.detacher(["xiii-fichiers", d])))
             c.append(h)
             pb = Gtk.ProgressBar(fraction=t["fraction"], show_text=True); pb.set_text(t["texte"]); c.append(pb)
             self.zone_transferts.append(c)

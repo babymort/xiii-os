@@ -19,7 +19,7 @@ verifier() {  # nom, motif du processus, journal
   else echo "OK        $nom" >> $R; fi
 }
 echo "== Applications" >> $R
-for a in recuperer premiers-pas archives paquets acquisition bilan blackmagic console debit demarrage fichiers ia lecteurs logiciels qrwifi retour scanip somme store-github suite synthese taches tally timecode transferts windows bienvenue phonebox; do
+for a in regie prompteur mesure-audio mires lut multiview recuperer premiers-pas archives paquets acquisition bilan blackmagic console debit demarrage fichiers ia lecteurs logiciels qrwifi retour scanip somme store-github suite synthese taches tally timecode transferts windows bienvenue phonebox; do
   command -v xiii-$a >/dev/null || { echo "ABSENTE   xiii-$a" >> $R; continue; }
   xiii-$a > /out/app-$a.log 2>&1 &
   sleep 5; grim -s 0.5 /out/app-$a.png
@@ -121,6 +121,57 @@ xiii-fichiers /root/Rushes > /out/f-galerie.log 2>&1 & sleep 6; grim -s 0.5 /out
 xiii-fichiers --infos /root/Rushes/A001/A001_C001.mov > /out/f-infos.log 2>&1 & sleep 6; grim -s 0.5 /out/fichiers-infos.png; verifier "Fichiers › Informations" "xiii.fichiers" /out/f-infos.log; pkill -f xiii.fichiers; sleep 0.5
 xiii-fichiers --corbeille /root > /out/f-corb.log 2>&1 & sleep 4; grim -s 0.5 /out/fichiers-corbeille.png; verifier "Fichiers › Corbeille" "xiii.fichiers" /out/f-corb.log; pkill -f xiii.fichiers
 python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, fichiers_vue='windows')"
+echo "== Phase E (régie, déchargement → BACKUPO + DOSSIER)" >> $R
+mkdir -p /root/Navette
+python3 - >> $R 2>&1 <<'PY'
+import sys, time, json, os, glob
+sys.path.insert(0, "/usr/lib/xiii")
+from xiii import config, backup
+config.modifier(_histo=False, backup_destination="/root/XIII/Test/01_Rushes", backup_destination2="/root/Navette", backup_nom="J01", projet_actif="Test", backup_vers_suite=True)
+class Shell: cfg = config.charger()
+B = backup.Moteur(Shell())
+B.demarrer({"nom": "CARTE_A001", "chemin": "/root/Rushes/A001", "mount": None})
+for _ in range(120):
+    if B.transferts[0]["etat"] in ("fini", "erreur"): break
+    time.sleep(0.5)
+t = B.transferts[0]
+print("OK " if t["etat"] == "fini" else "ÉCHEC", "      déchargement :", t["texte"])
+print("OK " if t.get("pdf") and os.path.exists(t["pdf"]) else "ÉCHEC", "      rapport PDF :", os.path.basename(t.get("pdf") or "absent"))
+d = json.load(open(t["lien"]))["data"]
+print("OK " if len(d["destinations"]) == 2 and all(x["statut"] == "OK" for x in d["destinations"]) else "ÉCHEC", "      deux copies vérifiées :", [x["statut"] for x in d["destinations"]])
+print("OK        rapport BACKUPO : %d fichiers, premier %s, dernier %s, DIT %s" % (len(d["fichiers"]), d["premier"], d["dernier"], d["dit"]))
+print("OK " if glob.glob("/root/Navette/J01/CARTE_A001/*.pdf") else "ÉCHEC", "      rapports aussi sur la 2e copie")
+f = B.rapport_journee(envoyer=False); print("OK " if f and os.path.exists(f) else "ÉCHEC", "      rapport de la journée :", os.path.basename(f or "absent"))
+open("/out/pdf-chemins.txt", "w").write(t["pdf"] + "\n" + (f or "") + "\n")
+PY
+pdftoppm -r 70 -png -f 1 -l 1 "$(sed -n 1p /out/pdf-chemins.txt)" /out/rapport-dechargement 2>/dev/null
+pdftoppm -r 70 -png -f 1 -l 1 "$(sed -n 2p /out/pdf-chemins.txt)" /out/rapport-journee 2>/dev/null
+sleep 14; grim -s 0.5 /out/backupo-journal.png
+pkill -f xiii.suite; pkill -f WebKitWebProcess; sleep 1
+# pupitre ATEM face à un ATEM simulé
+python3 - >> $R 2>&1 <<'PY'
+import socket, struct, threading, time, sys
+sys.path.insert(0, "/usr/lib/xiii")
+from xiii.atem import ATEM
+srv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); srv.bind(("127.0.0.1", 9910)); srv.settimeout(4); recu = []
+blk = lambda n, d: struct.pack(">HH4s", 8 + len(d), 0, n) + d
+def faux():
+    d, a = srv.recvfrom(100); srv.sendto(struct.pack(">HHHHHH", (2 << 11) | 20, 0x53AB, 0, 0, 0, 0) + bytes([2] + [0] * 7), a); srv.recvfrom(100)
+    pl = blk(b"_pin", b"ATEM Mini Pro\0") + b"".join(blk(b"InPr", struct.pack(">H", i) + ("Camera %d" % i).encode().ljust(20, b"\0") + ("CAM%d" % i).encode().ljust(4, b"\0") + bytes(6)) for i in (1, 2, 3, 4)) \
+         + blk(b"PrgI", struct.pack(">BBH", 0, 0, 1)) + blk(b"PrvI", struct.pack(">BBH", 0, 0, 2)) + blk(b"InCm", bytes(4))
+    srv.sendto(struct.pack(">HHHHHH", (1 << 11) | (12 + len(pl)), 0x8001, 0, 0, 0, 1) + pl, a)
+    while True:
+        try: d, a = srv.recvfrom(500)
+        except Exception: break
+        if len(d) > 12: recu.append(d[16:20].decode())
+threading.Thread(target=faux, daemon=True).start(); E = []
+c = ATEM("127.0.0.1", E.append); c.start(); time.sleep(1.2); c.preview(3); c.cut(); c.auto(); time.sleep(.5); c.arreter()
+print("OK " if E and E[-1]["connecte"] else "ÉCHEC", "      ATEM :", E[-1]["message"] if E else "rien", "· commandes envoyées", recu)
+PY
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import mesure_audio as M; import subprocess
+subprocess.run(["ffmpeg","-v","quiet","-y","-f","lavfi","-i","sine=f=1000:d=3","-af","volume=-20dB","/tmp/t.wav"])
+o=subprocess.run(["ffmpeg","-nostats","-hide_banner","-nostdin","-i","/tmp/t.wav","-af","ebur128=peak=true:framelog=info","-f","null","-"],capture_output=True,text=True).stderr
+L=[M.RE.search(l).groups() for l in o.splitlines() if M.RE.search(l)]; print("OK        mesure LUFS :", len(L), "mesures, dernière", L[-1][:3], "crête", L[-1][4])' >> $R 2>&1
 echo "== Bureau" >> $R
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  xiii-shell" >> $R; grep -A8 Traceback /out/shell.log | tail -12 >> $R; } || echo "OK        xiii-shell (aucune erreur Python)" >> $R
 pgrep -f xiii.shell >/dev/null || echo "FERMÉE    xiii-shell" >> $R

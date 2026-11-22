@@ -51,6 +51,9 @@ DEFAUTS = {
     "widgets_bureau": [], "compte_nom": "", "compte_date": "",
     # saison 3 — phase C (ergonomie)
     "premiers_pas_fait": False, "dnd_auto": True,
+    "backup_destination2": "", "backup_vers_suite": True, "backup_ejecter": False, "backup_proxies": "non",
+    "prompteur_vitesse": 60, "prompteur_taille": 64, "prompteur_marge": 12, "prompteur_miroir": False, "lufs_cible": "ebu", "regie_antenne": "", "lut_reference": "",
+    "timecode_source": "horloge", "multiview_cases": 4, "multiview_sources": [],
     "fichiers_verifier": True, "corbeille_jours": 30, "fichiers_col_mac": 240, "dnd_visio": True, "barre_badges_apps": True, "presse_epingles": [], "menu_taille": "normal", "gestes": True,
     "notif_apercu": True,
     "notif_bloquees": [],

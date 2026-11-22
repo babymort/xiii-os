@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Prompteur XIII
+Comment=Texte défilant en miroir pour prompteur, pédale, import CONDUCO
+Exec=xiii-prompteur %F
+Icon=xiii-prompteur
+Type=Application
+Categories=AudioVideo;Video;XIII;
+Keywords=prompteur;teleprompter;autocue;texte;lecture;

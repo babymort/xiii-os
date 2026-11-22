@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Régie XIII
+Comment=Écran de régie : horloge, antenne, chrono, conducteur, notes
+Exec=xiii-regie %F
+Icon=xiii-regie
+Type=Application
+Categories=AudioVideo;Video;XIII;
+Keywords=régie;direct;antenne;conducteur;chrono;horloge;émission;

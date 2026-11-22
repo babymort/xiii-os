@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=LUT XIII
+Comment=Bibliothèque de LUT, aperçu, Resolve, OBS
+Exec=xiii-lut %F
+Icon=xiii-lut
+Type=Application
+Categories=AudioVideo;Video;Graphics;XIII;
+Keywords=lut;cube;étalonnage;color;log;rec709;resolve;obs;
+MimeType=application/x-cube-lut;

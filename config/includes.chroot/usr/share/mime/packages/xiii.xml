@@ -11,4 +11,9 @@
     <generic-icon name="xiii-suite"/>
     <glob pattern="*.xiii" weight="80" case-sensitive="false"/>
   </mime-type>
+  <mime-type type="application/x-cube-lut">
+    <comment>LUT 3D (étalonnage)</comment>
+    <glob pattern="*.cube" case-sensitive="false"/>
+    <glob pattern="*.3dl" case-sensitive="false"/>
+  </mime-type>
 </mime-info>

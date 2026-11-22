@@ -133,7 +133,10 @@ class Blackmagic(Gtk.Application):
 
     def do_activate(self):
         if getattr(self, "win", None): self.win.present(); return
-        preparer(".barre-web { padding: 6px 10px; } .etat-ok { color: #6fdc8c; }")
+        preparer(".barre-web { padding: 6px 10px; } .etat-ok { color: #6fdc8c; } "
+                 ".atem-bouton { border-radius: 10px; background: alpha(currentColor, .06); border: 1px solid alpha(currentColor, .15); } "
+                 ".atem-pgm { background: #d93b3b; border-color: #ff6b6b; } .atem-pgm label { color: white; } "
+                 ".atem-pvw { background: #2f9e44; border-color: #51cf66; } .atem-pvw label { color: white; }")
         self.win = Gtk.ApplicationWindow(application=self, title="Blackmagic XIII"); self.win.set_default_size(1240, 800)
         self.volet = Volet("Blackmagic XIII", "Les outils de régie dans une seule fenêtre")
         self.installes = logiciels_installes()
@@ -215,8 +218,65 @@ class Blackmagic(Gtk.Application):
         v.append(r); return r
 
     def p_atem(self, v):
+        # ---- pupitre : piloter l'ATEM directement (Programme / Preview / CUT / AUTO / noir)
+        v.append(label("Pupitre ATEM", "section"))
+        c = conf(); r = boite(False, 8)
+        e = Gtk.Entry(text=c.get("atem_ip", ""), placeholder_text="Adresse IP de l'ATEM (ex. 192.168.10.240)", hexpand=True); r.append(e)
+        r.append(bouton("Connecter", "plug", "pilule", rappel=lambda: self.atem_connecter(e.get_text().strip()))); v.append(r)
+        self.atem_zone = boite(True, 10); v.append(self.atem_zone)
+        if c.get("atem_ip"): GLib.idle_add(lambda: (self.atem_connecter(c["atem_ip"]), False)[1])
+        else: self.atem_zone.append(label("Indiquez l'adresse de l'ATEM (affichée dans ATEM Setup, ou trouvée par le Scanner IP XIII).", "attenue", "petit", wrap=True))
+        v.append(label("Autres outils", "section"))
         self.ligne(v, "siren", "Tally XIII", "Lampes de tally sur téléphones et boîtiers, branchées sur l'ATEM (natif OS XIII)", bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("xiii-tally")))
         self.ligne(v, "layout-grid", "Companion", "Boutons de régie pour l'ATEM (Stream Deck ou écran tactile)", bouton("Ouvrir", None, "fantome", rappel=lambda: self.volet.aller("companion")))
+
+    def atem_connecter(self, ip):
+        if not ip: return
+        from .atem import ATEM
+        c = conf(); c["atem_ip"] = ip; sauver(c)
+        if getattr(self, "atem", None): self.atem.arreter()
+        self.atem = ATEM(ip, lambda et: GLib.idle_add(self.atem_dessin, et)); self.atem.start()
+        vider(self.atem_zone); self.atem_zone.append(label("Connexion à %s…" % ip, "attenue"))
+        if not getattr(self, "_atem_touches", False):
+            self._atem_touches = True
+            k = Gtk.EventControllerKey()
+            def touche(_c, kv, _code, st):
+                if self.volet.pile.get_visible_child_name() != "atem" or not getattr(self, "atem", None) or isinstance(self.win.get_focus(), Gtk.Text): return False
+                ent = self.atem.etat.get("entrees") or []
+                if Gdk.KEY_1 <= kv <= Gdk.KEY_9 and kv - Gdk.KEY_1 < len(ent):
+                    (self.atem.programme if st & Gdk.ModifierType.SHIFT_MASK else self.atem.preview)(ent[kv - Gdk.KEY_1]); return True
+                if kv == Gdk.KEY_space: self.atem.cut(); return True
+                if kv in (Gdk.KEY_Return, Gdk.KEY_KP_Enter): self.atem.auto(); return True
+                return False
+            k.connect("key-pressed", touche); self.win.add_controller(k)
+
+    def atem_dessin(self, et):
+        z = self.atem_zone
+        if not z.get_root(): return False
+        sig = repr((et["connecte"], et["programme"], et["preview"], et["noir"], et["transition"], sorted(et["noms"].items())))
+        if sig == getattr(self, "_atem_sig", None): return False
+        self._atem_sig = sig; vider(z)
+        z.append(label(et["message"], "petit", "attenue" if not et["connecte"] else "accent"))
+        if not et["connecte"]: return False
+        ent = et.get("entrees") or sorted(et["noms"])
+        for titre, cle, fn, css in (("Programme", "programme", self.atem.programme, "pgm"), ("Preview", "preview", self.atem.preview, "pvw")):
+            z.append(label(titre, "petit", "gras"))
+            g = Gtk.FlowBox(max_children_per_line=10, selection_mode=Gtk.SelectionMode.NONE, column_spacing=6, row_spacing=6)
+            for i, src in enumerate(ent):
+                b = Gtk.Button(); b.add_css_class("atem-bouton")
+                if et[cle] == src: b.add_css_class("atem-" + css)
+                b.set_child(label(et["courts"].get(src) or str(src), "gras", xalign=0.5)); b.set_tooltip_text("%s%s" % (et["noms"].get(src, src), (" — touche %d%s" % (i + 1, " + Maj" if cle == "programme" else "")) if i < 9 else ""))
+                b.set_size_request(74, 54); b.connect("clicked", lambda _b, s_=src, f_=fn: f_(s_)); g.append(b)
+            z.append(g)
+        r = boite(False, 10, margin_top=6)
+        for t_, ic, fn, css in (("CUT", "scissors", self.atem.cut, "atem-cut"), ("AUTO", "blend", self.atem.auto, "atem-auto"), ("NOIR", "moon", self.atem.noir, "atem-ftb")):
+            b = bouton(t_, ic, "pilule" if t_ != "NOIR" else "fantome", rappel=fn); b.set_size_request(120, 48)
+            if t_ == "NOIR" and et["noir"]: b.add_css_class("atem-pgm")
+            if t_ == "AUTO" and et["transition"]: b.add_css_class("atem-pvw")
+            r.append(b)
+        z.append(r)
+        z.append(label("Clavier : 1 à 9 = Preview · Maj + 1 à 9 = Programme · Espace = CUT · Entrée = AUTO", "petit", "attenue"))
+        return False
 
     def p_desktopvideo(self, v):
         ver = version_paquet("desktopvideo")
@@ -236,12 +296,27 @@ class Blackmagic(Gtk.Application):
             v.append(label("Resolve demande une carte graphique récente (NVIDIA conseillée, 4 Go de mémoire vidéo ou plus).", "petit", "attenue", wrap=True))
 
     def p_streamdeck(self, v):
+        MODELES = {"0fd9": "Elgato Stream Deck", "05f3": "X-keys", "2ec2": "Loupedeck", "0b33": "Contour Shuttle"}
+        trouves = []
+        for d in glob.glob("/sys/bus/usb/devices/*/idVendor"):
+            try:
+                vid = open(d).read().strip()
+                if vid in MODELES:
+                    nom = open(os.path.join(os.path.dirname(d), "product")).read().strip() if os.path.exists(os.path.join(os.path.dirname(d), "product")) else ""
+                    trouves.append("%s %s" % (MODELES[vid], nom.replace(MODELES[vid], "").strip()))
+            except OSError: pass
+        v.append(label("Pupitres branchés", "section"))
+        if trouves:
+            for t_ in trouves: self.ligne(v, "keyboard", t_.strip(), "Reconnu, utilisable sans mot de passe par Companion", None)
+        else:
+            v.append(label("Aucun Stream Deck, X-keys ou Loupedeck branché pour l'instant.", "attenue"))
         v.append(label("Sous OS XIII, les Stream Deck Elgato sont pilotés par Bitfocus Companion : branchez le Stream Deck, ouvrez Companion, il est reconnu tout seul.", "attenue", wrap=True))
         self.ligne(v, "layout-grid", "Companion", "Configurer les boutons", bouton("Ouvrir", None, "pilule", rappel=lambda: self.volet.aller("companion")))
 
     def p_ndi(self, v):
         self.ligne(v, "radio-tower", "NDI XIII", "Sorties GRAPHICO / MELANGO en NDI, diffusion RTMP / SRT", bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("xiii-ndi")))
         self.ligne(v, "monitor-play", "Retour plateau", "Afficher une source NDI en plein écran", bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher("xiii-retour")))
+        self.ligne(v, "layout-grid", "Multiview NDI", "Les sources du réseau en mosaïque 2 × 2, 3 × 3 ou 4 × 4", bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher("xiii-multiview")))
         self.ligne(v, "settings", "Moteur NDI", "Installation et version du runtime NDI", bouton("Paramètres", None, "fantome", rappel=lambda: S.detacher(["xiii-parametres", "--page", "ndi"])))
 
     def p_companion(self, v):
