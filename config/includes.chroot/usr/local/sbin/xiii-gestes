@@ -20,7 +20,7 @@ def pavés():
 while True:
     devs = pavés()
     if not devs:
-        time.sleep(300); continue          # pas de pavé tactile (PC de bureau) : on revérifie de temps en temps
+        raise SystemExit(0)                # pas de pavé tactile (PC de bureau) : rien ne tourne ; udev relance le service si on en branche un
     try:
         cmd = ["libinput", "debug-events"]
         cmd += ["--device", devs[0]]       # un seul pavé tactile écouté (le cas de tous les portables)

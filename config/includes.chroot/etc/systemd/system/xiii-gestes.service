@@ -5,6 +5,7 @@ After=systemd-udev-settle.service
 [Service]
 ExecStart=/usr/local/sbin/xiii-gestes
 Restart=on-failure
+MemoryMax=40M
 RestartSec=5
 Nice=5
 

@@ -1,0 +1,2 @@
+# OS XIII — un pavé tactile apparaît (portable, pavé USB) : le service des gestes démarre
+ACTION=="add", SUBSYSTEM=="input", ENV{ID_INPUT_TOUCHPAD}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}+="xiii-gestes.service"
