@@ -44,3 +44,7 @@ dbus-bin
 lightdm
 lightdm-gtk-greeter
 xserver-xorg
+# Fichiers XIII : miniatures vidéo et RAW, informations des rushes, recherche dans les PDF, sommes xxHash
+ffmpegthumbnailer
+libimage-exiftool-perl
+poppler-utils

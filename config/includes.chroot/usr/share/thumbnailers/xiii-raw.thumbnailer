@@ -1,0 +1,4 @@
+[Thumbnailer Entry]
+TryExec=xiii-miniature
+Exec=xiii-miniature %i %o %s
+MimeType=image/x-canon-cr2;image/x-canon-cr3;image/x-canon-crw;image/x-nikon-nef;image/x-nikon-nrw;image/x-sony-arw;image/x-sony-srf;image/x-sony-sr2;image/x-adobe-dng;image/x-fuji-raf;image/x-olympus-orf;image/x-panasonic-rw2;image/x-panasonic-raw2;image/x-pentax-pef;image/x-samsung-srw;image/x-sigma-x3f;image/x-hasselblad-3fr;image/x-phaseone-iiq;image/x-dcraw;

@@ -103,6 +103,24 @@ grim -s 0.5 /out/barre-pastilles.png
 python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, menu_taille='grand')"; sleep 2
 xiii-ctl demarrer; sleep 1.5; grim -s 0.5 /out/menu-grand.png; xiii-ctl fermer
 python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, menu_taille='normal')"
+echo "== Phase D (Fichiers)" >> $R
+mkdir -p /root/Rushes/A001 && ffmpeg -v quiet -f lavfi -i testsrc=duration=3:size=1920x1080:rate=25 -f lavfi -i sine=duration=3 -c:v libx264 -pix_fmt yuv420p -c:a aac -timecode 10:00:00:00 -metadata model="Pocket 6K" /root/Rushes/A001/A001_C001.mov
+ffmpeg -v quiet -f lavfi -i testsrc2=duration=2:size=1280x720:rate=50 -c:v mpeg2video /root/Rushes/A001/A001_C002.mxf
+for i in 1 2 3; do cp /root/Rushes/A001/A001_C001.mov /root/Rushes/plan_$i.mov; done
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import medias
+print("OK        miniature vidéo :", bool(medias.miniature("/root/Rushes/A001/A001_C001.mov")), "· MXF :", bool(medias.miniature("/root/Rushes/A001/A001_C002.mxf")))
+print("OK        infos :", "; ".join("%s=%s" % kv for kv in medias.infos("/root/Rushes/A001/A001_C001.mov")))' >> $R 2>&1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import copie
+t=copie.Tache(["/root/Rushes/A001"],"/tmp"); t.lancer(); print("OK" if t.etat=="terminée" else "ÉCHEC", "      copie vérifiée :", t.texte(lambda n: str(n)))' >> $R 2>&1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import etiquettes as E
+E.poser("/root/Rushes/plan_1.mov","rouge"); print("OK        étiquette :", E.lire("/root/Rushes/plan_1.mov"), "·", len(E.chercher("rouge",["/root/Rushes"])), "trouvé(s)")' >> $R 2>&1
+gio trash /root/Rushes/plan_3.mov 2>/dev/null
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import corbeille as C; L=C.elements(); print("OK        corbeille :", len(L), "élément(s) ·", L[0]["origine"] if L else "")' >> $R 2>&1
+python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, fichiers_vue='galerie')"
+xiii-fichiers /root/Rushes > /out/f-galerie.log 2>&1 & sleep 6; grim -s 0.5 /out/fichiers-galerie.png; verifier "Fichiers › Galerie" "xiii.fichiers" /out/f-galerie.log; pkill -f xiii.fichiers; sleep 0.5
+xiii-fichiers --infos /root/Rushes/A001/A001_C001.mov > /out/f-infos.log 2>&1 & sleep 6; grim -s 0.5 /out/fichiers-infos.png; verifier "Fichiers › Informations" "xiii.fichiers" /out/f-infos.log; pkill -f xiii.fichiers; sleep 0.5
+xiii-fichiers --corbeille /root > /out/f-corb.log 2>&1 & sleep 4; grim -s 0.5 /out/fichiers-corbeille.png; verifier "Fichiers › Corbeille" "xiii.fichiers" /out/f-corb.log; pkill -f xiii.fichiers
+python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, fichiers_vue='windows')"
 echo "== Bureau" >> $R
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  xiii-shell" >> $R; grep -A8 Traceback /out/shell.log | tail -12 >> $R; } || echo "OK        xiii-shell (aucune erreur Python)" >> $R
 pgrep -f xiii.shell >/dev/null || echo "FERMÉE    xiii-shell" >> $R

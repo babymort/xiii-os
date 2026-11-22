@@ -1,0 +1,10 @@
+#!/usr/bin/python3
+# OS XIII — miniatures des photos RAW pour tous les logiciels (norme freedesktop) : xiii-miniature entrée sortie taille
+import sys, shutil
+sys.path.insert(0, "/usr/lib/xiii")
+from xiii import medias
+src, dst = sys.argv[1], sys.argv[2]
+taille = int(sys.argv[3]) if len(sys.argv) > 3 else 256
+f = medias.miniature(src, taille)
+if not f: sys.exit(1)
+shutil.copy(f, dst)

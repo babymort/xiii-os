@@ -80,6 +80,9 @@ class Shell(Gtk.Application):
             try:
                 from . import fiabilite; fiabilite.au_demarrage()
                 GLib.timeout_add_seconds(86400, lambda: (fiabilite.verifier_sante(), True)[1])
+                from . import corbeille
+                nett = lambda: (S.en_fond(corbeille.nettoyer, None, self.cfg.get("corbeille_jours", 30)), True)[1]
+                nett(); GLib.timeout_add_seconds(86400, nett)
             except Exception as e: print("[xiii] fiabilité :", e)
             return False
         if not S.DEMO: GLib.timeout_add_seconds(25, _fiab)
