@@ -66,10 +66,10 @@ restaurer)
   T=$(haut) || exit 1
   [ -d "$T/@snapshots/$N/snapshot" ] || { echo "Instantané $N introuvable"; exit 1; }
   V=$(sous_vol); case "$V" in @snapshots/*) V=@;; esac   # démarré sur l'instantané lui-même → c'est @ qu'on remplace
-  D=$(date +%Y%m%d-%H%M%S)
-  mv "$T/$V" "$T/@ancien-$D" || { echo "Impossible de mettre l'ancien système de côté"; exit 1; }
+  D=$(date +%Y%m%d-%H%M%S); k=1; while [ -e "$T/@ancien-$D" ]; do k=$((k+1)); D=$(date +%Y%m%d-%H%M%S)-$k; done
+  mv -T "$T/$V" "$T/@ancien-$D" || { echo "Impossible de mettre l'ancien système de côté"; exit 1; }
   if ! btrfs subvolume snapshot "$T/@snapshots/$N/snapshot" "$T/$V" >/dev/null; then
-    mv "$T/@ancien-$D" "$T/$V"; echo "Échec de la restauration, rien n'a changé"; exit 1
+    mv -T "$T/@ancien-$D" "$T/$V"; echo "Échec de la restauration, rien n'a changé"; exit 1
   fi
   mkdir -p "$T/$V/var/lib/xiii"
   printf '%s|%s|%s\n' "$N" "${3:-manuel}" "@ancien-$D" > "$T/$V/var/lib/xiii/restauration.txt"
