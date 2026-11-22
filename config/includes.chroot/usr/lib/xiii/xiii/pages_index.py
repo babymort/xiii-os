@@ -17,6 +17,7 @@ PAGES = [
     ("imprimantes", "Imprimantes et scanners", "printer", "appareils", "Ajouter, imprimante par défaut", "imprimer scanner"),
     ("souris", "Souris et pavé tactile", "mouse", "appareils", "Vitesse, défilement, tap pour cliquer", "touchpad trackpad pointeur defilement"),
     ("clavier", "Clavier", "keyboard", "appareils", "Disposition, répétition, raccourcis", "azerty qwerty raccourcis disposition"),
+    ("raccourcis", "Raccourcis clavier", "command", "appareils", "Changer, ajouter, supprimer tous les raccourcis", "raccourci touche combinaison clavier shortcut super ctrl alt"),
     ("webcam", "Caméras", "webcam", "appareils", "Tester la webcam", "camera video"),
     ("autoplay", "Exécution automatique", "usb", "appareils", "Montage des clés et disques", "cle usb disque montage"),
     ("reseau", "Réseau et Internet", "globe", None, "Wi-Fi, Ethernet, VPN, partage de connexion", "internet"),

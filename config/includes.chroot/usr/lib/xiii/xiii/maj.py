@@ -150,6 +150,18 @@ def fusion_xml(nouveau, actuel, balise, cle, texte=False):
     val = (lambda e: e.findtext(cle) or "") if texte else (lambda e: e.get(cle))
     a, n = ET.parse(actuel), ET.parse(nouveau)
     deja = {val(e) for e in a.getroot().iter() if loc(e.tag) == balise}
+    sig = lambda e: None
+    if balise == "keybind":
+        # raccourcis : ne pas remettre ce que l'utilisateur a supprimé ou déplacé sur une autre touche
+        def sig(e):
+            acts = []
+            for x in e.findall("action"):
+                at = dict(x.attrib); n = at.pop("name", ""); acts.append((n, at))
+            return json.dumps(acts, sort_keys=True, ensure_ascii=False)
+        try:
+            for r in json.load(open(os.path.join(os.path.dirname(os.path.dirname(actuel)), "xiii", "raccourcis-retires.json"))): deja.add(r["cle"])
+        except Exception: pass
+        sigs = {sig(e) for e in a.getroot().iter() if loc(e.tag) == balise}
     parents_a = {}
     for p in a.getroot().iter():
         for e in p:
@@ -157,7 +169,7 @@ def fusion_xml(nouveau, actuel, balise, cle, texte=False):
     ajout = 0
     for p in n.getroot().iter():
         for e in list(p):
-            if loc(e.tag) == balise and val(e) not in deja:
+            if loc(e.tag) == balise and val(e) not in deja and not (balise == "keybind" and sig(e) in sigs):
                 cible = parents_a.get(loc(p.tag), a.getroot()); cible.append(e); deja.add(val(e)); ajout += 1
     if ajout:
         shutil.copy2(actuel, actuel + ".avant-maj"); a.write(actuel, encoding="UTF-8", xml_declaration=True)

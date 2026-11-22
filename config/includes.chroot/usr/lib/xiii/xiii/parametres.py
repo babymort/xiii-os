@@ -602,13 +602,174 @@ class Parametres(Gtk.Application):
         rate = rc_valeur("keyboard/repeatRate", defaut="25"); delay = rc_valeur("keyboard/repeatDelay", defaut="600")
         c.append(reglage("timer", "Délai avant répétition", "", droite=dim(curseur(int(delay), lambda v: rc_ecrire(lambda r: setattr(rc_noeud(r, "keyboard/repeatDelay"), "text", str(int(v)))), 150, 1000, 10, 500), 260)))
         c.append(reglage("gauge", "Vitesse de répétition", "", droite=dim(curseur(int(rate), lambda v: rc_ecrire(lambda r: setattr(rc_noeud(r, "keyboard/repeatRate"), "text", str(int(v)))), 5, 60, 1, 500), 260)))
-        c.append(groupe_titre("Raccourcis clavier d'OS XIII"))
-        for k, d in (("Super", "Menu Démarrer"), ("Super + A", "Centre de contrôle"), ("Super + N", "Volet de notifications"), ("Super + I", "Paramètres"), ("Super + Espace", "Rechercher (applications, fichiers, réglages, calcul, Claude)"),
-                     ("Super + E", "Explorateur de fichiers"), ("Super + L", "Verrouiller"), ("Super + Maj + S", "Capture d'une zone"), ("Impr. écran", "Capture de l'écran entier"),
-                     ("Super + V", "Historique du presse-papiers"), ("Super + .", "Émojis"), ("Super + Tab", "Vue des tâches"), ("Super + Z", "Dispositions des fenêtres"),
-                     ("Super + D", "Afficher le bureau"), ("Super + W", "Widgets"), ("Super + ← / →", "Ancrer la fenêtre à gauche / droite"), ("Super + ↑", "Agrandir"),
-                     ("Alt + Tab", "Changer de fenêtre"), ("Alt + F4", "Fermer la fenêtre"), ("Super + Entrée", "Terminal")):
-            c.append(reglage(None, d, None, droite=label(k, "mono", "accent")))
+        c.append(groupe_titre("Raccourcis clavier"))
+        c.append(reglage("command", "Tous les raccourcis clavier", "Changer, ajouter ou supprimer n'importe quel raccourci du système", clic=lambda: self.aller("raccourcis")))
+
+    def p_raccourcis(self, c, cle):
+        from . import raccourcis as R
+        L = R.lire(); lignes = []
+        def enregistrer(msg="Raccourcis enregistrés"):
+            R.ecrire(L); self.toast(msg); self.aller("raccourcis", False)
+        haut = boite(False, 8)
+        rech = Gtk.SearchEntry(placeholder_text="Rechercher un raccourci ou une touche…", hexpand=True); haut.append(rech)
+        haut.append(bouton("Ajouter", "plus", "pilule", rappel=lambda: self.raccourci_nouveau(L, enregistrer)))
+        haut.append(bouton(None, "more-vertical", "fantome", tip="Plus d'options", rappel=lambda: popover_menu(haut, [
+            ("download", "Exporter mes raccourcis…", lambda: self.raccourcis_fichier(L, True)),
+            ("upload", "Importer des raccourcis…", lambda: self.raccourcis_fichier(L, False)),
+            None,
+            ("rotate-ccw", "Revenir aux raccourcis d'origine", lambda: confirmer(self.win, "Revenir aux raccourcis d'origine ?", "Tous vos changements de raccourcis seront perdus.", "Réinitialiser",
+                                                                            lambda _: (R.reinitialiser(), self.toast("Raccourcis d'origine rétablis"), self.aller("raccourcis", False))))])))
+        c.append(haut)
+        c.append(info("Cliquez sur une combinaison pour la changer, puis appuyez sur les nouvelles touches. Les changements s'appliquent tout de suite. "
+                      "Les raccourcis internes aux applications (Ctrl+C, Ctrl+S…) se règlent dans chaque application."))
+        for cat in R.CATEGORIES:
+            idx = [i for i, s in enumerate(L) if s["categorie"] == cat]
+            if not idx: continue
+            t = groupe_titre(cat); c.append(t); grp = []
+            for i in sorted(idx, key=lambda i: L[i]["texte"].lower()):
+                s = L[i]
+                droite = boite(False, 6)
+                bk = bouton(R.humain(s["cle"]), None, "fantome", "mono", tip="Changer la combinaison"); bk.connect("clicked", lambda _b, i=i: self.raccourci_capturer(L, i, enregistrer)); droite.append(bk)
+                droite.append(bouton(None, "more-vertical", "fantome", tip="Options", rappel=lambda i=i, w=droite: popover_menu(w, [
+                    ("keyboard", "Changer la combinaison", lambda: self.raccourci_capturer(L, i, enregistrer)),
+                    ("copy-plus", "Ajouter une autre combinaison", lambda: self.raccourci_capturer(L, i, enregistrer, doubler=True)),
+                    ("pencil", "Changer l'action", lambda: self.raccourci_nouveau(L, enregistrer, remplacer=i)),
+                    None,
+                    ("trash-2", "Supprimer ce raccourci", lambda: (L.pop(i), enregistrer("Raccourci supprimé")))])))
+                r = reglage(None, s["texte"], None, droite=droite); c.append(r)
+                lignes.append((r, (s["texte"] + " " + R.humain(s["cle"]) + " " + s["cle"]).lower(), t)); grp.append(r)
+        def filtrer(*_):
+            q = rech.get_text().lower().strip(); vis_titres = {}
+            for r, txt, t in lignes:
+                v = not q or all(m in txt for m in q.split()); r.set_visible(v); vis_titres[t] = vis_titres.get(t, False) or v
+            for t, v in vis_titres.items(): t.set_visible(v)
+        rech.connect("search-changed", filtrer)
+
+    def raccourci_capturer(self, L, i, enregistrer, doubler=False, nouveau=None):
+        """Fenêtre qui attend la nouvelle combinaison. i = index dans L (None si nouveau raccourci → nouveau = dict)."""
+        from . import raccourcis as R
+        cible = nouveau if nouveau is not None else L[i]
+        d = Gtk.Window(transient_for=self.win, modal=True, title="Nouveau raccourci", default_width=460); d.add_css_class("parametres")
+        v = boite(True, 12, margin_top=20, margin_bottom=20, margin_start=24, margin_end=24)
+        v.append(label(cible.get("texte") or R.decrire(cible["actions"])[0], "page-titre", wrap=True))
+        v.append(label("Appuyez sur la nouvelle combinaison de touches. Échap pour annuler, Retour arrière pour retirer la touche.", "attenue", wrap=True))
+        aff = label("…", "hero-grand", xalign=0.5); v.append(aff)
+        msg = label("", "attenue", wrap=True, xalign=0.5); v.append(msg)
+        res = {"cle": None, "onrelease": False, "super_seul": False}
+        # saisie manuelle (si une touche est déjà prise par le système et n'arrive pas ici)
+        man = boite(False, 6, halign=Gtk.Align.CENTER)
+        cases = {}
+        for m, n in (("W", "Super"), ("C", "Ctrl"), ("A", "Alt"), ("S", "Maj")):
+            cb = Gtk.CheckButton(label=n); cases[m] = cb; man.append(cb)
+        ent = Gtk.Entry(placeholder_text="touche (ex : e, F5, Print)", width_chars=14); man.append(ent)
+        def manuel(*_):
+            t = ent.get_text().strip()
+            if not t: return
+            choisir("-".join([m for m in R.ORDRE_MODS if cases[m].get_active()] + [t]), False)
+        ent.connect("activate", manuel)
+        exp = Gtk.Expander(label="Saisir à la main"); bx = boite(True, 6); bx.append(man); bx.append(bouton("Utiliser", None, "fantome", rappel=manuel)); exp.set_child(bx); v.append(exp)
+        r = boite(False, 8, halign=Gtk.Align.END)
+        b_ok = bouton("Enregistrer", None, "pilule"); b_ok.set_sensitive(False)
+        r.append(bouton("Annuler", None, "fantome", rappel=d.close)); r.append(b_ok); v.append(r)
+        conf = [None]
+        def choisir(cle, onrel):
+            res["cle"], res["onrelease"] = cle, onrel
+            aff.set_text(R.humain(cle))
+            conf[0] = R.conflit(L, cle, sauf=None if doubler or i is None else i)
+            if conf[0] is not None:
+                msg.set_text("Déjà utilisé par « %s ». Enregistrer le retirera de cette action." % L[conf[0]]["texte"])
+            else: msg.set_text("")
+            b_ok.set_sensitive(True)
+        def valider(*_):
+            if not res["cle"]: return
+            j = conf[0]
+            if j is not None: L[j] = dict(L[j], cle="")
+            if nouveau is not None: L.append(dict(nouveau, cle=res["cle"], onrelease=res["onrelease"]))
+            elif doubler: L.append(dict(L[i], cle=res["cle"], onrelease=res["onrelease"]))
+            else: L[i] = dict(L[i], cle=res["cle"], onrelease=res["onrelease"])
+            L[:] = [s for s in L if s.get("cle")]
+            d.close(); enregistrer()
+        b_ok.connect("clicked", valider)
+        k = Gtk.EventControllerKey(); k.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        def appui(_c, kv, _code, etat):
+            if ent.has_focus(): return False
+            nom = Gdk.keyval_name(kv) or ""
+            if kv == Gdk.KEY_Escape and not (etat & Gtk.accelerator_get_default_mod_mask()): d.close(); return True
+            if kv == Gdk.KEY_BackSpace and not (etat & Gtk.accelerator_get_default_mod_mask()):
+                if nouveau is None and not doubler:
+                    L.pop(i); d.close(); enregistrer("Raccourci retiré")
+                return True
+            if nom in ("Super_L", "Super_R"): res["super_seul"] = nom; return True
+            res["super_seul"] = False
+            c2 = R.depuis_gdk(kv, etat)
+            if c2: choisir(c2, False)
+            return True
+        def relache(_c, kv, _code, etat):
+            nom = Gdk.keyval_name(kv) or ""
+            if res["super_seul"] == nom: choisir(nom, True); res["super_seul"] = False
+        k.connect("key-pressed", appui); k.connect("key-released", relache); d.add_controller(k)
+        d.set_child(v); d.present()
+        # demande au compositeur de laisser passer ses propres raccourcis pendant la saisie
+        def inhiber():
+            try: d.get_surface().inhibit_system_shortcuts(None)
+            except Exception: pass
+            return False
+        GLib.timeout_add(150, inhiber)
+        def liberer(*_):
+            try: d.get_surface().restore_system_shortcuts()
+            except Exception: pass
+            return False
+        d.connect("close-request", liberer)
+
+    def raccourci_nouveau(self, L, enregistrer, remplacer=None):
+        """Choisir l'action d'un raccourci : application, action du système ou commande libre."""
+        from . import raccourcis as R
+        d = Gtk.Window(transient_for=self.win, modal=True, title="Action du raccourci", default_width=480); d.add_css_class("parametres")
+        v = boite(True, 12, margin_top=20, margin_bottom=20, margin_start=24, margin_end=24)
+        v.append(label("Que doit faire ce raccourci ?", "page-titre"))
+        pile = Gtk.Stack(); choix = Gtk.StackSwitcher(stack=pile, halign=Gtk.Align.CENTER); v.append(choix); v.append(pile)
+        aps = apps.toutes()
+        dd_app = Gtk.DropDown(model=Gtk.StringList.new([a.get_display_name() for a in aps])); dd_app.set_enable_search(True)
+        dd_app.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
+        p1 = boite(True, 8); p1.append(label("Ouvrir une application", "attenue")); p1.append(dd_app); pile.add_titled(p1, "app", "Application")
+        dd_act = Gtk.DropDown(model=Gtk.StringList.new(["%s — %s" % (x[3], x[2]) for x in R.ACTIONS])); dd_act.set_enable_search(True)
+        dd_act.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
+        p2 = boite(True, 8); p2.append(label("Fenêtres, bureaux, système, son…", "attenue")); p2.append(dd_act); pile.add_titled(p2, "act", "Action du système")
+        e_cmd = Gtk.Entry(placeholder_text="ex : firefox --private-window"); e_nom = Gtk.Entry(placeholder_text="Nom affiché (facultatif)")
+        p3 = boite(True, 8); p3.append(label("N'importe quelle commande", "attenue")); p3.append(e_cmd); p3.append(e_nom); pile.add_titled(p3, "cmd", "Commande")
+        def suite(*_):
+            page = pile.get_visible_child_name()
+            if page == "app":
+                if not aps: return
+                a = aps[dd_app.get_selected()]; acts = [("Execute", {"command": "gio launch " + (a.get_filename() or "")})]; txt = "Ouvrir " + a.get_display_name()
+            elif page == "act":
+                x = R.ACTIONS[dd_act.get_selected()]; acts = [(x[0], dict(x[1]))]; txt = x[2]
+            else:
+                cmd = e_cmd.get_text().strip()
+                if not cmd: return
+                acts = [("Execute", {"command": cmd})]; txt = e_nom.get_text().strip() or "Commande : " + cmd
+            d.close()
+            if remplacer is not None:
+                L[remplacer] = dict(L[remplacer], actions=acts, texte=txt); enregistrer("Action changée")
+            else:
+                self.raccourci_capturer(L, None, enregistrer, nouveau={"actions": acts, "texte": txt, "categorie": "Personnalisés"})
+        r = boite(False, 8, halign=Gtk.Align.END)
+        r.append(bouton("Annuler", None, "fantome", rappel=d.close)); r.append(bouton("Valider" if remplacer is not None else "Choisir la touche…", None, "pilule", rappel=suite)); v.append(r)
+        d.set_child(v); d.present()
+
+    def raccourcis_fichier(self, L, export):
+        from . import raccourcis as R
+        fd = Gtk.FileDialog(title="Exporter les raccourcis" if export else "Importer des raccourcis")
+        f = Gtk.FileFilter(); f.set_name("Raccourcis OS XIII (.json)"); f.add_pattern("*.json"); st = Gio.ListStore.new(Gtk.FileFilter); st.append(f); fd.set_filters(st)
+        def fini(dlg, res):
+            try: g = dlg.save_finish(res) if export else dlg.open_finish(res)
+            except GLib.Error: return
+            try:
+                if export: R.exporter(g.get_path(), L); self.toast("Raccourcis exportés")
+                else: n = R.importer(g.get_path()); self.toast("%d raccourcis importés" % n); self.aller("raccourcis", False)
+            except Exception as e: self.toast("Échec : %s" % e)
+        if export: fd.set_initial_name("raccourcis-xiii.json"); fd.save(self.win, None, fini)
+        else: fd.open(self.win, None, fini)
 
     def p_webcam(self, c, cle):
         cams = sorted(glob.glob("/dev/video*")) if not S.DEMO else ["/dev/video0"]
