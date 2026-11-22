@@ -291,11 +291,12 @@ class Fichiers(Gtk.Application):
             if p == choisi: lb.select_row(r)
             g = Gtk.GestureClick(button=3); g.connect("pressed", lambda *_a, p=p, r=r: (setattr(self, "choix", p), popover_menu(r, self.menu_fichiers([p])))); r.add_controller(g)
             g2 = Gtk.GestureClick(); g2.connect("pressed", lambda g_, n, *_a, p=p: self.ouvrir(p) if n == 2 and not os.path.isdir(p) else None); r.add_controller(g2)
+        sc = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER); sc.set_child(lb); sc.set_size_request(240, -1)
         def choisir(_lb, row):
-            if not row: return
+            if not row or sc.get_parent() is None: return
             self.choix = row._chemin
             # retire les colonnes à droite
-            c = lb.get_parent().get_next_sibling() if isinstance(lb.get_parent(), Gtk.ScrolledWindow) else None
+            c = sc.get_next_sibling()
             while c: n = c.get_next_sibling(); self.mac_boite.remove(c); c = n
             if os.path.isdir(row._chemin):
                 self.dossier = row._chemin; self.barre_chemin(); self.colonne_mac(row._chemin)
@@ -303,7 +304,6 @@ class Fichiers(Gtk.Application):
                 self.apercu_mac(row._chemin)
             GLib.timeout_add(60, lambda: (self.mac_sc.get_hadjustment().set_value(self.mac_sc.get_hadjustment().get_upper()), False)[1])
         lb.connect("row-selected", choisir)
-        sc = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER); sc.set_child(lb); sc.set_size_request(240, -1)
         self.mac_boite.append(sc)
 
     def apercu_mac(self, p):
