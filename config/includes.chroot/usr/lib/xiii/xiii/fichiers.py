@@ -143,13 +143,13 @@ class Fichiers(Gtk.Application):
         self.saisie = Gtk.Entry(hexpand=True); self.saisie.set_visible(False)
         self.saisie.connect("activate", lambda e: (self.aller(os.path.expanduser(e.get_text())), self.fin_saisie()))
         h.append(self.chemin); h.append(self.saisie)
-        self.recherche = Gtk.SearchEntry(placeholder_text="Rechercher dans ce dossier"); self.recherche.set_size_request(220, -1)
+        self.recherche = Gtk.SearchEntry(placeholder_text="Rechercher dans ce dossier"); self.recherche.set_size_request(190, -1)
         self.recherche.connect("activate", lambda *_: self.chercher()); self.recherche.connect("stop-search", lambda *_: self.recharger()); h.append(self.recherche)
         self.b_contenu = Gtk.ToggleButton(); self.b_contenu.set_child(ico("file-search", 16)); self.b_contenu.add_css_class("plat")
         self.b_contenu.set_tooltip_text("Chercher aussi DANS les fichiers (textes, PDF, documents)"); h.append(self.b_contenu)
         vc = boite(False, 2, "vue-choix"); self.b_vues = {}
         for k, n, ic in VUES:
-            b = Gtk.Button(); bx = boite(False, 5); bx.append(ico(ic, 14, "c")); bx.append(label(n, "petit")); b.set_child(bx); b.set_tooltip_text("Vue " + n)
+            b = Gtk.Button(); b.set_child(ico(ic, 15, "c")); b.set_tooltip_text("Vue " + n)
             b.connect("clicked", lambda _b, k=k: self.changer_vue(k)); vc.append(b); self.b_vues[k] = b
         h.append(vc)
         h.append(bouton(None, "folder-plus", "plat", tip="Nouveau dossier (Ctrl+Maj+N)", rappel=self.nouveau_dossier))
@@ -332,9 +332,14 @@ class Fichiers(Gtk.Application):
         acc = parts[0][1]
         for x in [y for y in reste.split("/") if y]:
             acc = os.path.join(acc, x); parts.append((x, acc))
+        caches = []
+        if len(parts) > 4: caches = parts[1:-3]; parts = parts[:1] + [("…", None)] + parts[-3:]     # chemin long : les dossiers du milieu dans « … »
         for k, (n, c) in enumerate(parts):
             if k: self.chemin.append(label("›", "attenue"))
-            b = Gtk.Button(); b.add_css_class("plat"); b.set_child(label(n, ellipsize=True, largeur=24)); b.connect("clicked", lambda _b, c=c: self.aller(c)); self.chemin.append(b)
+            b = Gtk.Button(); b.add_css_class("plat"); b.set_child(label(n, ellipsize=True, largeur=22 if k == len(parts) - 1 else 14))
+            if c is None: b.connect("clicked", lambda bb: popover_menu(bb, [("folder", nn, (lambda cc=cc: self.aller(cc))) for nn, cc in caches]))
+            else: b.connect("clicked", lambda _b, c=c: self.aller(c))
+            b.set_tooltip_text(c or " / ".join(nn for nn, _ in caches)); self.chemin.append(b)
         g = Gtk.GestureClick(button=1); g.connect("pressed", lambda g_, n, x, y: self.saisir_chemin() if n == 2 else None); self.chemin.add_controller(g)
 
     def saisir_chemin(self):
@@ -423,10 +428,13 @@ class Fichiers(Gtk.Application):
         def setup(_f, it):
             v = boite(True, 4, "carte-galerie"); v.set_size_request(176, 150)
             pic = Gtk.Picture(content_fit=Gtk.ContentFit.CONTAIN, can_shrink=True); pic.set_size_request(168, 104); v.append(pic)
-            l = label("", "petit", xalign=0.5, ellipsize=True); l.set_max_width_chars(22); v.append(l)
-            it.set_child(v); it._pic, it._l = pic, l
+            lb = boite(False, 4, halign=Gtk.Align.CENTER); et = boite(False, 0); lb.append(et)
+            l = label("", "petit", xalign=0.5, ellipsize=True); l.set_max_width_chars(22); lb.append(l); v.append(lb)
+            it.set_child(v); it._pic, it._l, it._et = pic, l, et
         def bind(_f, it):
             info = it.get_item(); p = fichier_de(info).get_path(); it._l.set_text(info.get_display_name()); it._p = p
+            vider(it._et); e = ET.lire(p or "")
+            if e: it._et.append(pastille_couleur(e))
             self._lies[p] = it._pic
             mini = medias.chemin_miniature(p)[0] if p and medias.est_media(p) else None
             if mini and os.path.exists(mini):
