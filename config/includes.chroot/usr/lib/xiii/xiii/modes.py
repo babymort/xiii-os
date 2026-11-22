@@ -37,7 +37,7 @@ OUTILS = {
                  ("app", "xiii-blackmagic.desktop", "Blackmagic", "video"), ("app", "xiii-terminal.desktop", "Invite de commande", None), ("app", "xiii-timecode.desktop", "Timecode LTC", None)],
 }
 ONGLETS = {"fiction": ["scripto", "callsheeto", "decoup", "cadro"], "multicam": ["conduco", "melango", "graphico", "runo"]}
-WIDGETS = {"production": ["projet", "plan", "meteo", "offload"], "fiction": ["timecode", "plan", "meteo", "projet"], "multicam": ["timecode", "conducteur", "ndi", "duo"]}
+WIDGETS = {"production": ["projet", "plan", "meteo", "offload"], "fiction": ["timecode", "jour", "plan", "meteo"], "multicam": ["timecode", "conducteur", "ndi", "duo"]}
 
 # colonnes du tableau du mode Production (étapes d'un projet)
 COLONNES = [("Développement", "#a371f7", ["index", "syno", "dossier", "documents"]),
@@ -268,7 +268,7 @@ class VueMode:
         self.tb = Tableau(self.shell)
         self.pile.add_named(self.p_accueil(), "accueil")
         self.pile.add_named(self.p_tableau(mode), "tableau")
-        self.pile.add_named(self.p_widgets(["plan", "compte", "calendrier", "meteo"]), "planning")
+        self.pile.add_named(self.p_widgets(["jour", "plan", "compte", "meteo", "calendrier"]), "planning")
         self.pile.add_named(self.p_widgets(["projet", "offload", "systeme", "conducteur"]), "direct")
         aller(self.shell.cfg.get("production_page") if self.shell.cfg.get("production_page") in self.rail_btns else "accueil")
         def tic():

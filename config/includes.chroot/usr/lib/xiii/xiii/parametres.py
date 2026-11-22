@@ -1509,6 +1509,13 @@ class Parametres(Gtk.Application):
         c.append(reglage("folder-kanban", "Exports rangés dans le projet actif", ("Projet « %s » : 03_Documents et 06_Exports" % self.cfg["projet_actif"]) if self.cfg.get("projet_actif") else "Sans projet actif : dossier Téléchargements", clic=lambda: self.aller("projet")))
         c.append(reglage("send", "Envoyer à DOSSIER XIII", "Clic droit sur un document dans Fichiers : il rejoint le dossier en cours"))
         c.append(reglage("refresh-cw", "Convertir avec ENCODO XIII", "Clic droit sur une vidéo, un son, une image ou un PDF"))
+        c.append(groupe_titre("Passerelles avec l'ordinateur"))
+        c.append(reglage("palette", "Même thème pour l'ordinateur et la Suite", "Clair ou sombre choisi d'un côté s'applique de l'autre",
+                         droite=interrupteur(self.cfg.get("suite_theme_commun", True), lambda v: self.regler(suite_theme_commun=v))))
+        c.append(reglage("folder-kanban", "Fichiers s'ouvre sur le projet actif", "Avec « Récents du projet » dans les dossiers intelligents",
+                         droite=interrupteur(self.cfg.get("fichiers_depart_projet", True), lambda v: self.regler(fichiers_depart_projet=v))))
+        c.append(reglage("bell", "Notifications de la Suite", "Rappels, échéances et messages d'équipe arrivent comme des notifications de l'ordinateur (clic : l'outil revient devant)"))
+        c.append(reglage("mouse-pointer-2" if os.path.exists(theme.LUCIDE + "/mouse-pointer-2.svg") else "move", "Glisser-déposer", "Faites glisser des fichiers depuis Fichiers dans un outil ; ce que la Suite exporte arrive dans le projet"))
         c.append(groupe_titre("Mise à jour"))
         def mettre_a_jour():
             self.toast("Téléchargement de la Suite XIII…")

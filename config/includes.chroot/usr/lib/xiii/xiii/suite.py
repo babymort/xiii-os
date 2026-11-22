@@ -234,6 +234,17 @@ JS_DOSSIER = r"""
 """
 
 
+# Thème commun : avant le chargement de chaque outil, le thème de l'ordinateur devient le thème de toute la Suite (« Même thème pour toute la suite »).
+JS_THEME = r"""
+(() => { try {
+  const t = %s, s = JSON.parse(localStorage.getItem('xiii.settings._suite') || '{}') || {}, h = JSON.parse(localStorage.getItem('hubXIII.prefs') || '{}') || {};
+  s.globalTheme = t; h.theme = t; localStorage.setItem('xiii.settings._suite', JSON.stringify(s)); localStorage.setItem('hubXIII.prefs', JSON.stringify(h));
+  window.__xiiiTheme = t;
+  const ap = () => { if (document.body) document.body.classList.toggle('light-theme', t === 'light'); };
+  if (document.body) ap(); else document.addEventListener('DOMContentLoaded', ap);
+} catch (e) {} })();
+"""
+
 # Passerelle projet : le projet actif de la Suite (sélecteur « xiii.projets ») et celui de l'ordinateur (~/XIII/<nom>) restent les mêmes.
 JS_PONT = r"""
 (() => {
@@ -259,6 +270,10 @@ JS_PONT = r"""
   };
   window.addEventListener('storage', e => { if (e.key === K && sig(actif()) !== window.__xiiiSig) poste('projet'); });
   setInterval(() => { if (sig(actif()) !== window.__xiiiSig) poste('projet'); }, 3000);   // changement fait dans cette même fenêtre
+  setInterval(() => {   // thème choisi dans un outil de la Suite → l'ordinateur suit
+    let t = ''; try { t = (JSON.parse(localStorage.getItem('hubXIII.prefs') || '{}') || {}).theme || ''; } catch (e) {}
+    if (t && window.__xiiiTheme && t !== window.__xiiiTheme) { window.__xiiiTheme = t; window.webkit.messageHandlers.xiii.postMessage(JSON.stringify({ type: 'theme', theme: t })); }
+  }, 2000);
   poste('pret');
 })();
 """
@@ -285,11 +300,24 @@ class Suite(Gtk.Application):
         try:
             self.ucm.register_script_message_handler("xiii", None)
             self.ucm.connect("script-message-received::xiii", self.message)
-            self.ucm.add_script(WebKit.UserScript.new(JS_PONT, WebKit.UserContentInjectedFrames.TOP_FRAME, WebKit.UserScriptInjectionTime.END, None, None))
+            self.scripts()
         except Exception as e:
             print("passerelle projet indisponible :", e)
         self._projet_os = config.charger().get("projet_actif") or ""
         self._mon = config.surveiller(self.cfg_change)
+
+    def theme_suite(self, c=None):
+        c = c or config.charger()
+        try: clair = __import__("xiii.theme", fromlist=["x"]).palette(c)["clair"]
+        except Exception: clair = False
+        return "light" if clair else "dark"
+
+    def scripts(self, c=None):
+        self.ucm.remove_all_scripts()
+        c = c or config.charger(); self._theme = self.theme_suite(c)
+        if c.get("suite_theme_commun", True):
+            self.ucm.add_script(WebKit.UserScript.new(JS_THEME % json.dumps(self._theme), WebKit.UserContentInjectedFrames.TOP_FRAME, WebKit.UserScriptInjectionTime.START, None, None))
+        self.ucm.add_script(WebKit.UserScript.new(JS_PONT, WebKit.UserContentInjectedFrames.TOP_FRAME, WebKit.UserScriptInjectionTime.END, None, None))
 
     def base(self):
         return "http://127.0.0.1:%d" % self.port
@@ -333,6 +361,7 @@ class Suite(Gtk.Application):
             except TypeError: pass
         s.set_user_agent_with_application_details("OS-XIII", "1")
         v.connect("permission-request", self.permission)
+        v.connect("show-notification", self.notification_web)
         v.connect("decide-policy", self.politique)
         v.connect("create", self.creer)
         return v
@@ -413,6 +442,25 @@ class Suite(Gtk.Application):
         oid = re.sub(r"^.*/([a-z0-9_-]+)\.html.*$", r"\1", uri or "") if uri and ".html" in uri else "index"
         nv.connect("ready-to-show", lambda vv: self.fenetre(oid, vue=vv))
         return nv
+
+    def notification_web(self, v, notif):
+        """Rappels PLANO, échéances, messages d'équipe : les notifications de la Suite deviennent des notifications de l'ordinateur."""
+        w = next((x for x in self.fenetres if getattr(x, "_vue", None) is v), None)
+        oid = getattr(w, "_oid", "index") if w else "index"
+        n = Gio.Notification.new(notif.get_title() or nom_outil(oid)); n.set_body(notif.get_body() or "")
+        n.set_icon(Gio.ThemedIcon.new("xiii-suite-" + oid if oid != "index" else "xiii-suite"))
+        cle = "web-%d" % id(notif); self._notifs = getattr(self, "_notifs", {}); self._notifs[cle] = (notif, w)
+        n.set_default_action_and_target("app.notif-web", GLib.Variant.new_string(cle))
+        self.send_notification(cle, n)
+        notif.connect("closed", lambda *_: (self.withdraw_notification(cle), self._notifs.pop(cle, None)))
+        return True
+
+    def clic_notif(self, cle):
+        notif, w = getattr(self, "_notifs", {}).pop(cle, (None, None))
+        if w: w.present()
+        if notif:
+            try: notif.clicked()
+            except Exception: pass
 
     def permission(self, v, req):
         req.allow(); return True  # outils locaux de confiance : caméra, micro, notifications, position, presse-papiers
@@ -553,6 +601,11 @@ class Suite(Gtk.Application):
             m = json.loads(val.to_string())
         except Exception:
             return
+        if m.get("type") == "theme":
+            c = config.charger()
+            if c.get("suite_theme_commun", True) and m.get("theme") in ("light", "dark") and m["theme"] != self.theme_suite(c):
+                config.modifier(theme="clair" if m["theme"] == "light" else "sombre")
+            return
         fiche = m.get("fiche") or {}
         nom = re.sub(r'[\\/:*?"<>|]', "-", (fiche.get("title") or "")).strip()
         os_nom = config.charger().get("projet_actif") or ""
@@ -571,6 +624,11 @@ class Suite(Gtk.Application):
         if w: w._vue.evaluate_javascript("window.__xiiiActiver && window.__xiiiActiver(%s)" % json.dumps(nom), -1, None, None, None, None, None)
 
     def cfg_change(self, c):
+        t = self.theme_suite(c)
+        if c.get("suite_theme_commun", True) and t != getattr(self, "_theme", None):
+            self.scripts(c)
+            for w in self.fenetres:
+                if getattr(w, "_vue", None): w._vue.evaluate_javascript(JS_THEME % json.dumps(t), -1, None, None, None, None, None)
         nom = c.get("projet_actif") or ""
         if nom and nom != self._projet_os:
             self._projet_os = nom; self.pousser_projet(nom)
@@ -598,4 +656,7 @@ def main():
     vd = Gio.SimpleAction.new("vers-dossier", GLib.VariantType.new("s"))
     vd.connect("activate", lambda a, p: app.vers_dossier([p.get_string()]))
     app.add_action(vd)
+    nw = Gio.SimpleAction.new("notif-web", GLib.VariantType.new("s"))
+    nw.connect("activate", lambda a, p: app.clic_notif(p.get_string()))
+    app.add_action(nw)
     sys.exit(app.run(sys.argv))

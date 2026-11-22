@@ -61,7 +61,11 @@ class Fichiers(Gtk.Application):
 
     def do_command_line(self, cl):
         a = [x for x in cl.get_arguments()[1:] if not x.startswith("--")]
-        d = Gio.File.new_for_commandline_arg_and_cwd(a[0], cl.get_cwd() or "/").get_path() if a else os.path.expanduser("~")
+        depart = os.path.expanduser("~")
+        pj = config.charger().get("projet_actif")
+        if pj and config.charger().get("fichiers_depart_projet", True) and os.path.isdir(os.path.expanduser("~/XIII/" + pj)):
+            depart = os.path.expanduser("~/XIII/" + pj)       # le projet choisi en haut à gauche est le point de départ
+        d = Gio.File.new_for_commandline_arg_and_cwd(a[0], cl.get_cwd() or "/").get_path() if a else depart
         if d and os.path.isfile(d): d = os.path.dirname(d)
         self.activer(); self.aller(d or os.path.expanduser("~"))
         if "--test-colonnes" in cl.get_arguments(): GLib.timeout_add(1500, self.test_colonnes)
@@ -926,10 +930,14 @@ class Fichiers(Gtk.Application):
                     lambda: S.en_fond(lambda: [CB.supprimer(e) for e in L], lambda r: self.vue_corbeille()))
 
     # =================================================================== dossiers intelligents
-    INTELLIGENTS = [("film", "Rushes de la semaine", "videos7"), ("hard-drive", "Gros fichiers (plus de 1 Go)", "gros"), ("clock", "Modifiés aujourd'hui", "jour")]
+    INTELLIGENTS = [("folder-kanban", "Récents du projet", "projet"), ("film", "Rushes de la semaine", "videos7"), ("hard-drive", "Gros fichiers (plus de 1 Go)", "gros"), ("clock", "Modifiés aujourd'hui", "jour")]
     def intelligent(self, k):
         racines = [os.path.expanduser("~")] + [m.get_root().get_path() for m in Gio.VolumeMonitor.get().get_mounts() if m.get_root() and m.get_root().get_path() and m.get_root().get_path().startswith(("/media", "/run/media", "/mnt"))]
         maintenant = time.time(); titre = dict((c, t) for _, t, c in self.INTELLIGENTS)[k]
+        if k == "projet":
+            pj = self.cfg.get("projet_actif")
+            if not pj: self.etat.set_text("Aucun projet actif : choisissez-en un en haut à gauche de l'écran."); return
+            racines = [os.path.expanduser("~/XIII/" + pj)]; titre = "Récents du projet " + pj
         self.etat.set_text(titre + " : recherche…")
         def tache():
             R = []
@@ -942,6 +950,7 @@ class Fichiers(Gtk.Application):
                         except OSError: continue
                         if k == "videos7" and medias.ext(p) in medias.VIDEO + tuple(medias.FERMES) and maintenant - st.st_mtime < 7 * 86400: R.append(p)
                         elif k == "gros" and st.st_size > 1e9: R.append(p)
+                        elif k == "projet" and maintenant - st.st_mtime < 14 * 86400: R.append(p)
                         elif k == "jour" and maintenant - st.st_mtime < 86400 and not r.startswith(os.path.expanduser("~/.")): R.append(p)
                     if len(R) > 800: return R
             return R

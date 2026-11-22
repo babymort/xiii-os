@@ -8,6 +8,7 @@ from . import systeme as S, config, apps
 from .ui import *
 
 WIDGETS = [  # clé, nom, icône, description
+    ("jour", "Aujourd'hui sur le projet", "clapperboard", "Journée du projet actif : tournage du jour, convocation, lieu, météo"),
     ("meteo", "Météo", "cloud-sun", "Temps actuel et prévisions sur 5 jours"),
     ("systeme", "Système", "activity", "Processeur, mémoire, disque, réseau, température"),
     ("duo", "Réseau / Duo", "network", "Débit de chaque connexion en direct, sortie Internet et XIII Duo"),
@@ -397,6 +398,45 @@ class Tableau:
         v.append(label("J-%d" % j if j > 0 else ("C'est aujourd'hui !" if j == 0 else "Il y a %d jour%s" % (-j, "s" if j < -1 else "")), "meteo-grand", xalign=0.5))
         v.append(label("%s · %s" % (nom or "Tournage", datetime.date.fromisoformat(cible).strftime("%d/%m/%Y")), "attenue", "petit", xalign=0.5, wrap=True))
         return self.carte("compte", "Compte à rebours", "timer", v, lambda: self.shell.parametres("widgets"))
+
+    def w_jour(self):
+        """Aujourd'hui sur le projet : journée du plan de travail, convocation, lieu (fiche de la Suite), météo."""
+        from . import projets
+        pj = self.shell.cfg.get("projet_actif") or ""
+        v = boite(True, 6)
+        if not pj:
+            v.append(label("Choisissez un projet en haut à gauche : sa journée s'affiche ici.", "attenue", "petit", wrap=True))
+            return self.carte("jour", "Aujourd'hui sur le projet", "clapperboard", v)
+        f = projets.fiche_de(pj) or {}
+        v.append(label(f.get("title") or pj, "gras", ellipsize=True))
+        auj = datetime.date.today()
+        o = dernier_lien("workplan"); jours = sorted((o or {}).get("days") or [], key=lambda d: d.get("date") or "")
+        j = next((d for d in jours if d.get("date") == auj.isoformat()), None)
+        prochain = next((d for d in jours if (d.get("date") or "") > auj.isoformat()), None)
+        if j:
+            v.append(label("Tournage — jour %s" % j.get("n", "?"), "accent", "gras"))
+            conv = j.get("call") or j.get("convocation") or j.get("pat")
+            if conv: r = boite(False, 8); r.append(ico("alarm-clock", 14, "c")); r.append(label("Convocation %s" % conv, "petit")); v.append(r)
+            for sc in (j.get("scenes") or [])[:3]:
+                v.append(label("Séq. %s · %s %s · %s" % (sc.get("seq", ""), sc.get("ie", ""), sc.get("decor", ""), sc.get("effet", "")), "petit", ellipsize=True))
+        else:
+            d0 = f.get("debut") or ""; d1 = f.get("fin") or d0
+            if d0 and d0 <= auj.isoformat() <= d1: v.append(label("Tournage aujourd'hui", "accent", "gras"))
+            elif prochain or (d0 and d0 > auj.isoformat()):
+                cible = (prochain or {}).get("date") or d0
+                try: n = (datetime.date.fromisoformat(cible) - auj).days
+                except Exception: n = None
+                v.append(label("Pas de tournage aujourd'hui" + (" · prochain dans %d jour%s" % (n, "s" if n > 1 else "") if n else ""), "petit"))
+            else:
+                v.append(label("Pas de tournage prévu aujourd'hui", "attenue", "petit"))
+        lieu = (j or {}).get("lieu") or f.get("lieu")
+        if lieu: r = boite(False, 8); r.append(ico("map-pin", 14, "c")); r.append(label(lieu, "petit", ellipsize=True, hexpand=True)); v.append(r)
+        m = self.shell._meteo
+        if m:
+            from .panneaux import METEO
+            ic, nom = METEO.get(m["code"], ("cloud", ""))
+            r = boite(False, 8); r.append(ico(ic, 14, "c")); r.append(label("%d° · %s · %s" % (m["t"], nom, self.shell.cfg.get("meteo_ville", "")), "petit", ellipsize=True)); v.append(r)
+        return self.carte("jour", "Aujourd'hui sur le projet", "clapperboard", v, lambda: S.detacher(["xiii-suite", "plano"]))
 
     def w_projet(self):
         o = dernier_lien("project")
