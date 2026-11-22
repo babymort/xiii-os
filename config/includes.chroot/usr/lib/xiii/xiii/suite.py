@@ -376,15 +376,21 @@ class Suite(Gtk.Application):
     def charge(self, v, ev, w):
         if ev == WebKit.LoadEvent.FINISHED and getattr(w, "_apres", None):
             js = w._apres; w._apres = None
-            v.evaluate_javascript(js, -1, None, None, None, lambda vv, res, *_: self._resultat(vv, res), None)
+            # les scripts d'import sont asynchrones : on attend leur vraie réponse (« ok », « absent »…)
+            if hasattr(v, "call_async_javascript_function"):
+                v.call_async_javascript_function("return await " + js.strip(), -1, None, None, None, None, lambda vv, res, *_: self._resultat(vv, res, True), None)
+            else:
+                v.evaluate_javascript(js, -1, None, None, None, lambda vv, res, *_: self._resultat(vv, res), None)
 
-    def _resultat(self, v, res):
+    def _resultat(self, v, res, asynchrone=False):
         try:
-            r = v.evaluate_javascript_finish(res)
-            if r and r.to_string() == "absent":
+            r = v.call_async_javascript_function_finish(res) if asynchrone else v.evaluate_javascript_finish(res)
+            t = r.to_string() if r else ""
+            print("[xiii] import dans", v.get_uri(), ":", t, flush=True)
+            if t == "absent":
                 self.notifier("Import automatique impossible", "Utilisez le bouton « Ouvrir » de l'outil.")
-        except GLib.Error:
-            pass
+        except GLib.Error as e:
+            print("[xiii] import :", e.message, flush=True)
 
     # ------------------------------------------------------------- navigation
     def interne(self, uri):

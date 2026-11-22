@@ -80,7 +80,7 @@ def creer(f, t, lignes, extra):
     P.texte(M, y, "Copies", 11, True); y += 14
     for i, d in enumerate(extra.get("destinations", [])):
         st = d.get("statut", "OK")
-        c.set_source_rgb(*(OK if st == "OK" else KO)); c.arc(M + 4, y - 3, 3.5, 0, 6.29); c.fill()
+        c.new_sub_path(); c.set_source_rgb(*(OK if st == "OK" else KO)); c.arc(M + 4, y - 3, 3.5, 0, 6.29); c.fill()
         P.texte(M + 14, y, "Copie %d : %s" % (i + 1, d["chemin"]), 8.5, maxl=380); P.texte(0, y, st, 8.5, True, OK if st == "OK" else KO, droite=A4[0] - M); y += 14
     y += 8
     # ---- chiffres clés

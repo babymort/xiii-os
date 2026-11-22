@@ -146,7 +146,12 @@ open("/out/pdf-chemins.txt", "w").write(t["pdf"] + "\n" + (f or "") + "\n")
 PY
 pdftoppm -r 70 -png -f 1 -l 1 "$(sed -n 1p /out/pdf-chemins.txt)" /out/rapport-dechargement 2>/dev/null
 pdftoppm -r 70 -png -f 1 -l 1 "$(sed -n 2p /out/pdf-chemins.txt)" /out/rapport-journee 2>/dev/null
-sleep 14; grim -s 0.5 /out/backupo-journal.png
+sleep 6; pkill -f xiii.suite; pkill -f WebKitWebProcess; sleep 1
+xiii-suite --backupo "$(ls /root/XIII/Test/01_Rushes/J01/CARTE_A001/*.xiii.json | head -1)" > /out/suite-backupo.log 2>&1 & sleep 14; grim -s 0.5 /out/backupo-journal.png
+grep "import dans" /out/suite-backupo.log | sed 's/^/INFO      BACKUPO /' >> $R
+pkill -f xiii.suite; pkill -f WebKitWebProcess; sleep 1
+xiii-suite --dossier "$(sed -n 1p /out/pdf-chemins.txt)" > /out/suite-dossier.log 2>&1 & sleep 14; grim -s 0.5 /out/dossier-reception.png
+grep "import dans" /out/suite-dossier.log | sed 's/^/INFO      DOSSIER /' >> $R
 pkill -f xiii.suite; pkill -f WebKitWebProcess; sleep 1
 # pupitre ATEM face à un ATEM simulé
 python3 - >> $R 2>&1 <<'PY'
