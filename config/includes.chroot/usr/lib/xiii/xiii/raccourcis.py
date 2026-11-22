@@ -5,6 +5,8 @@
 #   pour que les mises à jour ne les remettent pas.
 import os, json, shutil, copy
 import xml.etree.ElementTree as ET
+import gi
+gi.require_version("Gdk", "4.0")
 from gi.repository import GLib, Gdk
 
 RC = os.path.join(GLib.get_user_config_dir(), "labwc", "rc.xml")

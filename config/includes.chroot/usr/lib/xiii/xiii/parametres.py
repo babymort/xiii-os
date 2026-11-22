@@ -1520,8 +1520,12 @@ class Parametres(Gtk.Application):
         elif fs == "btrfs":
             c.append(info("Les instantanés seront activés automatiquement une minute après le prochain démarrage."))
         else:
-            c.append(info("Cet ordinateur a été installé en %s : les instantanés instantanés demandent Btrfs, le choix par défaut des nouvelles installations d'OS XIII. "
-                          "En attendant, Timeshift peut faire des copies du système (plus lentes, elles prennent de la place) et le menu de démarrage propose toujours un démarrage de secours." % fs))
+            if fs in ("overlay", "squashfs", "tmpfs"):
+                c.append(info("Vous utilisez OS XIII depuis la clé : rien n'est modifié sur l'ordinateur. Les instantanés seront actifs une fois OS XIII installé (en Btrfs, le choix par défaut)."))
+            else:
+                c.append(info("Le disque système de cet ordinateur est formaté en %s. Les instantanés rapides demandent Btrfs, le choix par défaut des nouvelles installations d'OS XIII "
+                              "(il faudrait réinstaller pour en profiter). En attendant, Timeshift peut faire des copies du système (plus lentes, elles prennent de la place) "
+                              "et le menu de démarrage propose toujours un démarrage de secours." % fs))
             c.append(reglage("history", "Copies du système (Timeshift)", "Restaurer le système à une date précédente", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher("pkexec timeshift-launcher"))))
         c.append(groupe_titre("Si l'ordinateur ne démarre plus"))
         c.append(info("Au démarrage, le menu OS XIII propose : démarrage de secours (dernier noyau qui a fonctionné), mode sans échec graphique, Réparer OS XIII (menu de réparation sans bureau) "
