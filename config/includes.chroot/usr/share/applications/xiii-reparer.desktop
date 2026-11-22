@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Réparer OS XIII
+Comment=Réparer le démarrage d'un OS XIII installé (Kernel panic, menu de démarrage)
+Exec=xiii-reparer
+Icon=xiii-pilotes
+Type=Application
+Categories=System;XIII;
+Keywords=réparer;démarrage;grub;initramfs;panic;

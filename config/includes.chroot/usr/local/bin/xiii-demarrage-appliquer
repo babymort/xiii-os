@@ -23,5 +23,14 @@ P
   set -- "xiii-$nom"
 fi
 plymouth-set-default-theme "$1"
-update-initramfs -u >/dev/null 2>&1 || true
+# l'image de démarrage (initramfs) est refaite : copie de secours avant, vérification après, retour arrière si elle est abîmée
+K=$(uname -r); I=/boot/initrd.img-$K
+[ -f "$I" ] && cp -a "$I" "$I.xiii-secours"
+update-initramfs -u -k "$K" >/dev/null 2>&1 || true
+sync
+if ! lsinitramfs "$I" 2>/dev/null | grep -qx 'init'; then
+  echo "Image de démarrage abîmée : retour à la précédente"
+  [ -f "$I.xiii-secours" ] && cp -a "$I.xiii-secours" "$I" && sync
+  exit 1
+fi
 echo "OK $1"

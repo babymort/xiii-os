@@ -1,0 +1,14 @@
+#!/bin/sh
+# OS XIII — déverrouillage par le visage puis l'empreinte, TOUJOURS borné dans le temps :
+# l'écran verrouillé ne peut plus rester bloqué (caméra ou lecteur qui ne répond pas, rien d'enregistré…).
+U="${PAM_USER:-$(id -un)}"
+H=$(getent passwd "$U" | cut -d: -f6)
+# visage : seulement s'il a été enregistré, 6 s maximum
+if [ -f "$H/.local/share/xiii/visage.npy" ] && [ -x /usr/local/bin/xiii-visage ]; then
+  timeout -k 1 6 /usr/local/bin/xiii-visage verifier && exit 0
+fi
+# empreinte : seulement si un doigt est enregistré pour ce compte, 10 s maximum
+if command -v fprintd-list >/dev/null && timeout 3 fprintd-list "$U" 2>/dev/null | grep -q '^ *- '; then
+  timeout -k 1 10 fprintd-verify "$U" >/dev/null 2>&1 && exit 0
+fi
+exit 1

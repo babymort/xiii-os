@@ -34,6 +34,8 @@ button.choix.principal { border-color: alpha(#f0b378,0.6); }
             b.set_child(bx); b.connect("clicked", lambda _b, f=rap: f()); r.append(b)
         v.append(r)
         v.append(label("Vous pourrez lancer l'installation plus tard depuis l'icône « Installer OS XIII » de la barre des tâches.", "attenue", "petit", xalign=0.5, wrap=True))
+        rp = bouton("OS XIII est déjà installé mais ne démarre plus ? Réparer", "wrench", "fantome", rappel=lambda: (self.w.close(), S.detacher("xiii-reparer")))
+        rp.set_halign(Gtk.Align.CENTER); v.append(rp)
         v.append(label("Application développée par Matthieu Lamotte", "credit", xalign=0.5))
         w.set_child(v); w.present()
     def essayer(self):

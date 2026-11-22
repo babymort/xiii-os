@@ -1,0 +1,46 @@
+#!/bin/bash
+# OS XIII — répare un OS XIII installé depuis la clé live : image de démarrage (initramfs) refaite, menu de démarrage réinstallé.
+# Corrige « Kernel panic - not syncing: No working init found » (image de démarrage abîmée, par ex. après un arrêt forcé).
+set -u
+M=/mnt/xiii-reparation; mkdir -p $M
+etape() { echo "ETAPE $*"; }
+etape "Recherche de l'OS XIII installé…"
+RACINE=""
+for p in $(lsblk -lnpo NAME,FSTYPE | awk '$2 ~ /ext4|btrfs|xfs/ {print $1}'); do
+  findmnt -rn -S "$p" >/dev/null && continue
+  mount -o ro "$p" $M 2>/dev/null || continue
+  if grep -qs 'NAME="OS XIII"' $M/etc/os-release && [ -d $M/boot ]; then RACINE=$p; umount $M; break; fi
+  umount $M
+done
+[ -n "$RACINE" ] || { echo "ERREUR Aucun OS XIII installé trouvé sur les disques."; exit 1; }
+etape "Système trouvé sur $RACINE"
+mount "$RACINE" $M || { echo "ERREUR montage impossible"; exit 1; }
+# partitions /boot et /boot/efi déclarées dans fstab
+while read -r src pt typ _; do
+  case "$pt" in /boot|/boot/efi|/efi) ;; *) continue;; esac
+  dev=$(findfs "$src" 2>/dev/null || echo "$src"); mkdir -p "$M$pt"; mount "$dev" "$M$pt" 2>/dev/null && echo "INFO $pt monté"
+done < <(grep -v '^#' $M/etc/fstab)
+for d in dev dev/pts proc sys run; do mount --bind /$d $M/$d; done
+[ -d /sys/firmware/efi/efivars ] && mount -t efivarfs efivarfs $M/sys/firmware/efi/efivars 2>/dev/null
+etape "Vérification des paquets interrompus…"
+chroot $M dpkg --configure -a >/dev/null 2>&1
+etape "Reconstruction de l'image de démarrage (une à trois minutes)…"
+chroot $M update-initramfs -c -k all >/dev/null 2>&1 || chroot $M update-initramfs -u -k all
+ok=1
+for i in $M/boot/initrd.img-*; do
+  [ -e "$i" ] || continue
+  case "$i" in *.xiii-secours) continue;; esac
+  if chroot $M lsinitramfs "${i#$M}" 2>/dev/null | grep -qx init; then echo "INFO $(basename "$i") : bon"; else echo "INFO $(basename "$i") : encore abîmée"; ok=0; fi
+done
+etape "Réinstallation du menu de démarrage…"
+if [ -d /sys/firmware/efi ] && mountpoint -q $M/boot/efi; then
+  chroot $M grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=OS-XIII --recheck >/dev/null 2>&1
+  chroot $M grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable --recheck >/dev/null 2>&1
+else
+  DISQUE=/dev/$(lsblk -no PKNAME "$RACINE" | head -1)
+  chroot $M grub-install --target=i386-pc --recheck "$DISQUE" >/dev/null 2>&1
+fi
+chroot $M update-grub >/dev/null 2>&1
+sync
+umount -R $M 2>/dev/null
+[ $ok = 1 ] && echo "FINI Réparation terminée : retirez la clé et redémarrez." || echo "ERREUR L'image de démarrage n'a pas pu être refaite."
