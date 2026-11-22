@@ -211,7 +211,7 @@ JS_BACKUPO = r"""
 
 JS_DOSSIER = r"""
 (async () => {
-  const L = %s, projet = %s;
+  const L = %s, projet = %s, ids = [];
   const db = await new Promise((res, rej) => { const r = indexedDB.open('xiiiLink', 1); r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains('outbox')) r.result.createObjectStore('outbox'); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
   for (const d of L) {
     const b = await (await fetch('/__xiii/depot/' + d.t)).blob();
@@ -225,8 +225,10 @@ JS_DOSSIER = r"""
     }
     p.id = 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); p.to = 'dossier'; p.ts = Date.now();
     await new Promise((res, rej) => { const t = db.transaction('outbox', 'readwrite'); t.objectStore('outbox').put(p, p.id); t.oncomplete = res; t.onerror = () => rej(t.error); });
+    ids.push(p.id);
   }
-  location.href = '/dossier.html';
+  // le premier document (le rapport PDF) s'ouvre directement dans « Ranger dans le dossier » ; les autres attendent dans « À classer »
+  location.href = '/dossier.html' + (ids.length ? '#xlink=' + ids[0] : '');
   return 'ok';
 })()
 """
