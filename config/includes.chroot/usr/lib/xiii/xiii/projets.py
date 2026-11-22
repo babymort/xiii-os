@@ -1,6 +1,6 @@
 # OS XIII — projets XIII (dossier ~/XIII/<nom> avec ses sous-dossiers), comme le sélecteur de projet de la suite.
 # Application développée par Matthieu Lamotte.
-import os, re, json, shutil
+import os, re, json, shutil, gzip, subprocess
 from gi.repository import GLib
 from . import config
 
@@ -25,23 +25,58 @@ def activer(nom):
     config.modifier(projet_actif=nom)
     return d
 
+def lire_xiii(f):
+    """Contenu d'un fichier de la Suite : .xiii (projet complet, JSON compressé gzip) ou .xiii.json / .json (JSON simple)."""
+    try:
+        with open(f, "rb") as o: b = o.read()
+        if b[:2] == b"\x1f\x8b": b = gzip.decompress(b)
+        o = json.loads(b.decode("utf-8"))
+        return o if isinstance(o, dict) else None
+    except Exception:
+        return None
+
+def fiche_du_paquet(o):
+    """Fiche du projet actif dans un projet complet (.xiii) : localStorage « xiii.projets » = {list:[…], active}."""
+    try:
+        p = json.loads((o.get("ls") or {}).get("xiii.projets") or "null")
+        L = p.get("list") or []
+        return next((x for x in L if x and x.get("id") == p.get("active")), L[0] if L else None)
+    except Exception:
+        return None
+
 def nom_depuis_fichier(f):
-    """Nom du projet contenu dans un fichier .xiii / .xiii.json de la suite (fiche projet, conducteur, plan…)."""
-    try: o = json.load(open(f))
-    except Exception: return None
+    """Nom du projet contenu dans un fichier de la suite (.xiii projet complet, fiche projet, conducteur, plan…)."""
+    o = lire_xiii(f)
+    base = re.sub(r"[_ ]\d{4}-\d\d-\d\d$", "", os.path.basename(f).split(".")[0]).replace("_", " ").strip()
+    if o is None: return base or None
+    if o.get("format") == "xiii-bundle":
+        fi = fiche_du_paquet(o)
+        if fi and str(fi.get("title") or "").strip(): return str(fi["title"]).strip()
+        n = str(o.get("name") or "").strip()
+        return n if n and not n.lower().startswith(("projet xiii", "sauvegarde")) else (base or "Projet XIII")
     for chemin in (("fiche", "title"), ("project", "name"), ("data", "project"), ("data", "titre"), ("data", "title"), ("title",), ("name",), ("projet",)):
         v = o
         for k in chemin: v = v.get(k) if isinstance(v, dict) else None
         if isinstance(v, str) and v.strip(): return v.strip()
-    return os.path.basename(f).split(".")[0]
+    return base
 
 def importer(f):
-    """Crée / active le projet décrit par le fichier et y range le fichier (03_Documents)."""
+    """Crée / active le projet décrit par le fichier, le range dans 03_Documents ; un projet complet (.xiii)
+    est en plus restauré dans la Suite XIII (tous les outils retrouvent leurs données)."""
+    o = lire_xiii(f)
+    if o is None and not f.lower().endswith((".xiii", ".json")): raise ValueError("Ce fichier n'est pas un fichier XIII")
+    if o is None: raise ValueError("Fichier XIII illisible (abîmé ou incomplet)")
     nom = nom_depuis_fichier(f)
     d = activer(nom)
-    if d:
-        try: shutil.copy(f, os.path.join(d, "03_Documents", os.path.basename(f)))
-        except OSError: pass
+    if not d: raise ValueError("Nom de projet invalide")
+    cible = os.path.join(d, "03_Documents", os.path.basename(f))
+    try:
+        if os.path.abspath(f) != os.path.abspath(cible): shutil.copy(f, cible)
+    except OSError: cible = f
+    if o.get("format") == "xiii-bundle":
+        fi = fiche_du_paquet(o)
+        if fi: ecrire_fiche(nom, fi)
+        subprocess.Popen(["xiii-suite", "--restaurer", cible], start_new_session=True)
     return nom
 
 

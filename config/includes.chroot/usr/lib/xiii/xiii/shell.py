@@ -559,13 +559,21 @@ class Shell(Gtk.Application):
         def depuis_fichier():
             pop.popdown()
             d = Gtk.FileDialog(title="Ajouter un projet depuis un fichier .xiii")
-            ff = Gtk.FileFilter(); ff.set_name("Fichiers XIII"); [ff.add_pattern(x) for x in ("*.xiii", "*.xiii.json", "*.json")]
-            st = Gio.ListStore.new(Gtk.FileFilter); st.append(ff); d.set_filters(st)
+            # extensions sans tenir compte des majuscules (.xiii, .XIII, .Xiii.json…)
+            ff = Gtk.FileFilter(); ff.set_name("Fichiers XIII (.xiii, .xiii.json)"); [ff.add_suffix(x) for x in ("xiii", "json")]
+            tout = Gtk.FileFilter(); tout.set_name("Tous les fichiers"); tout.add_pattern("*")
+            st = Gio.ListStore.new(Gtk.FileFilter); st.append(ff); st.append(tout); d.set_filters(st); d.set_default_filter(ff)
             def fini(dlg, res):
-                try: f = dlg.open_finish(res).get_path()
-                except Exception: return
-                n = projets.importer(f)
-                if n: S.detacher(["notify-send", "-a", "Projet XIII", "-i", "folder", "Projet « %s » activé" % n, "Le fichier a été rangé dans 03_Documents."])
+                try: g = dlg.open_finish(res)
+                except GLib.Error: return          # fenêtre fermée sans choisir
+                f = g.get_path() if g else None
+                if not f: return
+                def fait(n):
+                    if isinstance(n, Exception):
+                        S.detacher(["notify-send", "-a", "Projet XIII", "-i", "dialog-error", "Import impossible", str(n)]); return
+                    S.detacher(["notify-send", "-a", "Projet XIII", "-i", "folder", "Projet « %s » importé et activé" % n,
+                                "Le fichier est rangé dans 03_Documents" + (" ; la Suite XIII restaure toutes ses données." if f.lower().endswith(".xiii") else ".")])
+                S.en_fond(projets.importer, fait, f)
             d.open(None, None, fini)
         v.append(bouton("Ajouter depuis un fichier .xiii…", "file-plus", "ligne", "plat", taille=16, rappel=depuis_fichier))
         if cur:

@@ -6,5 +6,5 @@ Exec=xiii-suite --ouvrir %F
 Icon=xiii-suite
 NoDisplay=true
 Terminal=false
-MimeType=application/x-xiii-link;
+MimeType=application/x-xiii-link;application/x-xiii-projet;
 Categories=X-XIII-Suite;

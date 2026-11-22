@@ -21,3 +21,4 @@ application/x-ms-installer=xiii-windows.desktop
 application/vnd.microsoft.portable-executable=xiii-windows.desktop
 application/x-dosexec=xiii-windows.desktop
 application/x-xiii-link=xiii-suite-ouvrir.desktop
+application/x-xiii-projet=xiii-suite-ouvrir.desktop

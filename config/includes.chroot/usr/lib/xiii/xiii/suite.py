@@ -154,6 +154,23 @@ JS_INJECTER = r"""
 })()
 """
 
+JS_RESTAURER = r"""
+(async () => {
+  const d = %s;
+  for (let i = 0; i < 60 && typeof XBUNDLE === 'undefined'; i++) await new Promise(r => setTimeout(r, 150));
+  const dire = m => { try { if (typeof toast === 'function') toast(m, 6000); else alert(m); } catch (e) {} };
+  if (typeof XBUNDLE === 'undefined') { dire('⚠️ Import impossible : la Suite n\'est pas prête'); return 'absent'; }
+  try {
+    const b = await (await fetch('/__xiii/depot/' + d.t)).blob();
+    const B = await XBUNDLE.unpack(new File([b], d.n));
+    await XBUNDLE.restore(B, 'merge');
+    dire('📦 Projet « ' + (B.name || d.n) + ' » importé : tous les outils ont retrouvé leurs données');
+    setTimeout(() => location.reload(), 1800);
+    return 'ok';
+  } catch (e) { dire('⚠️ ' + (e.message || e)); return 'erreur'; }
+})()
+"""
+
 JS_DOSSIER = r"""
 (async () => {
   const L = %s, projet = %s;
@@ -244,6 +261,8 @@ class Suite(Gtk.Application):
         absolu = lambda f: f if os.path.isabs(f) else os.path.join(cwd, f)
         if f := self._opt(a, "--ouvrir"):
             for x in f: self.ouvrir_fichier(absolu(x))
+        elif f := self._opt(a, "--restaurer"):
+            for x in f: self.restaurer(absolu(x))
         elif f := self._opt(a, "--dossier"):
             self.vers_dossier([absolu(x) for x in f])
         elif f := self._opt(a, "--encodo"):
@@ -415,7 +434,19 @@ class Suite(Gtk.Application):
         w._vue.load_uri(self.base() + "/__xiii/vide.html")
         self.notifier("Envoyé à DOSSIER XIII", "%d document(s) ajouté(s) au dossier" % len(L))
 
+    def restaurer(self, f):
+        """Projet complet de la Suite (.xiii) : toutes les données des outils restaurées dans la Suite de l'ordinateur."""
+        if not os.path.isfile(f): return
+        self.fenetre("index", apres=JS_RESTAURER % json.dumps(self._dep(f)))
+        self.notifier("Projet XIII importé", "« %s » : les outils de la Suite retrouvent toutes leurs données" % os.path.basename(f))
+
     def ouvrir_fichier(self, f):
+        from . import projets
+        o = projets.lire_xiii(f)
+        if isinstance(o, dict) and o.get("format") == "xiii-bundle":     # double-clic sur un .xiii : projet activé + restauré
+            try: projets.importer(f)
+            except Exception as e: self.notifier("Import impossible", str(e))
+            return
         try:
             o = json.load(open(f, encoding="utf-8"))
         except Exception:

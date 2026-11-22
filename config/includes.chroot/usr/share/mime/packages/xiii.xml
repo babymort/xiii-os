@@ -6,4 +6,9 @@
     <generic-icon name="xiii-suite"/>
     <glob pattern="*.xiii.json" weight="80"/>
   </mime-type>
+  <mime-type type="application/x-xiii-projet">
+    <comment>Projet complet XIII</comment>
+    <generic-icon name="xiii-suite"/>
+    <glob pattern="*.xiii" weight="80" case-sensitive="false"/>
+  </mime-type>
 </mime-info>

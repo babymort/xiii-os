@@ -30,9 +30,13 @@ CATEGORIES = [
     ("streamdeck", "Stream Deck", "keyboard", "Stream Deck Elgato pilotés par Companion", None, None),
     ("companion", "Companion", "layout-grid", "Bitfocus Companion : boutons de régie pour ATEM, vMix, OBS, HyperDeck…", None, None),
     ("ndi", "NDI", "radio-tower", "NDI XIII, Retour plateau et moteur NDI", None, None),
+    ("autres", "Autres logiciels", "package", "Convertisseurs, Teranex, Cloud et autres logiciels Blackmagic installés", SUPPORT + "converters", None),
 ]
 LOGICIELS_WINDOWS = {"atem": "ATEM Software Control", "videohub": "Blackmagic Videohub", "hyperdeck": "HyperDeck Setup", "cameras": "Blackmagic Camera Setup",
                      "webpresenter": "Blackmagic Streaming Setup"}
+# logiciels qu'on propose d'installer quand ils manquent (catégorie → noms attendus)
+ATTENDUS = {"atem": ["ATEM Software Control", "ATEM Setup"], "videohub": ["Blackmagic Videohub Control", "Blackmagic Videohub Setup"],
+            "hyperdeck": ["HyperDeck Setup"], "cameras": ["Blackmagic Camera Setup"], "webpresenter": ["Blackmagic Streaming Setup"]}
 
 def conf():
     try: return json.load(open(CONF))
@@ -76,8 +80,51 @@ def companion_bin():
         return p
     return None
 
+# ------------------------------------------------------------------ logiciels Blackmagic installés (Linux, Windows via Wine, Flatpak)
+# motif du nom → catégorie (le premier qui correspond)
+FAMILLES = [
+    (r"atem", "atem"), (r"videohub", "videohub"), (r"hyperdeck", "hyperdeck"), (r"camera (setup|control)|blackmagic camera", "cameras"),
+    (r"streaming|web presenter", "webpresenter"), (r"desktop ?video|media express|disk ?speed|decklink|ultrastudio", "desktopvideo"),
+    (r"resolve|fusion|fairlight|davinci", "resolve"), (r"raw (player|speed)|blackmagic raw|braw", "cameras"),
+    (r"teranex|converter|mini ?converter|cloud|multiview|smartscope|audio monitor", "autres"),
+]
+IGNORER = re.compile(r"(?i)uninstall|désinstall|desinstall|readme|lisez|manual|manuel|release notes|notes de version|license|licence|website|site web")
+DOSSIERS_APPS = [os.path.expanduser("~/.local/share/applications"), "/usr/share/applications", "/usr/local/share/applications",
+                 os.path.expanduser("~/.local/share/flatpak/exports/share/applications"), "/var/lib/flatpak/exports/share/applications"]
+
+def logiciels_installes():
+    """Tous les logiciels Blackmagic Design installés : {catégorie: [{nom, fichier, origine}]}.
+    Cherche dans tous les raccourcis (y compris les sous-dossiers créés par Wine : wine/Programs/Blackmagic Design/…)."""
+    vus, out = set(), {}
+    for d in DOSSIERS_APPS:
+        for f in glob.glob(d + "/**/*.desktop", recursive=True):
+            try: t = open(f, errors="replace").read()
+            except OSError: continue
+            m = re.search(r"(?m)^Name=(.*)$", t); nom = m.group(1).strip() if m else os.path.basename(f)[:-8]
+            ex = (re.search(r"(?m)^Exec=(.*)$", t) or [None, ""])[1]
+            if re.search(r"(?m)^NoDisplay=true", t) and "wine" not in f: continue
+            texte = (nom + " " + ex + " " + f).lower()
+            blackmagic = "blackmagic" in texte or any(re.search(p, nom.lower()) for p, _ in FAMILLES[:2])
+            if not blackmagic or IGNORER.search(nom) or f.endswith("xiii-blackmagic.desktop"): continue
+            cat = next((c for p, c in FAMILLES if re.search(p, nom.lower())), "autres")
+            if cat == "resolve" and "blackmagic" not in texte and "davinci" not in texte: continue
+            cle = nom.lower()
+            if cle in vus: continue
+            vus.add(cle)
+            origine = "Windows (Wine)" if ("wine" in texte or "/xiii-win-" in f) else "Flatpak" if "flatpak" in f else "Linux"
+            out.setdefault(cat, []).append({"nom": nom, "fichier": f, "origine": origine})
+    for L in out.values(): L.sort(key=lambda x: x["nom"].lower())
+    return out
+
+def lancer(fichier):
+    try:
+        a = Gio.DesktopAppInfo.new_from_filename(fichier)
+        if a: a.launch([], Gdk.Display.get_default().get_app_launch_context()); return True
+    except Exception: pass
+    S.detacher(["gtk-launch", os.path.basename(fichier)]); return True
+
 def windows_installe(nom):
-    return any(nom.lower() in f.lower() for f in glob.glob(os.path.expanduser("~/.local/share/applications/wine-*.desktop")) + glob.glob(os.path.expanduser("~/.local/share/applications/xiii-win-*.desktop")))
+    return any(nom.lower() in x["nom"].lower() for L in logiciels_installes().values() for x in L)
 
 
 class Blackmagic(Gtk.Application):
@@ -89,16 +136,66 @@ class Blackmagic(Gtk.Application):
         preparer(".barre-web { padding: 6px 10px; } .etat-ok { color: #6fdc8c; }")
         self.win = Gtk.ApplicationWindow(application=self, title="Blackmagic XIII"); self.win.set_default_size(1240, 800)
         self.volet = Volet("Blackmagic XIII", "Les outils de régie dans une seule fenêtre")
+        self.installes = logiciels_installes()
+        self.volet.ajouter("installes", "app-window", "Mes logiciels", rappel=lambda: self.page("installes"), section="Installés sur ce PC")
         for i, (k, n, ic, d, sup, web) in enumerate(CATEGORIES):
             self.volet.ajouter(k, ic, n, rappel=lambda k=k: self.page(k), section="Blackmagic Design" if i == 0 else ("Régie" if k == "streamdeck" else None))
-        self.win.set_child(self.volet.racine); self.volet.aller("atem"); self.win.present()
+        self.win.set_child(self.volet.racine); self.volet.aller("installes" if self.installes else "atem"); self.win.present()
+        # un logiciel installé pendant que la fenêtre est ouverte (ou au retour sur la fenêtre) apparaît tout seul
+        self.win.connect("notify::is-active", lambda w, *_: self.rafraichir() if w.is_active() else None)
+        self._mon = []
+        for d in (os.path.expanduser("~/.local/share/applications"), os.path.expanduser("~/.local/share/applications/wine/Programs")):
+            try:
+                m = Gio.File.new_for_path(d).monitor_directory(Gio.FileMonitorFlags.NONE, None); m.set_rate_limit(2000)
+                m.connect("changed", lambda *_: GLib.timeout_add(1500, lambda: (self.rafraichir(), False)[1])); self._mon.append(m)
+            except GLib.Error: pass
         GLib.timeout_add_seconds(5, lambda: (self.verifier_mises_a_jour(), False)[1])
+
+    def rafraichir(self):
+        n = logiciels_installes()
+        if n == self.installes: return
+        nouveaux = [x["nom"] for L in n.values() for x in L if x["nom"] not in [y["nom"] for M in self.installes.values() for y in M]]
+        self.installes = n
+        vis = self.volet.pile.get_visible_child_name()
+        for k in ["installes"] + [c[0] for c in CATEGORIES]:
+            if k in self.webs: continue
+            x = self.volet.pile.get_child_by_name(k)
+            if x: self.volet.pile.remove(x)
+        if vis and vis not in self.webs: self.page(vis)
+        if nouveaux: S.detacher(["notify-send", "-a", "Blackmagic XIII", "-i", "xiii-blackmagic", "Ajouté à Blackmagic XIII", ", ".join(nouveaux)])
+
+    def bloc_installes(self, v, k):
+        L = self.installes.get(k, [])
+        if not L: return
+        v.append(label("Installés sur ce PC", "section"))
+        for x in L:
+            self.ligne(v, "app-window", x["nom"], x["origine"], bouton("Ouvrir", None, "pilule", rappel=lambda f=x["fichier"]: lancer(f)))
+
+    def p_installes(self, v):
+        if not self.installes:
+            v.append(label("Aucun logiciel Blackmagic installé pour l'instant. Installez-en un (par exemple ATEM Software Control avec Applications Windows) : "
+                           "il apparaîtra ici tout seul, et dans la bonne catégorie.", "attenue", wrap=True))
+            v.append(bouton("Installer un logiciel Windows…", "app-window", "pilule", rappel=lambda: S.detacher("xiii-windows")))
+            return
+        v.append(label("Tout ce qui vient de Blackmagic Design sur cet ordinateur, détecté automatiquement.", "attenue", wrap=True))
+        noms = {c[0]: (c[1], c[2]) for c in CATEGORIES}
+        for k in [c[0] for c in CATEGORIES]:
+            if k not in self.installes: continue
+            n, ic = noms[k]
+            t = boite(False, 8); t.append(label(n, "section", hexpand=True))
+            t.append(bouton("Voir", None, "plat", taille=13, rappel=lambda k=k: self.volet.aller(k))); v.append(t)
+            for x in self.installes[k]:
+                self.ligne(v, ic, x["nom"], x["origine"], bouton("Ouvrir", None, "pilule", rappel=lambda f=x["fichier"]: lancer(f)))
 
     # ------------------------------------------------------------------ pages
     def page(self, k):
         if k in self.webs and self.volet.pile.get_child_by_name(k): self.volet.pile.set_visible_child_name(k); return   # outil web resté actif
+        if k == "installes":
+            sc, v = page("Mes logiciels Blackmagic", "Détectés automatiquement sur cet ordinateur", "app-window")
+            self.p_installes(v); self.remplacer(k, sc); return
         _, n, ic, d, sup, web = next(c for c in CATEGORIES if c[0] == k)
         sc, v = page(n, d, ic)
+        self.bloc_installes(v, k)
         getattr(self, "p_" + k, lambda v: None)(v)
         if k in self.webs: return                    # l'outil web s'est ouvert dans l'onglet
         if web: self.bloc_web(v, k, web)
@@ -217,12 +314,12 @@ class Blackmagic(Gtk.Application):
 
     # ------------------------------------------------------------------ logiciels Windows
     def bloc_windows(self, v, k):
-        nom = LOGICIELS_WINDOWS[k]
-        v.append(label("Logiciel Blackmagic (Windows / Mac seulement)", "section"))
-        if windows_installe(nom):
-            self.ligne(v, "app-window", nom, "Installé avec Applications Windows", bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher(["gtk-launch", next(os.path.basename(f) for f in glob.glob(os.path.expanduser("~/.local/share/applications/*.desktop")) if nom.lower() in open(f, errors="replace").read().lower())])))
-        else:
-            self.ligne(v, "app-window", nom, "Blackmagic ne le publie pas pour Linux : téléchargez la version Windows, OS XIII l'installe avec Applications Windows (fonctionnement à vérifier selon le logiciel)",
+        manque = [n for n in ATTENDUS.get(k, [LOGICIELS_WINDOWS[k]]) if not any(n.lower() in x["nom"].lower() or x["nom"].lower() in n.lower() for x in self.installes.get(k, []))]
+        if not manque: return
+        v.append(label("À installer (Windows / Mac seulement)", "section"))
+        for nom in manque:
+            self.ligne(v, "download", nom, "Blackmagic ne le publie pas pour Linux : téléchargez la version Windows, OS XIII l'installe avec Applications Windows. "
+                       "Une fois installé, il apparaît ici tout seul.",
                        bouton("Installer…", None, "fantome", rappel=lambda: (S.detacher(["xdg-open", next(c[4] for c in CATEGORIES if c[0] == k)]), S.detacher("xiii-windows"))))
 
     # ------------------------------------------------------------------ mises à jour (une fois par jour)
