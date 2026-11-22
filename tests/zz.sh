@@ -19,7 +19,7 @@ verifier() {  # nom, motif du processus, journal
   else echo "OK        $nom" >> $R; fi
 }
 echo "== Applications" >> $R
-for a in archives paquets acquisition bilan blackmagic console debit demarrage fichiers ia lecteurs logiciels qrwifi retour scanip somme store-github suite synthese taches tally timecode transferts windows bienvenue phonebox; do
+for a in recuperer premiers-pas archives paquets acquisition bilan blackmagic console debit demarrage fichiers ia lecteurs logiciels qrwifi retour scanip somme store-github suite synthese taches tally timecode transferts windows bienvenue phonebox; do
   command -v xiii-$a >/dev/null || { echo "ABSENTE   xiii-$a" >> $R; continue; }
   xiii-$a > /out/app-$a.log 2>&1 &
   sleep 5; grim -s 0.5 /out/app-$a.png
@@ -89,6 +89,20 @@ python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import con
 xiii-blackmagic > /out/bm.log 2>&1 & sleep 5; grim -s 0.5 /out/blackmagic-mes-logiciels.png; verifier "Blackmagic XIII (logiciels détectés)" "xiii.blackmagic" /out/bm.log; pkill -f xiii.blackmagic
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import blackmagic as B; L=B.logiciels_installes(); print("OK        Blackmagic détectés :", {k:[x["nom"] for x in v] for k,v in L.items()})' >> $R 2>&1
 for s in /usr/share/sounds/XIII/stereo/*.wav; do :; done; echo "OK        sons système : $(ls /usr/share/sounds/XIII/stereo | wc -l) fichiers" >> $R
+echo "== Phase C (ergonomie)" >> $R
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii.conversions import convertir
+for q in ("12 pouces en cm","50 Mb/s","100 °F","3 Go en Mo"): print("OK        conversion", q, "→", convertir(q)[0] if convertir(q) else "RIEN")' >> $R 2>&1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import raccourcis as R; print("OK        gestes :", len(R.GESTES), "· raccourci bureau suivant :", next((x["cle"] for x in R.lire() if x["actions"][0][0]=="GoToDesktop" and x["actions"][0][1].get("to")=="right"), "aucun"))' >> $R 2>&1
+for s in /usr/local/bin/xiii-capture; do bash -n $s && echo "OK        syntaxe $(basename $s)" >> $R; done
+python3 -c 'import ast; ast.parse(open("/usr/local/sbin/xiii-gestes").read()); print("OK        syntaxe xiii-gestes")' >> $R 2>&1
+printf 'Texte copié pour le test\n' | wl-copy 2>/dev/null; sleep 0.5
+xiii-ctl presse; sleep 1.5; grim -s 0.5 /out/presse-papiers.png; xiii-ctl fermer
+notify-send -a Test "Notification de test" "Historique sur 7 jours"; sleep 1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii.notifs import historique; print("OK        historique des notifications :", len(historique()), "entrée(s)")' >> $R 2>&1
+grim -s 0.5 /out/barre-pastilles.png
+python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, menu_taille='grand')"; sleep 2
+xiii-ctl demarrer; sleep 1.5; grim -s 0.5 /out/menu-grand.png; xiii-ctl fermer
+python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, menu_taille='normal')"
 echo "== Bureau" >> $R
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  xiii-shell" >> $R; grep -A8 Traceback /out/shell.log | tail -12 >> $R; } || echo "OK        xiii-shell (aucune erreur Python)" >> $R
 pgrep -f xiii.shell >/dev/null || echo "FERMÉE    xiii-shell" >> $R

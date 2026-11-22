@@ -49,6 +49,8 @@ DEFAUTS = {
     "sons_systeme": True, "sons_volume": 70,
     "connexion_avatar": "", "connexion_fond": "", "connexion_flou": False, "connexion_position": "centre", "connexion_horloge": "%H:%M  ·  %a %d %b",
     "widgets_bureau": [], "compte_nom": "", "compte_date": "",
+    # saison 3 — phase C (ergonomie)
+    "premiers_pas_fait": False, "dnd_auto": True, "dnd_visio": True, "barre_badges_apps": True, "presse_epingles": [], "menu_taille": "normal", "gestes": True,
     "notif_apercu": True,
     "notif_bloquees": [],
     "meteo_ville": "Paris",

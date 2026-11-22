@@ -48,7 +48,10 @@ COMMANDES = {
     "foot --app-id=fr.xiii.terminal": ("Terminal", "Applications"),
     "xiii-capture zone": ("Capture d'une zone", "Captures"),
     "xiii-capture ecran": ("Capture de l'écran entier", "Captures"),
-    "xiii-capture fenetre": ("Capture de la fenêtre", "Captures"),
+    "xiii-capture menu": ("Menu des captures (zone, écran, vidéo…)", "Captures"),
+    "xiii-capture video ecran": ("Enregistrer l'écran en vidéo (démarrer / arrêter)", "Captures"),
+    "xiii-capture video zone": ("Enregistrer une zone en vidéo", "Captures"),
+    "xiii-capture delai": ("Capture de l'écran dans 5 secondes", "Captures"),
     "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+": ("Monter le son", "Son et luminosité"),
     "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-": ("Baisser le son", "Son et luminosité"),
     "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle": ("Couper le son", "Son et luminosité"),
@@ -255,3 +258,29 @@ def importer(chemin):
     L = [{"cle": s["cle"], "actions": [tuple(a) for a in s["actions"]], "onrelease": s.get("onrelease", False)} for s in d.get("raccourcis", [])]
     if not L: raise ValueError("Aucun raccourci dans ce fichier")
     ecrire(L); return len(L)
+
+
+# ------------------------------------------------------------------ déclencher une action labwc (gestes, vue des tâches…)
+WT = {"W": "logo", "C": "ctrl", "A": "alt", "S": "shift"}
+def declencher(nom, attrs=None, defaut=None):
+    """Simule le raccourci actuellement attribué à l'action labwc (suit les raccourcis personnalisés).
+    defaut : touche à utiliser si aucun raccourci n'est attribué (ex. « C-W-Right »)."""
+    import subprocess
+    attrs = attrs or {}
+    cle = next((x["cle"] for x in lire() if x["actions"] and x["actions"][0][0] == nom and all(x["actions"][0][1].get(k) == v for k, v in attrs.items())), defaut)
+    if not cle: return False
+    p = cle.split("-"); mods, t = [WT[m] for m in p[:-1] if m in WT], p[-1] or "-"
+    cmd = ["wtype"]
+    for m in mods: cmd += ["-M", m]
+    cmd += ["-k", t]
+    for m in reversed(mods): cmd += ["-m", m]
+    try: subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); return True
+    except OSError: return False
+
+# gestes du pavé tactile (service xiii-gestes) → action du bureau
+GESTES = {"balayage 3 gauche": ("bureau-suivant", "Bureau suivant"), "balayage 3 droite": ("bureau-precedent", "Bureau précédent"),
+          "balayage 3 haut": ("vue", "Vue des tâches"), "balayage 3 bas": ("bureau", "Afficher le bureau"),
+          "balayage 4 haut": ("demarrer", "Menu Démarrer"), "balayage 4 bas": ("volet", "Notifications"),
+          "balayage 4 gauche": ("presse", "Presse-papiers"), "balayage 4 droite": ("widgets", "Widgets"),
+          "pincement 3 resserrer": ("vue", "Vue des tâches")}
+

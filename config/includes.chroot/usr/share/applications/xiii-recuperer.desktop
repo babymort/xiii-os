@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Récupérer mes fichiers
+Comment=Copier Bureau, Documents, Images… depuis un ancien Windows ou Mac
+Exec=xiii-recuperer
+Icon=xiii-recuperer
+Type=Application
+Categories=Utility;XIII;
+Keywords=windows;mac;migration;importer;transfert;ancien ordinateur;récupérer;

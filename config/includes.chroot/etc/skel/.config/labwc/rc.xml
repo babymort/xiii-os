@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <labwc_config>
   <core><gap>6</gap></core>
-  <snapping><range>10</range><topMaximize>yes</topMaximize></snapping>
+  <snapping><range>10</range><cornerRange>60</cornerRange><overlay enabled="yes"><delay inner="300" outer="300" /></overlay><topMaximize>yes</topMaximize></snapping>
   <desktops number="2"><popupTime>600</popupTime></desktops>
   <windowSwitcher show="yes" preview="yes" outlines="yes" />
   <theme>
@@ -35,6 +35,8 @@
     <keybind key="W-i"><action name="Execute" command="xiii-parametres" /></keybind>
     <keybind key="W-S-s"><action name="Execute" command="xiii-capture zone" /></keybind>
     <keybind key="Print"><action name="Execute" command="xiii-capture ecran" /></keybind>
+    <keybind key="W-Print"><action name="Execute" command="xiii-capture menu" /></keybind>
+    <keybind key="W-S-r"><action name="Execute" command="xiii-capture video ecran" /></keybind>
     <keybind key="W-Left"><action name="SnapToEdge" direction="left" /></keybind>
     <keybind key="W-Right"><action name="SnapToEdge" direction="right" /></keybind>
     <keybind key="W-Down"><action name="Iconify" /></keybind>

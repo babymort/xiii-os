@@ -1,7 +1,7 @@
 # OS XIII — serveur de notifications (org.freedesktop.Notifications) : remplace mako.
 # Les notifications alimentent les bulles (bas à droite) et le volet de notifications.
 # Application développée par Matthieu Lamotte.
-import time
+import os, time
 from gi.repository import Gio, GLib, GdkPixbuf
 
 XML = """<node><interface name="org.freedesktop.Notifications">
@@ -17,6 +17,24 @@ XML = """<node><interface name="org.freedesktop.Notifications">
 </interface></node>"""
 CHEMIN = "/org/freedesktop/Notifications"
 IFACE = "org.freedesktop.Notifications"
+
+HISTO = os.path.join(GLib.get_user_state_dir(), "xiii", "notifications.json")
+
+def historique(jours=7):
+    """Notifications des 7 derniers jours (même celles qui ont été fermées)."""
+    import json, time
+    try: L = json.load(open(HISTO))
+    except Exception: return []
+    return [x for x in L if time.time() - x.get("t", 0) < jours * 86400]
+
+def historiser(app, titre, corps, icone):
+    import json, time
+    try:
+        L = historique()
+        L.append({"t": time.time(), "app": app, "titre": titre, "corps": (corps or "")[:400], "icone": icone if isinstance(icone, str) else ""})
+        os.makedirs(os.path.dirname(HISTO), exist_ok=True)
+        json.dump(L[-400:], open(HISTO, "w"), ensure_ascii=False)
+    except Exception: pass
 
 class Notification:
     def __init__(self, nid, app, icone, titre, corps, actions, hints, delai):
@@ -58,6 +76,7 @@ class Serveur:
                 self.liste[nid] = n
                 self.nouvelle(n, bool(remp and remp == nid))
                 if not (remp and remp == nid):
+                    historiser(app, titre, corps, icone)
                     try:
                         from . import sons
                         h = {k: (v.unpack() if hasattr(v, "unpack") else v) for k, v in dict(hints).items()}

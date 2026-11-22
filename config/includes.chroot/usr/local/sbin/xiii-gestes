@@ -1,0 +1,56 @@
+#!/usr/bin/python3 -I
+# OS XIII — gestes du pavé tactile (labwc ne les gère pas).
+# Lit les événements de libinput, ne garde QUE les gestes à plusieurs doigts (jamais les touches du clavier :
+# libinput les masque de toute façon) et écrit « balayage 3 gauche » dans /run/xiii/gestes, que le bureau suit.
+import os, re, subprocess, time
+OUT = "/run/xiii/gestes"
+os.makedirs("/run/xiii", exist_ok=True)
+open(OUT, "a").close(); os.chmod(OUT, 0o644)
+RE = re.compile(r"GESTURE_(SWIPE|PINCH)_(BEGIN|UPDATE|END)\s+\+[\d.]+s\s+(\d+)\s*(.*)$")
+def pavés():
+    """Appareils capables de gestes (pavés tactiles) : seuls ceux-là sont écoutés (ni clavier ni souris)."""
+    try: t = subprocess.run(["libinput", "list-devices"], capture_output=True, text=True, timeout=20).stdout
+    except (FileNotFoundError, subprocess.TimeoutExpired): return []
+    L = []
+    for bloc in t.split("\n\n"):
+        k = re.search(r"Kernel:\s+(/dev/input/event\d+)", bloc); c = re.search(r"Capabilities:\s+(.*)", bloc)
+        if k and c and "gesture" in c.group(1): L.append(k.group(1))
+    return L
+
+while True:
+    devs = pavés()
+    if not devs:
+        time.sleep(300); continue          # pas de pavé tactile (PC de bureau) : on revérifie de temps en temps
+    try:
+        cmd = ["libinput", "debug-events"]
+        cmd += ["--device", devs[0]]       # un seul pavé tactile écouté (le cas de tous les portables)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, bufsize=1)
+    except FileNotFoundError:
+        time.sleep(3600); continue
+    dx = dy = 0.0; echelle = 1.0
+    for l in p.stdout:
+        m = RE.search(l)
+        if not m: continue
+        typ, phase, doigts, reste = m.group(1), m.group(2), int(m.group(3)), m.group(4)
+        if phase == "BEGIN": dx = dy = 0.0; echelle = 1.0; continue
+        if phase == "UPDATE":
+            if typ == "SWIPE":
+                n = re.match(r"\s*(-?[\d.]+)/\s*(-?[\d.]+)", reste)
+                if n: dx += float(n.group(1)); dy += float(n.group(2))
+            else:
+                n = re.search(r"(\d+\.\d+)\s*@", reste)
+                if n: echelle = float(n.group(1))
+            continue
+        if "cancelled" in reste: continue
+        g = None
+        if typ == "SWIPE" and max(abs(dx), abs(dy)) > 60:
+            sens = ("droite" if dx > 0 else "gauche") if abs(dx) > abs(dy) else ("bas" if dy > 0 else "haut")
+            g = "balayage %d %s" % (doigts, sens)
+        elif typ == "PINCH" and abs(echelle - 1) > .25:
+            g = "pincement %d %s" % (doigts, "ecarter" if echelle > 1 else "resserrer")
+        if g:
+            try:
+                if os.path.getsize(OUT) > 20000: open(OUT, "w").close()
+                with open(OUT, "a") as o: o.write("%.3f %s\n" % (time.time(), g))
+            except OSError: pass
+    time.sleep(2)

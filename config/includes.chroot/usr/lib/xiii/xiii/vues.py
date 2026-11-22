@@ -1,12 +1,12 @@
 # OS XIII — vue des tâches (Super+Tab), dispositions d'ancrage (Super+Z), coins actifs,
 # historique du presse-papiers (Super+V), sélecteur d'émojis (Super+.).
 # Application développée par Matthieu Lamotte.
-import os, subprocess, unicodedata
+import os, subprocess, unicodedata, shutil
 import gi
 gi.require_version("Gtk4LayerShell", "1.0")
 from gi.repository import Gtk, Gdk, GLib
 from gi.repository import Gtk4LayerShell as LS
-from . import apps, systeme as S
+from . import apps, config, systeme as S
 from .ui import *
 
 def surface(app, ns, couche=LS.Layer.OVERLAY, ancres="tblr", clavier=LS.KeyboardMode.EXCLUSIVE, exclusif=-1):
@@ -43,11 +43,13 @@ class VueTaches:
     def envoyer(self, f, n):
         """Glisser une fenêtre sur un bureau : on l'active puis on déclenche le raccourci labwc SendToDesktop."""
         self.fermer(); self.shell.fenetres.activer(f)
-        GLib.timeout_add(250, lambda: (S.detacher(["wtype", "-M", "logo", "-M", "alt", "-M", "shift", "-k", str(n), "-m", "shift", "-m", "alt", "-m", "logo"]), False)[1])
+        from . import raccourcis
+        GLib.timeout_add(250, lambda: (raccourcis.declencher("SendToDesktop", {"to": str(n)}, "W-A-S-%d" % n), False)[1])
 
     def aller(self, n):
         self.fermer()
-        GLib.timeout_add(150, lambda: (S.detacher(["wtype", "-M", "logo", "-M", "alt", "-k", str(n), "-m", "alt", "-m", "logo"]), False)[1])
+        from . import raccourcis
+        GLib.timeout_add(150, lambda: (raccourcis.declencher("GoToDesktop", {"to": str(n)}, "W-A-%d" % n), False)[1])
 
     def ouvrir(self):
         vider(self.corps); self.shell.vue_ouverte = True
@@ -189,21 +191,68 @@ class PressePapiers:
 
     def rafraichir(self):
         vider(self.liste)
+        import hashlib
+        DOS = os.path.join(GLib.get_user_data_dir(), "xiii", "presse"); os.makedirs(DOS, exist_ok=True)
+        cache = os.path.join(GLib.get_user_cache_dir(), "xiii", "presse"); os.makedirs(cache, exist_ok=True)
+        def copier_texte(t): Gdk.Display.get_default().get_clipboard().set_text(t)
+        def copier_image(f): subprocess.Popen(["sh", "-c", "wl-copy --type image/png < " + _q(f)])
+        def epingler(el):
+            L = [x for x in self.shell.cfg.get("presse_epingles", []) if x != el] + [el]
+            self.shell.cfg = config.modifier(_histo=False, presse_epingles=L[-30:]); self.rafraichir()
+        def desepingler(el):
+            self.shell.cfg = config.modifier(_histo=False, presse_epingles=[x for x in self.shell.cfg.get("presse_epingles", []) if x != el]); self.rafraichir()
+        # ---- épinglés (gardés même après « Tout effacer » et redémarrage)
+        ep = list(self.shell.cfg.get("presse_epingles", []))
+        if ep:
+            self.liste.append(label("Épinglés", "section"))
+            for el in reversed(ep):
+                img = el.get("img") if isinstance(el, dict) else None
+                txt = el.get("t", "") if isinstance(el, dict) else str(el)
+                r = boite(False, 6)
+                b = Gtk.Button(hexpand=True); b.add_css_class("ligne"); b.add_css_class("plat")
+                bx = boite(False, 10)
+                if img and os.path.exists(img):
+                    p = vignette(img, 120, 68); bx.append(p); bx.append(label("Image épinglée", "attenue", "petit"))
+                else:
+                    bx.append(ico("pin", 16, "c")); bx.append(label(txt.strip()[:160], ellipsize=True, largeur=40, hexpand=True))
+                b.set_child(bx)
+                b.connect("clicked", lambda _b, img=img, txt=txt: ((copier_image(img) if img else copier_texte(txt)), self.shell.fermer()))
+                r.append(b); r.append(bouton(None, "pin-off", "plat", taille=14, role="d", tip="Désépingler", rappel=lambda el=el: desepingler(el)))
+                self.liste.append(r)
+            self.liste.append(label("Historique", "section"))
         if S.DEMO:
             lignes = ["1\tSTUDIO-XIII / 192.168.10.20", "2\tConducteur captation — 20:30", "3\t[[ binary data 230 KiB png 1600x900 ]]", "4\thttps://suite-xiii.netlify.app/"]
         else:
             lignes = S.out(["cliphist", "list"]).splitlines()[:60]
         if not lignes:
             self.liste.append(label("L'historique est vide. Copiez du texte ou une image.", "attenue", "petit", wrap=True)); return
+        n_img = 0
         for l in lignes:
             ident, _, txt = l.partition("\t")
             image = txt.startswith("[[ binary data")
-            b = Gtk.Button(); b.add_css_class("ligne"); b.add_css_class("plat")
-            bx = boite(False, 10); bx.append(ico("image" if image else "type", 16, "d"))
-            bx.append(label("Image copiée" + txt.split("png")[-1].replace("]]", "") if image else txt.strip()[:160], ellipsize=True, largeur=44, hexpand=True))
+            r = boite(False, 6)
+            b = Gtk.Button(hexpand=True); b.add_css_class("ligne"); b.add_css_class("plat")
+            bx = boite(False, 10)
+            fimg = None
+            if image and n_img < 8 and not S.DEMO:          # miniatures des images copiées (8 plus récentes)
+                fimg = os.path.join(cache, hashlib.md5(l.encode()).hexdigest() + ".png")
+                if not os.path.exists(fimg): subprocess.run("printf '%s' " + _q(l) + " | cliphist decode > " + _q(fimg), shell=True, timeout=5)
+                if os.path.getsize(fimg) > 0: bx.append(vignette(fimg, 120, 68)); n_img += 1
+                else: fimg = None
+            if not fimg: bx.append(ico("image" if image else "type", 16, "d"))
+            bx.append(label("Image copiée" + txt.split("png")[-1].replace("]]", "") if image else txt.strip()[:160], ellipsize=True, largeur=40, hexpand=True))
             b.set_child(bx)
             b.connect("clicked", lambda _b, l=l: (subprocess.run("printf '%s' " + _q(l) + " | cliphist decode | wl-copy", shell=True), self.shell.fermer()))
-            self.liste.append(b)
+            r.append(b)
+            def ep_ligne(l=l, image=image, txt=txt, fimg=fimg):
+                if image:
+                    f = fimg or os.path.join(cache, hashlib.md5(l.encode()).hexdigest() + ".png")
+                    if not fimg: subprocess.run("printf '%s' " + _q(l) + " | cliphist decode > " + _q(f), shell=True, timeout=5)
+                    dest = os.path.join(DOS, os.path.basename(f)); shutil.copy(f, dest); epingler({"img": dest})
+                else:
+                    epingler({"t": S.out(["sh", "-c", "printf '%s' " + _q(l) + " | cliphist decode"], 3) or txt})
+            r.append(bouton(None, "pin", "plat", taille=14, role="d", tip="Épingler (gardé même après effacement)", rappel=ep_ligne))
+            self.liste.append(r)
 
 def _q(s):
     return "'" + s.replace("'", "'\\''") + "'"

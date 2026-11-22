@@ -2,7 +2,7 @@
 # alimentation), météo, volet de notifications et bulles.
 # Clic gauche = réglage rapide ; clic droit = page complète des Paramètres.
 # Application développée par Matthieu Lamotte.
-import time, datetime, json, urllib.request, urllib.parse, os
+import time, datetime, json, urllib.request, urllib.parse, os, re
 from gi.repository import Gtk, GLib, Gio, Gdk, Pango
 from . import systeme as S, config, apps, profils, theme
 from .ui import *
@@ -425,7 +425,11 @@ class Volet(Panneau):
         self.vide.append(ico("bell", 44, "d")); self.vide.append(label("Aucune nouvelle notification", "attenue", xalign=0.5))
         self.zone = Gtk.Stack(vexpand=True)
         self.zone.add_named(self.vide, "vide"); self.zone.add_named(defilant(self.liste), "liste")
-        w.append(self.zone)
+        self.histo = boite(True, 4); self.zone.add_named(defilant(self.histo), "historique")
+        bas = boite(False, 6)
+        self.b_histo = Gtk.ToggleButton(label="Historique (7 jours)"); self.b_histo.add_css_class("plat")
+        self.b_histo.connect("toggled", lambda b: self.rafraichir()); bas.append(self.b_histo)
+        w.append(self.zone); w.append(bas)
         cal = boite(True, 6, "carte")
         self.date = label("", "gras"); cal.append(self.date)
         self.cal = Gtk.Calendar(); cal.append(self.cal)
@@ -438,6 +442,21 @@ class Volet(Panneau):
         jours = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
         self.date.set_text("%s %d %s" % (jours[d.weekday()].capitalize(), d.day, mois[d.month - 1]))
         vider(self.liste)
+        if self.b_histo.get_active():                 # historique : même les notifications fermées, groupées par jour
+            from .notifs import historique
+            vider(self.histo); jour = None
+            for x in sorted(historique(), key=lambda x: -x["t"])[:200]:
+                lt = time.localtime(x["t"]); JR = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+                MS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+                j = "%s %d %s" % (JR[lt.tm_wday], lt.tm_mday, MS[lt.tm_mon - 1])
+                if j != jour: jour = j; self.histo.append(label(j.capitalize(), "notif-app", margin_top=6))
+                r = boite(False, 8, "notif"); r.append(ico("bell", 14, "d"))
+                v = boite(True, 0, hexpand=True); v.append(label("%s · %s" % (x.get("app") or "", time.strftime("%H:%M", time.localtime(x["t"]))), "attenue", "petit"))
+                v.append(label(x.get("titre") or "", "gras", wrap=True, xalign=0))
+                if x.get("corps"): v.append(label(re.sub(r"<[^>]+>", "", x["corps"])[:160], "petit", wrap=True, xalign=0))
+                r.append(v); self.histo.append(r)
+            if not historique(): self.histo.append(label("Aucune notification ces 7 derniers jours.", "attenue", wrap=True))
+            self.zone.set_visible_child_name("historique"); return
         ns = self.shell.serveur.triees()
         self.zone.set_visible_child_name("liste" if ns else "vide")
         groupes = {}

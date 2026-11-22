@@ -358,6 +358,13 @@ class Parametres(Gtk.Application):
             fl.append(bouton(n, "play", "fantome", taille=13, rappel=lambda k=k: sons.jouer(k, self.cfg, force=True)))
         c.append(fl)
     def p_notifications(self, c, cle):
+        c.append(groupe_titre("Ne pas déranger automatique"))
+        c.append(reglage("monitor-play", "En plein écran et en présentation", "Film, jeu, diaporama : les notifications attendent (les urgentes passent toujours)",
+                         droite=interrupteur(self.cfg.get("dnd_auto", True), lambda on: self.regler(dnd_auto=on))))
+        c.append(reglage("video", "Pendant une visio ou un enregistrement", "Quand le micro ou la caméra sont utilisés",
+                         droite=interrupteur(self.cfg.get("dnd_visio", True), lambda on: self.regler(dnd_visio=on))))
+        c.append(reglage("bell-dot", "Pastilles sur les icônes de la barre", "Nombre de notifications en attente de chaque application",
+                         droite=interrupteur(self.cfg.get("barre_badges_apps", True), lambda on: self.regler(barre_badges_apps=on))))
         cfg = self.cfg
         c.append(reglage("bell-off", "Ne pas déranger", "Les notifications arrivent en silence dans le volet",
                          droite=interrupteur(cfg["ne_pas_deranger"], lambda on: self.regler(ne_pas_deranger=on))))
@@ -436,6 +443,10 @@ class Parametres(Gtk.Application):
         snap = rc_valeur("snapping/range", defaut="10") != "0"
         c.append(reglage("app-window", "Ancrer les fenêtres", "Glisser une fenêtre contre un bord de l'écran pour la redimensionner (Super + flèches)",
                          droite=interrupteur(snap, lambda on: rc_ecrire(lambda r: setattr(rc_noeud(r, "snapping/range"), "text", "10" if on else "0")))))
+        coin = rc_valeur("snapping/cornerRange", defaut="60") != "0"
+        c.append(reglage("layout-grid", "Quarts d'écran dans les coins", "Glisser une fenêtre dans un coin de l'écran la cale sur un quart",
+                         droite=interrupteur(coin, lambda on: rc_ecrire(lambda r: setattr(rc_noeud(r, "snapping/cornerRange"), "text", "60" if on else "0")))))
+        c.append(info("Astuce : en déplaçant une fenêtre, maintenez la touche Super pour la déposer dans une zone (moitiés, tiers, centre…). Super + Alt + F1 à F12 font de même au clavier."))
         n = rc_valeur("desktops/number", defaut=None)
         if n is None:
             t = rc_lire().getroot().find("desktops"); n = t.get("number") if t is not None else "1"
@@ -484,6 +495,8 @@ class Parametres(Gtk.Application):
             c.append(reglage("undo-2", t, quand, droite=bouton("Annuler", None, "fantome", rappel=lambda e=e: (self.regler(**e["avant"]), self.toast("Réglage rétabli"), self.aller("historique", False)))))
 
     def p_apropos(self, c, cle):
+        c.append(reglage("footprints", "Premiers pas", "Apparence, fichiers de l'ancien ordinateur, comptes en ligne, logiciels", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher("xiii-premiers-pas"))))
+        c.append(reglage("folder-input", "Récupérer mes fichiers", "Depuis un ancien Windows ou Mac", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher("xiii-recuperer"))))
         i = S.infos_systeme()
         h = boite(False, 18, "hero")
         h.append(vignette("/usr/share/xiii/logos/xiii-orange.png", 90, 74, couvrir=False))
@@ -597,6 +610,17 @@ class Parametres(Gtk.Application):
                          lambda v: ecrire("touchpad", "pointerSpeed", "%.2f" % ((v - 50) / 50)), 0, 100, 1, 400), 260)))
         c.append(reglage("mouse-pointer-2", "Taille du pointeur", "", clic=lambda: self.aller("curseur")))
 
+        # ---- gestes à plusieurs doigts (service xiii-gestes)
+        c.append(groupe_titre("Gestes du pavé tactile"))
+        c.append(reglage("hand", "Gestes à 3 et 4 doigts", "Balayez avec plusieurs doigts sur le pavé tactile",
+                         droite=interrupteur(self.cfg.get("gestes", True), lambda on: self.regler(gestes=on))))
+        from .raccourcis import GESTES
+        for g, (_, nom) in GESTES.items():
+            t = g.replace("balayage", "Balayer").replace("pincement", "Pincer").replace(" 3 ", " à 3 doigts vers ").replace(" 4 ", " à 4 doigts vers ")
+            t = t.replace("vers resserrer", "(resserrer)").replace("vers ecarter", "(écarter)")
+            c.append(reglage(None, nom, t))
+        if not os.path.exists("/run/xiii/gestes"):
+            c.append(info("Le service des gestes n'est pas actif sur cet ordinateur (pas de pavé tactile détecté, ou redémarrage nécessaire après la mise à jour)."))
     def p_clavier(self, c, cle):
         env = os.path.join(GLib.get_user_config_dir(), "labwc", "environment")
         try: lay = re.search(r"XKB_DEFAULT_LAYOUT=(\S+)", open(env).read()).group(1)
@@ -1304,6 +1328,8 @@ class Parametres(Gtk.Application):
 
     def p_demarrer(self, c, cle):
         cfg = self.cfg
+        c.append(reglage("maximize-2", "Taille du menu", "Plus grand : plus d'applications épinglées visibles d'un coup",
+                         droite=deroulant([("compact", "Compacte"), ("normal", "Normale"), ("grand", "Grande")], self.cfg.get("menu_taille", "normal"), lambda v: self.regler(menu_taille=v))))
         c.append(reglage("history", "Afficher les fichiers récents (Recommandés)", "", droite=interrupteur(cfg["menu_recommandes"], lambda on: self.regler(menu_recommandes=on))))
         c.append(reglage("layout-grid", "Affichage de « Toutes les applications »", "",
                          droite=deroulant([("categories", "Par catégories"), ("az", "Liste A – Z")], cfg["menu_vue"], lambda v: self.regler(menu_vue=v))))

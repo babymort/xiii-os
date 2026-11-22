@@ -83,13 +83,18 @@ class Shell(Gtk.Application):
             except Exception as e: print("[xiii] fiabilité :", e)
             return False
         if not S.DEMO: GLib.timeout_add_seconds(25, _fiab)
+        GLib.timeout_add_seconds(5, self.surveiller_dnd)
+        self.ecouter_gestes()
         # son d'ouverture de session (une fois)
         if not S.DEMO:
             from . import sons
             GLib.timeout_add(2500, lambda: (sons.jouer("desktop-login", self.cfg), False)[1])
         self.maj_icones(); self.maj_meteo(); self.maj_taches(); self.tic(); self.demarrer_timecode()
         if not self.cfg.get("visite_faite") and not os.path.isdir("/run/live/medium"):
-            GLib.timeout_add_seconds(3, lambda: (self.visite(), False)[1])
+            if not self.cfg.get("premiers_pas_fait") and not S.DEMO:
+                GLib.timeout_add_seconds(3, lambda: (S.detacher("xiii-premiers-pas"), False)[1])   # la visite suit, une fois les premiers pas finis
+            else:
+                GLib.timeout_add_seconds(3, lambda: (self.visite(), False)[1])
 
     def visite(self):
         from .visite import Visite, etapes
@@ -346,6 +351,20 @@ class Shell(Gtk.Application):
         bx.append(label("%d %%" % round(moy * 100), "petit", "gras")); b.set_child(bx)
         b.set_tooltip_text("En cours : " + ", ".join(noms)); b.set_visible(True)
 
+    def notifs_de(self, a, fs):
+        """Nombre de notifications en attente d'une application (nom, identifiant ou desktop-entry)."""
+        if not self.serveur: return 0
+        noms = set()
+        if a:
+            noms |= {a.get_display_name().lower(), a.get_id().lower().replace(".desktop", "")}
+        for f in fs: noms.add((f.app_id or "").lower())
+        noms.discard("")
+        n = 0
+        for x in self.serveur.liste.values():
+            de = str(x.hints.get("desktop-entry") or "").lower()
+            if (x.app or "").lower() in noms or de in noms or (de and any(de.endswith("." + k) or k.endswith("." + de) for k in noms)): n += 1
+        return n
+
     def bouton_tache(self, cle, a, fs):
         b = Gtk.Button(); b.add_css_class("tb")
         actif = any(f.active for f in fs)
@@ -369,8 +388,14 @@ class Shell(Gtk.Application):
             if actif: ind.add_css_class("actif")
             elif not fs: ind.add_css_class("vide")
             v.append(ind)
-        b.set_child(v)
-        b.set_tooltip_text(fs[0].titre if len(fs) == 1 and fs[0].titre else nom + (" — %d fenêtres" % len(fs) if len(fs) > 1 else ""))
+        nb = self.notifs_de(a, fs) if self.cfg.get("barre_badges_apps", True) else 0
+        if nb:
+            ov = Gtk.Overlay(); ov.set_child(v)
+            pa = label(str(nb) if nb < 10 else "9+", "badge", xalign=0.5); pa.set_halign(Gtk.Align.END); pa.set_valign(Gtk.Align.START); ov.add_overlay(pa)
+            b.set_child(ov)
+        else:
+            b.set_child(v)
+        b.set_tooltip_text((fs[0].titre if len(fs) == 1 and fs[0].titre else nom + (" — %d fenêtres" % len(fs) if len(fs) > 1 else "")) + (" · %d notification%s" % (nb, "s" if nb > 1 else "") if nb else ""))
         def clic(*_):
             if not fs:
                 if a: apps.lancer(a)
@@ -654,7 +679,7 @@ class Shell(Gtk.Application):
         et, wifi, btp, bt, btd, (vol, muet), bat = r
         style = self.cfg.get("indic_style", "icone")
         # vieux PC : rien n'est redessiné si rien n'a changé depuis le dernier passage
-        cle = repr((r, style, self.cfg["haut_pourcentage"], self.cfg["ne_pas_deranger"], profils.courant(self.cfg)[0]))
+        cle = repr((r, style, self.cfg["haut_pourcentage"], self.cfg["ne_pas_deranger"], getattr(self, "dnd_auto", None), profils.courant(self.cfg)[0]))
         if cle == getattr(self, "_icones_cle", None): return
         self._icones_cle = cle
         def met(b, icone, texte=None, role="t", valeur=None):
@@ -682,8 +707,52 @@ class Shell(Gtk.Application):
         self.h_bat.set_visible(True)
         met(self.h_bat, icone_batterie(bat), ("%d%%" % bat["pct"]) if (bat and self.cfg["haut_pourcentage"]) else None,
             role="c" if bat and bat["pct"] < 15 and not bat["charge"] else "t", valeur=bat["pct"] / 100 if bat else None)
-        self.h_dnd.set_visible(self.cfg["ne_pas_deranger"])
+        self.h_dnd.set_visible(self.cfg["ne_pas_deranger"] or bool(getattr(self, "dnd_auto", None)))
+        if getattr(self, "dnd_auto", None): self.h_dnd.set_tooltip_text("Ne pas déranger automatique : " + self.dnd_auto)
         self.l_tournage.set_visible(profils.courant(self.cfg)[0] != "normal")
+
+    def ecouter_gestes(self):
+        """Gestes du pavé tactile (service xiii-gestes) : bureaux, vue des tâches, bureau, menu Démarrer…"""
+        f = "/run/xiii/gestes"
+        if not os.path.exists(f) or S.DEMO: return
+        self._g_pos = os.path.getsize(f)
+        def change(*_):
+            try:
+                with open(f) as o:
+                    o.seek(self._g_pos if self._g_pos <= os.path.getsize(f) else 0); txt = o.read(); self._g_pos = o.tell()
+            except OSError: return
+            for l in txt.splitlines():
+                g = l.split(" ", 1)[-1].strip()
+                from .raccourcis import GESTES
+                if self.cfg.get("gestes", True) and g in GESTES: self.geste(GESTES[g][0])
+        self._g_mon = Gio.File.new_for_path(f).monitor_file(Gio.FileMonitorFlags.NONE, None); self._g_mon.connect("changed", change)
+
+    def geste(self, a):
+        from . import raccourcis
+        if a == "bureau-suivant": raccourcis.declencher("GoToDesktop", {"to": "right"}, "C-W-Right")
+        elif a == "bureau-precedent": raccourcis.declencher("GoToDesktop", {"to": "left"}, "C-W-Left")
+        else: self.basculer(a)
+
+    def surveiller_dnd(self):
+        """Ne pas déranger automatique (Paramètres › Notifications) : une fenêtre en plein écran (film, jeu, présentation),
+        ou le micro / la caméra utilisés (visio, enregistrement). Les notifications urgentes passent toujours."""
+        c = self.cfg; raison = None
+        if not S.DEMO and c.get("dnd_auto", True):
+            fen = self.fenetres.liste() if self.fenetres and self.fenetres.ok else []
+            from .fenetres import ETAT_PLEIN
+            pleins = [f for f in fen if ETAT_PLEIN in f.etats]
+            if pleins:
+                t = (pleins[0].app_id or "").lower() + " " + (pleins[0].titre or "").lower()
+                raison = "présentation en cours" if any(x in t for x in ("impress", "présentation", "presentation", "slides", "keynote")) else "plein écran"
+        if not S.DEMO and not raison and c.get("dnd_visio", True):
+            if S.out(["sh", "-c", "pactl list short source-outputs 2>/dev/null | grep -v -e cava -e pavucontrol -e xiii | head -1"], 2).strip():
+                raison = "micro utilisé (visio ou enregistrement)"
+            elif S.out(["sh", "-c", "fuser /dev/video* 2>/dev/null | head -c 40"], 2).strip():
+                raison = "caméra utilisée"
+        if raison != getattr(self, "dnd_auto", None):
+            self.dnd_auto = raison
+            self.maj_icones()
+        return True
 
     # ============================================================== horloge & météo
     def tic(self):
@@ -713,7 +782,7 @@ class Shell(Gtk.Application):
 
     # ============================================================== notifications
     def notif_nouvelle(self, n, remplacee):
-        self.maj_badge()
+        self.maj_badge(); self.maj_taches()
         if n.app not in self._apps_notif:
             self._apps_notif.add(n.app)
             try:
@@ -721,7 +790,7 @@ class Shell(Gtk.Application):
                 import json; json.dump(sorted(self._apps_notif), open(os.path.join(d, "notif-apps.json"), "w"))
             except Exception: pass
         if self.ouvert == "volet": self.panneaux["volet"][1].rafraichir()
-        if (self.cfg["ne_pas_deranger"] and n.urgence < 2) or n.app in self.cfg["notif_bloquees"]: return
+        if ((self.cfg["ne_pas_deranger"] or getattr(self, "dnd_auto", None)) and n.urgence < 2) or n.app in self.cfg["notif_bloquees"]: return
         if self.ouvert == "volet": return
         if getattr(self, "_visite", None) and self._visite.win.get_visible(): return
         for c in list(self._enfants(self.pile)):
@@ -745,7 +814,7 @@ class Shell(Gtk.Application):
         if not self._enfants(self.pile): self.bulles.set_visible(False)
 
     def notif_fermee(self, nid):
-        self.retirer_bulle(nid); self.maj_badge()
+        self.retirer_bulle(nid); self.maj_badge(); self.maj_taches()
         if self.ouvert == "volet": self.panneaux["volet"][1].rafraichir()
 
     def maj_badge(self):
@@ -778,6 +847,8 @@ class Shell(Gtk.Application):
         if ancien.get("mode_bureau") != cfg.get("mode_bureau") and hasattr(self, "vue_mode"):
             self.appliquer_mode(cfg.get("mode_bureau", "classique"))
             if hasattr(self, "sel_mode"): self.remplir_selecteur()
+        if cfg.get("premiers_pas_fait") and not ancien.get("premiers_pas_fait") and not cfg.get("visite_faite"):
+            GLib.timeout_add_seconds(1, lambda: (self.visite(), False)[1])
         if ancien.get("projet_actif") != cfg.get("projet_actif") and hasattr(self, "b_projet"):
             pj = boite(False, 6); pj.append(ico("folder-kanban", 14, "c"))
             pj.append(label(cfg.get("projet_actif") or "Choisir un projet", "accent" if cfg.get("projet_actif") else "attenue", "petit", "gras")); self.b_projet.set_child(pj)
@@ -951,9 +1022,11 @@ class Shell(Gtk.Application):
 # ======================================================================================================== MENU DÉMARRER
 class MenuDemarrer:
     COLS = 6
+    TAILLES = {"compact": (520, 560, 5), "normal": (640, 680, 6), "grand": (820, 800, 8)}
     def __init__(self, shell):
         self.shell = shell
-        w = boite(True, 12, "panneau"); w.set_size_request(640, 680); self.widget = w
+        lg, ht, self.COLS = self.TAILLES.get(shell.cfg.get("menu_taille", "normal"), self.TAILLES["normal"])
+        w = boite(True, 12, "panneau"); w.set_size_request(lg, ht); self.widget = w
         self.recherche = Gtk.Entry(placeholder_text="Rechercher des applications, des paramètres, des fichiers…", hexpand=True)
         self.recherche.add_css_class("recherche")
         self.recherche.set_icon_from_paintable(Gtk.EntryIconPosition.PRIMARY, theme.icone("search", 16, ACC["d"]))
@@ -1147,6 +1220,24 @@ class MenuDemarrer:
                 b.set_tooltip_text("Copier le résultat"); self.res.append(b)
             except Exception:
                 pass
+        # conversions d'unités (« 12 pouces en cm », « 50 Mb/s », « 100 °F »…)
+        from . import conversions
+        cv = conversions.convertir(self.recherche.get_text()) if mode in ("tout", "apps") else []
+        if cv:
+            self.res.append(label("Conversion", "section"))
+            for x in cv[:5]:
+                r = x.split(" = ")[-1].split(" ≈ ")[-1]
+                b = bouton(x, "ruler", "ligne", "plat", taille=18, rappel=lambda r=r: (Gdk.Display.get_default().get_clipboard().set_text(r.split(" ")[0]), self.shell.fermer()))
+                b.set_tooltip_text("Copier le résultat"); self.res.append(b)
+            if not self._premier: self._premier = lambda r=cv[0].split(" = ")[-1]: (Gdk.Display.get_default().get_clipboard().set_text(r.split(" ")[0]), self.shell.fermer())
+        # « > commande » : lancée dans le terminal
+        brut_c = self.recherche.get_text().strip()
+        if brut_c.startswith(">") and len(brut_c) > 1:
+            cmd = brut_c[1:].strip()
+            lancer_cmd = lambda: (self.shell.fermer(), S.detacher(["foot", "--app-id=fr.xiii.terminal", "sh", "-c", cmd + "; echo; read -p '[Entrée pour fermer] ' x"]))
+            self.res.append(label("Commande", "section"))
+            self.res.append(bouton("Lancer dans le terminal : %s" % cmd, "square-terminal", "ligne", "plat", taille=18, rappel=lancer_cmd))
+            self._premier = lancer_cmd; self.vue("res"); return
         if mode == "fichiers": trouves = []
         if trouves:
             self.res.append(label("Applications", "section"))

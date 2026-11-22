@@ -1,9 +1,47 @@
 #!/bin/bash
-# Capture d'écran : xiii-capture zone | ecran
-D="$(xdg-user-dir PICTURES 2>/dev/null || echo ~/Images)/Captures"; mkdir -p "$D"
-F="$D/capture-$(date +%Y-%m-%d-%H%M%S).png"
-if [ "$1" = zone ]; then G=$(slurp -d -b 1a1a1a88 -c f0b378 -w 2) || exit 0; grim -g "$G" "$F"; else grim "$F"; fi
-[ -f "$F" ] || exit 1
-wl-copy < "$F"
-r=$(notify-send -a "Capture" -i "$F" --action=modifier="Annoter" --action=dossier="Ouvrir le dossier" "Capture enregistrée" "Copiée dans le presse-papiers · $(basename "$F")")
-case "$r" in modifier) swappy -f "$F" ;; dossier) thunar "$D" ;; esac
+# OS XIII — captures d'écran et enregistrement vidéo
+#   xiii-capture zone | ecran | moniteur | delai | menu
+#   xiii-capture video [zone|ecran] [son]   (2e appel : arrête l'enregistrement en cours)
+I="$(xdg-user-dir PICTURES 2>/dev/null || echo ~/Images)/Captures"; V="$(xdg-user-dir VIDEOS 2>/dev/null || echo ~/Vidéos)/Captures"
+mkdir -p "$I" "$V"
+son() { command -v pw-play >/dev/null && [ -f /usr/share/sounds/XIII/stereo/screen-capture.wav ] && pw-play --volume 0.5 /usr/share/sounds/XIII/stereo/screen-capture.wav >/dev/null 2>&1 & }
+image() {   # $1 = géométrie (vide = tout)
+  F="$I/capture-$(date +%Y-%m-%d-%H%M%S).png"
+  if [ -n "$1" ]; then grim -g "$1" "$F"; else grim "$F"; fi
+  [ -f "$F" ] || exit 1
+  wl-copy < "$F"
+  r=$(notify-send -a "Capture" -i "$F" -h string:sound-name:screen-capture --action=modifier="Annoter" --action=dossier="Ouvrir le dossier" "Capture enregistrée" "Copiée dans le presse-papiers · $(basename "$F")")
+  case "$r" in modifier) swappy -f "$F" ;; dossier) xiii-fichiers "$I" ;; esac
+}
+video() {
+  if pgrep -x wf-recorder >/dev/null; then
+    pkill -INT -x wf-recorder; sleep 1
+    F=$(ls -t "$V"/*.mp4 2>/dev/null | head -1)
+    r=$(notify-send -a "Capture" -i video-x-generic -h string:sound-name:complete --action=voir="Regarder" --action=dossier="Ouvrir le dossier" "Enregistrement terminé" "$(basename "$F")")
+    case "$r" in voir) xdg-open "$F" ;; dossier) xiii-fichiers "$V" ;; esac; exit 0
+  fi
+  command -v wf-recorder >/dev/null || { notify-send -a "Capture" -i dialog-error "Enregistrement vidéo indisponible" "wf-recorder n'est pas installé"; exit 1; }
+  F="$V/video-$(date +%Y-%m-%d-%H%M%S).mp4"; G=""; A=()
+  [ "$1" = zone ] && { G=$(slurp -d -b 1a1a1a88 -c f0b378 -w 2) || exit 0; }
+  [ "$2" = son ] && A=(--audio)
+  notify-send -a "Capture" -i media-record -t 2500 "Enregistrement de l'écran" "Pour arrêter : Super + Maj + R, ou relancer « Enregistrer l'écran »"
+  sleep 1
+  if [ -n "$G" ]; then exec wf-recorder "${A[@]}" -g "$G" -f "$F" >/dev/null 2>&1; else exec wf-recorder "${A[@]}" -f "$F" >/dev/null 2>&1; fi
+}
+case "$1" in
+  zone) G=$(slurp -d -b 1a1a1a88 -c f0b378 -w 2) || exit 0; image "$G" ;;
+  ecran|"") image "" ;;
+  moniteur) G=$(slurp -o -b 1a1a1a55 -c f0b378) || exit 0; image "$G" ;;
+  delai) notify-send -a "Capture" -t 2500 "Capture dans 5 secondes…" "Préparez l'écran"; sleep 5; image "" ;;
+  video) video "$2" "$3" ;;
+  menu)
+    if pgrep -x wf-recorder >/dev/null; then video; fi
+    c=$(printf '%s\n' "Zone de l'écran" "Écran entier" "Un écran au choix (plusieurs moniteurs)" "Écran entier dans 5 secondes" \
+        "Enregistrer une zone en vidéo" "Enregistrer l'écran en vidéo" "Enregistrer l'écran en vidéo avec le son" "Ouvrir le dossier des captures" \
+        | fuzzel --dmenu --lines 8 --width 44 --prompt 'Capture › ')
+    case "$c" in
+      "Zone de l'écran") exec "$0" zone ;; "Écran entier") sleep 0.3; exec "$0" ecran ;; "Un écran au choix"*) exec "$0" moniteur ;;
+      "Écran entier dans 5"*) exec "$0" delai ;; "Enregistrer une zone"*) exec "$0" video zone ;; "Enregistrer l'écran en vidéo avec le son") exec "$0" video ecran son ;;
+      "Enregistrer l'écran en vidéo") exec "$0" video ecran ;; "Ouvrir le dossier"*) exec xiii-fichiers "$I" ;;
+    esac ;;
+esac
