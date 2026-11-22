@@ -72,7 +72,9 @@ class Multiview(Gtk.Application):
         self.win.connect("close-request", lambda *_: ([c.arreter() for c in self.cases], False)[1])
         self.win.present()
         if not ndi.disponible():
-            self.g.attach(label("Le moteur NDI n'est pas installé : Paramètres › NDI.", "attenue"), 0, 0, 1, 1); return
+            l = label("Le moteur NDI n'est pas installé.\nInstallez-le dans Paramètres › NDI, puis rouvrez Multiview.", "attenue")
+            l.set_hexpand(True); l.set_vexpand(True); l.set_halign(Gtk.Align.CENTER); l.set_justify(Gtk.Justification.CENTER)
+            self.g.attach(l, 0, 0, 1, 1); return
         self.grille(int(self.cfg.get("multiview_cases", 4)))
         GLib.timeout_add(500, lambda: (self.l_h.set_text(datetime.datetime.now().strftime("%H:%M:%S")), True)[1])
         noms = self.cfg.get("multiview_sources") or []
