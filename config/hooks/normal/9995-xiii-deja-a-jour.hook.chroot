@@ -1,0 +1,13 @@
+#!/bin/sh
+# OS XIII — démarrage plus rapide de la clé live : le système est livré « déjà à jour » pour systemd.
+# Sans cela, ldconfig.service et les autres services « ConditionNeedsUpdate » (cache des bibliothèques,
+# catalogue du journal…) tournent à CHAQUE démarrage de la clé (≈ 7 s mesurées sur un PC de 2008).
+# systemd compare la date de /usr à celle écrite dans /etc/.updated et /var/.updated.
+set -e
+ldconfig
+T=$(stat -c %.9Y /usr | tr -d .)
+for f in /etc/.updated /var/.updated; do
+  printf '# This file was created by systemd-update-done. Its only purpose is to hold a\n# timestamp of the time this directory was updated. See man:systemd-update-done.service(8).\nTIMESTAMP_NSEC=%s\n' "$T" > "$f"
+  touch -r /usr "$f"
+done
+echo "[xiii] /etc et /var marqués à jour (date de /usr : $T)"
