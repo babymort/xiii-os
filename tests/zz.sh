@@ -10,6 +10,7 @@ mkdir -p "/root/.local/share/applications/wine/Programs/Blackmagic Design/ATEM"
 for n in "ATEM Software Control" "ATEM Setup"; do printf '[Desktop Entry]\nName=%s\nExec=env WINEPREFIX="/root/.wine" wine "C:\\\\Program Files\\\\Blackmagic Design\\\\%s.exe"\nType=Application\nIcon=atem\n' "$n" "$n" > "/root/.local/share/applications/wine/Programs/Blackmagic Design/ATEM/$n.desktop"; done
 R=/out/zz.txt; : > $R
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(_histo=False, visite_faite=True)'
+export GSK_RENDERER=cairo MALLOC_ARENA_MAX=2      # comme une session OS XIII sans carte 3D (VM, xiii-demarrer-bureau)
 xiii-shell > /out/shell.log 2>&1 &
 sleep 6
 pss_shell() { p=$(pgrep -f "xiii.shell import" | head -1); [ -n "$p" ] && awk '/^Pss:/{print int($2/1024)}' /proc/$p/smaps_rollup; }
@@ -169,7 +170,7 @@ pkill -f radicale
 
 echo "== Version Stable (mémoire, démarrage)" >> $R
 mkdir -p /etc/xiii; rm -f /etc/xiii/parefeu.json; command -v ufw > /tmp/pf.log 2>&1; XIII_PAREFEU_HORS_LIGNE=1 XIII_PAREFEU_BAVARD=1 /usr/local/sbin/xiii-parefeu init >> /tmp/pf.log 2>&1
-n=$(grep -c "XIII" /etc/ufw/user.rules 2>/dev/null); grep -q "^ENABLED=yes" /etc/ufw/ufw.conf 2>/dev/null && [ "${n:-0}" -gt 0 ] && echo "OK        pare-feu écrit à la construction de l'ISO : $n lignes d'exceptions, actif au 1er démarrage" >> $R || echo "ÉCHEC     pare-feu hors ligne : $(tail -3 /tmp/pf.log | tr '\n' ' ')" >> $R
+n=$(cat /etc/ufw/user.rules /etc/ufw/user6.rules 2>/dev/null | grep -c "^### tuple"); grep -q "^ENABLED=yes" /etc/ufw/ufw.conf 2>/dev/null && [ "${n:-0}" -gt 0 ] && echo "OK        pare-feu écrit à la construction de l'ISO : $n lignes d'exceptions, actif au 1er démarrage" >> $R || echo "ÉCHEC     pare-feu hors ligne : $(tail -3 /tmp/pf.log | tr '\n' ' ')" >> $R
 rm -f /etc/xiii/parefeu.json
 echo "INFO      mémoire du shell (PSS) : $(cat /tmp/pss-6s) Mo à 6 s, $(cat /tmp/pss-46s 2>/dev/null) Mo à 46 s (après libération), $(pss_shell) Mo maintenant (après des centaines d'ouvertures et 20 changements de thème)" >> $R
 
