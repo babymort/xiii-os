@@ -161,7 +161,7 @@ echo "== Calendrier : comptes en lecture / écriture (CalDAV)" >> $R
 python3 -m venv /tmp/rv >/dev/null 2>&1 && /tmp/rv/bin/pip install -q radicale >/dev/null 2>&1
 mkdir -p /tmp/radi && printf '[server]\nhosts = 127.0.0.1:5232\n[auth]\ntype = none\n[storage]\nfilesystem_folder = /tmp/radi/data\n' > /tmp/radi/conf
 /tmp/rv/bin/python -m radicale --config /tmp/radi/conf > /tmp/radi/log 2>&1 & sleep 3
-curl -s -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null
+curl -s -u zz:x -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null -w "INFO      MKCALENDAR %{http_code}\n" >> $R
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
