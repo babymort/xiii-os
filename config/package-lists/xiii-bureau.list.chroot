@@ -24,6 +24,7 @@ network-manager-gnome
 network-manager-openvpn
 wireguard-tools
 python3-dateutil
+python3-numpy
 tesseract-ocr
 tesseract-ocr-fra
 sane-utils

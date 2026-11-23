@@ -1,6 +1,6 @@
-# OS XIII — XIII Calendrier : agenda local (avec rappels), agendas Google et Outlook affichés par leur adresse iCal
-# (lecture seule, mis à jour toutes les 30 minutes), jours de tournage du plan de travail de la Suite (PLANO / DECOUP)
-# et dates du projet actif. Vue mois + liste du jour, export .ics.
+# OS XIII — XIII Calendrier : agenda local (avec rappels), comptes Google, Outlook et CalDAV (iCloud, Nextcloud, Synology)
+# en lecture et écriture, agendas en lecture seule par adresse iCal, jours de tournage du plan de travail de la Suite
+# (PLANO / DECOUP) et dates du projet actif. Vue mois + liste du jour, export .ics.
 # Application développée par Matthieu Lamotte.
 import os, sys, json, re, time, uuid, hashlib, datetime as dt, urllib.request, threading
 from zoneinfo import ZoneInfo
@@ -85,6 +85,7 @@ def abonnements():
 
 
 def maj_abonnements(force=False):
+    """→ liste des agendas injoignables"""
     os.makedirs(CACHE, exist_ok=True); err = []
     for a in abonnements():
         f = os.path.join(CACHE, hashlib.md5(a["url"].encode()).hexdigest() + ".ics")
@@ -110,6 +111,10 @@ def evenements(debut, fin):
         f = os.path.join(CACHE, hashlib.md5(a["url"].encode()).hexdigest() + ".ics")
         try: L += lire_ics(open(f, encoding="utf-8", errors="replace").read(), debut, fin, a["nom"], a.get("couleur") or "#6aa8ff")
         except OSError: pass
+    try:
+        from . import agenda_sync
+        L += agenda_sync.en_cache(debut, fin)
+    except Exception: pass
     # jours de tournage (plan de travail de la Suite) et dates du projet actif
     try:
         from .widgets import dernier_lien
@@ -180,8 +185,13 @@ class Calendrier(Gtk.Application):
         self.etat = label("", "petit", "attenue", wrap=True); d.append(self.etat)
         k = Gtk.EventControllerKey(); k.connect("key-pressed", self.touche); self.win.add_controller(k)
         self.win.present(); self.rendu()
-        S.en_fond(maj_abonnements, lambda e: (self.etat.set_text("Agenda injoignable : " + ", ".join(e)) if isinstance(e, list) and e else None, self.rendu()))
-        GLib.timeout_add_seconds(1800, lambda: (S.en_fond(maj_abonnements, lambda e: self.rendu()), True)[1])
+        self.synchro(False)
+        GLib.timeout_add_seconds(900, lambda: (self.synchro(False), True)[1])
+
+    def synchro(self, force=True):
+        from . import agenda_sync
+        S.en_fond(lambda: maj_abonnements(force) + agenda_sync.synchroniser(force),
+                  lambda e: (self.etat.set_text(("Problème : " + " ; ".join(e)) if isinstance(e, list) and e else ("Synchronisé à " + time.strftime("%H:%M") if agenda_sync.comptes() else "")), self.rendu()))
 
     def touche(self, c, kv, *a):
         if kv == Gdk.KEY_Page_Up: self.decaler(-1)
@@ -237,10 +247,10 @@ class Calendrier(Gtk.Application):
             h = boite(False, 8); d = Gtk.DrawingArea(); d.set_size_request(10, 10); rg = Gdk.RGBA(); rg.parse(e["couleur"])
             d.set_draw_func(lambda a, cr, w, hh, rg=rg: (cr.set_source_rgba(rg.red, rg.green, rg.blue, 1), cr.arc(5, 5, 5, 0, 6.3), cr.fill())); h.append(d)
             h.append(label(e["titre"], "gras", hexpand=True, wrap=True))
-            if e["source"] == "local": h.append(bouton(None, "pencil", "plat", taille=13, rappel=lambda e=e: self.editer(e)))
+            if e["source"] == "local" or e.get("modifiable"): h.append(bouton(None, "pencil", "plat", taille=13, rappel=lambda e=e: self.editer(e)))
             c.append(h)
             quand = "Toute la journée" if e.get("journee") else "%s – %s" % (dt.datetime.fromisoformat(e["debut"]).strftime("%H:%M"), dt.datetime.fromisoformat(e["fin"]).strftime("%H:%M"))
-            c.append(label(quand + " · " + ("Mon agenda" if e["source"] == "local" else e["source"]), "petit", "attenue"))
+            c.append(label(quand + " · " + ("Mon agenda (cet ordinateur)" if e["source"] == "local" else e["source"]), "petit", "attenue"))
             if e.get("lieu"): c.append(label("📍 " + e["lieu"], "petit", wrap=True))
             if e.get("notes"): c.append(label(e["notes"], "petit", "attenue", wrap=True))
             self.liste.append(c)
@@ -258,6 +268,17 @@ class Calendrier(Gtk.Application):
         lieu = Gtk.Entry(text=(e or {}).get("lieu", ""), placeholder_text="Lieu"); v.append(lieu)
         rap = Gtk.DropDown.new_from_strings(["Pas de rappel", "5 min avant", "15 min avant", "1 h avant", "1 jour avant"]); R = [None, 5, 15, 60, 1440]
         rap.set_selected(R.index((e or {}).get("rappel", 15)) if (e or {}).get("rappel", 15) in R else 2); v.append(rap)
+        from . import agenda_sync
+        cibles = [("local", None, None, "Mon agenda (sur cet ordinateur)")]
+        for c in agenda_sync.comptes():
+            for ag in c.get("agendas") or []:
+                if ag.get("ecriture"): cibles.append(("compte", c, ag["id"], "%s · %s" % (c["nom"], ag["nom"])))
+        if e and e.get("compte"):
+            cibles = [x for x in cibles if x[1] and x[1]["id"] == e["compte"] and x[2] == e["cal"]] or cibles
+        dd_cal = Gtk.DropDown.new_from_strings([x[3] for x in cibles])
+        pref = config.charger().get("agenda_defaut")
+        if not e: dd_cal.set_selected(next((k for k, x in enumerate(cibles) if x[1] and "%s|%s" % (x[1]["id"], x[2]) == pref), 0))
+        if len(cibles) > 1: v.append(dd_cal)
         err = label("", "petit", "attenue"); v.append(err)
         def ok():
             try:
@@ -268,18 +289,72 @@ class Calendrier(Gtk.Application):
                     if z <= a: z += dt.timedelta(days=1)
             except ValueError:
                 err.set_text("Date (JJ/MM/AAAA) ou heure (HH:MM) à corriger."); return
-            L = [x for x in locaux() if not e or x["id"] != e["id"]]
-            L.append({"id": (e or {}).get("id") or uuid.uuid4().hex[:12], "titre": titre.get_text().strip() or "Sans titre", "debut": a.isoformat(), "fin": z.isoformat(),
-                      "journee": journee.get_active(), "lieu": lieu.get_text().strip(), "rappel": R[rap.get_selected()]})
-            sauver(L); self.jour = j; self.mois = j.replace(day=1); d.close(); self.rendu()
+            ev = {"titre": titre.get_text().strip() or "Sans titre", "debut": a.isoformat(), "fin": z.isoformat(), "journee": journee.get_active(), "lieu": lieu.get_text().strip(), "rappel": R[rap.get_selected()]}
+            cib = cibles[dd_cal.get_selected()]; self.jour = j; self.mois = j.replace(day=1)
+            if cib[0] == "local":
+                L = [x for x in locaux() if not e or x.get("id") != e.get("id")]
+                L.append(dict(ev, id=(e or {}).get("id") or uuid.uuid4().hex[:12])); sauver(L); d.close(); self.rendu(); return
+            config.modifier(_histo=False, agenda_defaut="%s|%s" % (cib[1]["id"], cib[2]))
+            err.set_text("Enregistrement dans %s…" % cib[1]["nom"])
+            def fond(): agenda_sync.enregistrer(cib[1], cib[2], ev, (e or {}).get("ext")); return agenda_sync.synchroniser(True)
+            S.en_fond(fond, lambda r: err.set_text("Erreur : %s" % r) if isinstance(r, Exception) else (d.close(), self.rendu()))
         b = boite(False, 8, halign=Gtk.Align.END)
-        if e: b.append(bouton("Supprimer", "trash-2", "plat", rappel=lambda: (sauver([x for x in locaux() if x["id"] != e["id"]]), d.close(), self.rendu())))
+        def suppr():
+            if not e.get("compte"): sauver([x for x in locaux() if x.get("id") != e.get("id")]); d.close(); self.rendu(); return
+            c = next((x for x in agenda_sync.comptes() if x["id"] == e["compte"]), None)
+            if not c: return
+            err.set_text("Suppression…")
+            S.en_fond(lambda: (agenda_sync.supprimer(c, e["cal"], e["ext"]), agenda_sync.synchroniser(True)), lambda r: err.set_text("Erreur : %s" % r) if isinstance(r, Exception) else (d.close(), self.rendu()))
+        if e: b.append(bouton("Supprimer", "trash-2", "plat", rappel=suppr))
         b.append(bouton("Annuler", None, "fantome", rappel=d.close)); b.append(bouton("Enregistrer", None, "pilule", rappel=ok)); v.append(b)
         d.present(); titre.grab_focus()
 
     def reglages(self):
         d = Gtk.Window(transient_for=self.win, modal=True, title="Agendas", default_width=560); v = boite(True, 10, margin_top=18, margin_bottom=18, margin_start=18, margin_end=18); d.set_child(v)
-        v.append(label("Agendas Google, Outlook, iCloud…", "gras"))
+        from . import agenda_sync
+        v.append(label("Comptes connectés (lecture et écriture)", "gras"))
+        zc = boite(True, 4); v.append(zc); ec = label("", "petit", "attenue", wrap=True)
+        def lister_c():
+            vider(zc)
+            for c in agenda_sync.comptes():
+                r = boite(False, 8, "reglage"); t = boite(True, 0, hexpand=True); t.append(label(c["nom"], "gras"))
+                t.append(label(", ".join(a["nom"] for a in c.get("agendas") or []), "petit", "attenue", wrap=True)); r.append(t)
+                r.append(bouton("Déconnecter", None, "plat", rappel=lambda c=c: (agenda_sync.sauver_comptes([x for x in agenda_sync.comptes() if x["id"] != c["id"]]), lister_c(), self.rendu()))); zc.append(r)
+        lister_c()
+        ids = agenda_sync.identifiants()
+        def connecter(f):
+            ec.set_text("Connexion dans le navigateur… (revenez ici après avoir accepté)")
+            S.en_fond(agenda_sync.oauth, lambda r: (ec.set_text(("Erreur : %s" % r) if isinstance(r, Exception) else "Connecté : %s ✓" % r["nom"]), lister_c(), self.synchro(True)), f)
+        b = boite(False, 8)
+        bg = bouton("Google Agenda", "calendar-days", "pilule", rappel=lambda: connecter("google")); bg.set_sensitive(bool(ids.get("google_client_id"))); b.append(bg)
+        bo = bouton("Outlook / Microsoft 365", "calendar-days", "pilule", rappel=lambda: connecter("outlook")); bo.set_sensitive(bool(ids.get("microsoft_client_id"))); b.append(bo); v.append(b)
+        if not ids.get("google_client_id") or not ids.get("microsoft_client_id"):
+            ex = Gtk.Expander(label="Préparer la connexion Google / Outlook (une seule fois)"); ev = boite(True, 6, margin_top=6); ex.set_child(ev); v.append(ex)
+            ev.append(label("Google et Microsoft demandent qu'une application déclare son identifiant avant de pouvoir écrire dans un agenda. Tant qu'OS XIII n'est pas publié avec le sien, "
+                            "créez le vôtre (gratuit, 5 minutes) :\n• Google : console.cloud.google.com › nouveau projet › activer « Google Calendar API » › Identifiants › "
+                            "« ID client OAuth » de type « Application de bureau » ; écran de consentement en mode Test avec votre adresse comme testeur.\n"
+                            "• Microsoft : entra.microsoft.com › Inscriptions d'applications › Nouvelle › « Comptes de n'importe quel annuaire et comptes Microsoft personnels » ; "
+                            "Authentification › plateforme « Applications mobiles et de bureau » › URI http://localhost ; « Autoriser les flux clients publics » : Oui.", "petit", "attenue", wrap=True))
+            gid = Gtk.Entry(placeholder_text="Google : ID client (….apps.googleusercontent.com)", text=ids.get("google_client_id", "")); ev.append(gid)
+            gsec = Gtk.PasswordEntry(show_peek_icon=True); gsec.set_text(ids.get("google_client_secret", "")); gsec.set_property("placeholder-text", "Google : code secret du client"); ev.append(gsec)
+            mid = Gtk.Entry(placeholder_text="Microsoft : ID d'application (client)", text=ids.get("microsoft_client_id", "")); ev.append(mid)
+            ev.append(bouton("Enregistrer", None, "fantome", rappel=lambda: (config.modifier(google_client_id=gid.get_text().strip(), google_client_secret=gsec.get_text().strip(),
+                                                                                              microsoft_client_id=mid.get_text().strip()), d.close(), self.reglages())))
+        v.append(label("iCloud, Nextcloud, Synology Calendar, Fastmail (CalDAV)", "petit", "gras"))
+        hc = boite(False, 6); typ = Gtk.DropDown.new_from_strings(["iCloud", "Nextcloud", "Synology", "Fastmail", "Autre (adresse CalDAV)"]); hc.append(typ)
+        hote = Gtk.Entry(placeholder_text="Adresse du serveur (Nextcloud, Synology ou autre)", hexpand=True); hc.append(hote); v.append(hc)
+        hc2 = boite(False, 6); util = Gtk.Entry(placeholder_text="Identifiant / adresse e-mail", hexpand=True); mdp = Gtk.PasswordEntry(show_peek_icon=True, hexpand=True)
+        mdp.set_property("placeholder-text", "Mot de passe (iCloud : mot de passe pour app)"); hc2.append(util); hc2.append(mdp); v.append(hc2)
+        def caldav():
+            k = ["icloud", "nextcloud", "synology", "fastmail", "autre"][typ.get_selected()]; h = hote.get_text().strip().replace("https://", "").rstrip("/")
+            serveur = agenda_sync.SERVEURS.get(k, "https://{hote}/").format(hote=h) if k != "autre" else hote.get_text().strip()
+            if "{" in serveur or (k in ("nextcloud", "synology", "autre") and not h): ec.set_text("Indiquez l'adresse du serveur."); return
+            ec.set_text("Connexion…")
+            S.en_fond(agenda_sync.caldav_connecter, lambda r: (ec.set_text(("Erreur : %s" % r) if isinstance(r, Exception) else "Connecté : %s ✓" % r["nom"]), lister_c(), self.synchro(True)),
+                      serveur, util.get_text().strip(), mdp.get_text(), ["iCloud", "Nextcloud", "Synology", "Fastmail", None][typ.get_selected()])
+        v.append(bouton("Connecter", None, "fantome", rappel=caldav)); v.append(ec)
+        v.append(Gtk.Separator(margin_top=6, margin_bottom=6))
+        v.append(label("Agendas en lecture seule (adresse iCal)", "gras"))
         v.append(label("Collez l'adresse iCal de l'agenda : Google Agenda › Paramètres de l'agenda › « Adresse secrète au format iCal » ; "
                        "Outlook › Paramètres › Calendriers partagés › « Publier un calendrier » › lien ICS. Affichés en lecture seule, mis à jour toutes les 30 minutes.", "petit", "attenue", wrap=True))
         zone = boite(True, 4); v.append(zone)

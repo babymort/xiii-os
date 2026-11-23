@@ -157,6 +157,14 @@ xiii-logiciels --page packs > /dev/null 2>&1 & sleep 5; grim -s 0.5 /out/logicie
 xiii-logiciels --page maj > /dev/null 2>&1 & sleep 12; grim -s 0.5 /out/logiciels-maj.png; pkill -f "xiii.logiciels import"; sleep 1
 for app in xiii-polices xiii-resolve xiii-vm; do $app > /out/$app.log 2>&1 & sleep 6; grim -s 0.5 /out/$app.png; pkill -f "$app" ; pkill -f "xiii.$(echo $app | cut -c6-) import"; sleep 1; done
 
+echo "== Calendrier : comptes en lecture / écriture (CalDAV)" >> $R
+python3 -m venv /tmp/rv >/dev/null 2>&1 && /tmp/rv/bin/pip install -q radicale >/dev/null 2>&1
+mkdir -p /tmp/radi && printf '[server]\nhosts = 127.0.0.1:5232\n[auth]\ntype = none\n[storage]\nfilesystem_folder = /tmp/radi/data\n' > /tmp/radi/conf
+/tmp/rv/bin/python -m radicale --config /tmp/radi/conf > /tmp/radi/log 2>&1 & sleep 3
+curl -s -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null
+python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
+pkill -f radicale
+
 echo "== Phase I (applis XIII)" >> $R
 for q in "ouvre conduco" "cherche les vidéos de cette semaine" "mode production" "quelle heure est-il" "trouve le devis dupont"; do
   echo "OK        voix « $q » → $(xiii-voix --comprendre "$q")" >> $R
@@ -229,15 +237,16 @@ blk = lambda n, d: struct.pack(">HH4s", 8 + len(d), 0, n) + d
 def faux():
     d, a = srv.recvfrom(100); srv.sendto(struct.pack(">HHHHHH", (2 << 11) | 20, 0x53AB, 0, 0, 0, 0) + bytes([2] + [0] * 7), a); srv.recvfrom(100)
     pl = blk(b"_pin", b"ATEM Mini Pro\0") + b"".join(blk(b"InPr", struct.pack(">H", i) + ("Camera %d" % i).encode().ljust(20, b"\0") + ("CAM%d" % i).encode().ljust(4, b"\0") + bytes(6)) for i in (1, 2, 3, 4)) \
-         + blk(b"PrgI", struct.pack(">BBH", 0, 0, 1)) + blk(b"PrvI", struct.pack(">BBH", 0, 0, 2)) + blk(b"InCm", bytes(4))
+         + blk(b"PrgI", struct.pack(">BBH", 0, 0, 1)) + blk(b"PrvI", struct.pack(">BBH", 0, 0, 2)) \
+         + blk(b"MPrp", struct.pack(">HBBHH", 0, 1, 0, 9, 0) + b"Ouverture") + blk(b"MPrp", struct.pack(">HBBHH", 2, 1, 0, 7, 0) + b"Rappels") + blk(b"InCm", bytes(4))
     srv.sendto(struct.pack(">HHHHHH", (1 << 11) | (12 + len(pl)), 0x8001, 0, 0, 0, 1) + pl, a)
     while True:
         try: d, a = srv.recvfrom(500)
         except Exception: break
         if len(d) > 12: recu.append(d[16:20].decode())
 threading.Thread(target=faux, daemon=True).start(); E = []
-c = ATEM("127.0.0.1", E.append); c.start(); time.sleep(1.2); c.preview(3); c.cut(); c.auto(); time.sleep(.5); c.arreter()
-print("OK " if E and E[-1]["connecte"] else "ÉCHEC", "      ATEM :", E[-1]["message"] if E else "rien", "· commandes envoyées", recu)
+c = ATEM("127.0.0.1", E.append); c.start(); time.sleep(1.2); c.preview(3); c.cut(); c.auto(); c.macro(2); time.sleep(.5); c.arreter()
+print("OK " if E and E[-1]["connecte"] else "ÉCHEC", "      ATEM :", E[-1]["message"] if E else "rien", "· commandes envoyées", recu, "· macros lues", E[-1].get("macros") if E else None)
 PY
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import mesure_audio as M; import subprocess
 subprocess.run(["ffmpeg","-v","quiet","-y","-f","lavfi","-i","sine=f=1000:d=3","-af","volume=-20dB","/tmp/t.wav"])

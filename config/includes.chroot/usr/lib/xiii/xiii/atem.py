@@ -13,7 +13,7 @@ class ATEM(threading.Thread):
         self.ip, self.port, self.rappel = ip, port, rappel
         self.actif = True; self.pret = False; self.session = 0x53AB; self.local = 0; self.s = None; self.verrou = threading.Lock()
         self.etat = {"connecte": False, "message": "Connexion…", "modele": "", "noms": {}, "courts": {}, "programme": None, "preview": None,
-                     "transition": False, "noir": False, "entrees": []}
+                     "transition": False, "noir": False, "entrees": [], "macros": {}, "macro_en_cours": None}
 
     def arreter(self): self.actif = False
 
@@ -35,6 +35,8 @@ class ATEM(threading.Thread):
     def cut(self, me=0): return self.envoyer("DCut", struct.pack(">BBBB", me, 0, 0, 0))
     def auto(self, me=0): return self.envoyer("DAut", struct.pack(">BBBB", me, 0, 0, 0))
     def noir(self, me=0): return self.envoyer("FtbA", struct.pack(">BBBB", me, 0, 0, 0))
+    def macro(self, index): return self.envoyer("MAct", struct.pack(">HBB", index, 0, 0))       # lancer la macro n° index
+    def macro_stop(self): return self.envoyer("MAct", struct.pack(">HBB", 0xFFFF, 1, 0))
 
     def _maj(self, **kw):
         self.etat.update(kw)
@@ -84,6 +86,13 @@ class ATEM(threading.Thread):
                     elif nom == b"_pin": self.etat["modele"] = d.split(b"\0")[0].decode("utf-8", "replace")
                     elif nom == b"TrPs" and len(d) >= 2 and d[0] == 0: self.etat["transition"] = bool(d[1] & 1); change = True
                     elif nom == b"FtbS" and len(d) >= 3 and d[0] == 0: self.etat["noir"] = bool(d[1]); change = True
+                    elif nom == b"MPrp" and len(d) >= 8:          # propriétés d'une macro : n°, utilisée, nom
+                        idx, util = struct.unpack(">H", d[:2])[0], d[2]; ln = struct.unpack(">H", d[4:6])[0]
+                        if util: self.etat["macros"][idx] = d[8:8 + ln].decode("utf-8", "replace") or "Macro %d" % (idx + 1)
+                        else: self.etat["macros"].pop(idx, None)
+                        change = True
+                    elif nom == b"MRPr" and len(d) >= 4:          # macro en cours d'exécution
+                        self.etat["macro_en_cours"] = struct.unpack(">H", d[2:4])[0] if d[0] & 1 else None; change = True
                     elif nom == b"InCm":
                         self.pret = True; self.etat["entrees"].sort(); self._maj(connecte=True, message="Connecté — " + (self.etat["modele"] or "ATEM")); change = False
                 if change and self.pret: self._maj()

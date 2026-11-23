@@ -245,6 +245,7 @@ class Blackmagic(Gtk.Application):
                 ent = self.atem.etat.get("entrees") or []
                 if Gdk.KEY_1 <= kv <= Gdk.KEY_9 and kv - Gdk.KEY_1 < len(ent):
                     (self.atem.programme if st & Gdk.ModifierType.SHIFT_MASK else self.atem.preview)(ent[kv - Gdk.KEY_1]); return True
+                if Gdk.KEY_F1 <= kv <= Gdk.KEY_F12 and (kv - Gdk.KEY_F1) in (self.atem.etat.get("macros") or {}): self.atem.macro(kv - Gdk.KEY_F1); return True
                 if kv == Gdk.KEY_space: self.atem.cut(); return True
                 if kv in (Gdk.KEY_Return, Gdk.KEY_KP_Enter): self.atem.auto(); return True
                 return False
@@ -253,7 +254,7 @@ class Blackmagic(Gtk.Application):
     def atem_dessin(self, et):
         z = self.atem_zone
         if not z.get_root(): return False
-        sig = repr((et["connecte"], et["programme"], et["preview"], et["noir"], et["transition"], sorted(et["noms"].items())))
+        sig = repr((et["connecte"], et["programme"], et["preview"], et["noir"], et["transition"], sorted(et["noms"].items()), sorted(et.get("macros", {}).items()), et.get("macro_en_cours")))
         if sig == getattr(self, "_atem_sig", None): return False
         self._atem_sig = sig; vider(z)
         z.append(label(et["message"], "petit", "attenue" if not et["connecte"] else "accent"))
@@ -275,7 +276,18 @@ class Blackmagic(Gtk.Application):
             if t_ == "AUTO" and et["transition"]: b.add_css_class("atem-pvw")
             r.append(b)
         z.append(r)
-        z.append(label("Clavier : 1 à 9 = Preview · Maj + 1 à 9 = Programme · Espace = CUT · Entrée = AUTO", "petit", "attenue"))
+        M = et.get("macros") or {}
+        if M:
+            z.append(label("Macros", "petit", "gras"))
+            g = Gtk.FlowBox(max_children_per_line=8, selection_mode=Gtk.SelectionMode.NONE, column_spacing=6, row_spacing=6)
+            for idx in sorted(M):
+                b = Gtk.Button(); b.add_css_class("atem-bouton"); b.set_size_request(120, 44)
+                if et.get("macro_en_cours") == idx: b.add_css_class("atem-pvw")
+                b.set_child(label(M[idx], "gras", xalign=0.5, ellipsize=True)); b.set_tooltip_text("Macro %d%s" % (idx + 1, " — F%d" % (idx + 1) if idx < 12 else ""))
+                b.connect("clicked", lambda _b, i=idx: self.atem.macro(i)); g.append(b)
+            z.append(g)
+            if et.get("macro_en_cours") is not None: z.append(bouton("Arrêter la macro", "square", "fantome", rappel=self.atem.macro_stop))
+        z.append(label("Clavier : 1 à 9 = Preview · Maj + 1 à 9 = Programme · Espace = CUT · Entrée = AUTO · F1 à F12 = macros", "petit", "attenue"))
         return False
 
     def p_desktopvideo(self, v):

@@ -43,17 +43,18 @@ def demarrer(zone, cam, coin, taille, micro, systeme):
         g = subprocess.run(["slurp"], capture_output=True, text=True).stdout.strip()
         if not g: return None
         geo = ["-g", g]
-    P["ecran"] = subprocess.Popen(["wf-recorder", "-y", "-c", "libx264", "-p", "preset=veryfast", "-p", "crf=20", "-r", "30"] + geo + ["-f", os.path.join(tmp, "ecran.mp4")],
+    T = {}
+    T["ecran"] = time.time(); P["ecran"] = subprocess.Popen(["wf-recorder", "-y", "-c", "libx264", "-p", "preset=veryfast", "-p", "crf=20", "-r", "30"] + geo + ["-f", os.path.join(tmp, "ecran.mp4")],
                                   stdout=subprocess.DEVNULL, stderr=open(os.path.join(tmp, "ecran.log"), "w"), start_new_session=True)
     if cam:
-        P["cam"] = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "v4l2", "-framerate", "30", "-video_size", "1280x720", "-i", cam, "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
+        T["cam"] = time.time(); P["cam"] = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "v4l2", "-framerate", "30", "-video_size", "1280x720", "-i", cam, "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
                                      os.path.join(tmp, "cam.mkv")], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=open(os.path.join(tmp, "cam.log"), "w"), start_new_session=True)
     if micro or systeme:
         ent = (["-f", "pulse", "-i", "default"] if micro else []) + (["-f", "pulse", "-i", "@DEFAULT_MONITOR@"] if systeme else [])
         mix = ["-filter_complex", "amix=inputs=2:duration=longest:normalize=0"] if micro and systeme else []
-        P["son"] = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error"] + ent + mix + ["-c:a", "flac", os.path.join(tmp, "son.flac")],
+        T["son"] = time.time(); P["son"] = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error"] + ent + mix + ["-c:a", "flac", os.path.join(tmp, "son.flac")],
                                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=open(os.path.join(tmp, "son.log"), "w"), start_new_session=True)
-    json.dump({"tmp": tmp, "pids": {k: p.pid for k, p in P.items()}, "coin": coin, "taille": taille, "debut": time.time()}, open(ETAT, "w"))
+    json.dump({"tmp": tmp, "pids": {k: p.pid for k, p in P.items()}, "coin": coin, "taille": taille, "debut": time.time(), "t": T}, open(ETAT, "w"))
     return tmp
 
 
@@ -80,11 +81,13 @@ def arreter():
     sortie = os.path.join(destination(), time.strftime("Enregistrement %Y-%m-%d %H%M%S.mp4"))
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", ecran]; fc = []; vmap = "0:v"
     if os.path.exists(cam) and os.path.getsize(cam) > 1000:
-        cmd += ["-i", cam]; k = dict((x[0], x[2]) for x in TAILLES).get(e["taille"], .25); pos = dict((x[0], x[2]) for x in COINS).get(e["coin"], COINS[0][2])
+        dec = max(0.0, e.get("t", {}).get("cam", 0) - e.get("t", {}).get("ecran", 0))      # la webcam a démarré après l'écran : on la recale
+        cmd += ["-itsoffset", "%.3f" % dec, "-i", cam]; k = dict((x[0], x[2]) for x in TAILLES).get(e["taille"], .25); pos = dict((x[0], x[2]) for x in COINS).get(e["coin"], COINS[0][2])
         fc.append("[1:v][0:v]scale2ref=w=trunc(iw*%s/2)*2:h=trunc(ow*main_h/main_w/2)*2[c][e];[e][c]overlay=%s:eof_action=pass,format=yuv420p[v]" % (k, pos)); vmap = "[v]"
     amap = []
     if os.path.exists(son) and os.path.getsize(son) > 1000:
-        cmd += ["-i", son]; amap = ["-map", "%d:a" % (2 if vmap == "[v]" else 1), "-c:a", "aac", "-b:a", "192k"]
+        dec = max(0.0, e.get("t", {}).get("son", 0) - e.get("t", {}).get("ecran", 0))
+        cmd += ["-itsoffset", "%.3f" % dec, "-i", son]; amap = ["-map", "%d:a" % (2 if vmap == "[v]" else 1), "-c:a", "aac", "-b:a", "192k"]
     cmd += (["-filter_complex", ";".join(fc)] if fc else []) + ["-map", vmap] + amap
     cmd += (["-c:v", "libx264", "-preset", "veryfast", "-crf", "20"] if fc else ["-c:v", "copy"]) + ["-shortest", "-movflags", "+faststart", sortie]
     r = subprocess.run(cmd, capture_output=True, text=True)

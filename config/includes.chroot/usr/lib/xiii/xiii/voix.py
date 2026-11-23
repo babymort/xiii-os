@@ -16,13 +16,17 @@ def plat(s):
     return "".join(c for c in unicodedata.normalize("NFD", s.lower()) if unicodedata.category(c) != "Mn")
 
 
-def ecouter(duree=DUREE):
+def ecouter(duree=DUREE, avis=lambda t: None):
     """Enregistre le micro (16 kHz mono) et transcrit avec Vosk. → texte"""
-    from .synthese import modele
+    from .synthese import modele, telecharger_modele
     from vosk import Model, KaldiRecognizer, SetLogLevel
     SetLogLevel(-1)
     m = modele()
-    if not m: raise RuntimeError("modèle vocal absent : ouvrez une fois l'Assistant de synthèse pour le télécharger (40 Mo)")
+    if not m:       # édition légère : modèle français (40 Mo) téléchargé une seule fois, puis tout reste sur l'ordinateur
+        avis("Première utilisation : téléchargement de la voix française (40 Mo)…")
+        m = telecharger_modele()
+        avis("Je vous écoute…")
+    if not m: raise RuntimeError("modèle vocal introuvable (connexion Internet ?)")
     p = subprocess.Popen(["ffmpeg", "-loglevel", "quiet", "-f", "pulse", "-i", "default", "-t", str(duree), "-ar", "16000", "-ac", "1", "-f", "s16le", "-"], stdout=subprocess.PIPE)
     rec = KaldiRecognizer(Model(m), 16000); silence = 0; parle = False; t0 = time.time()
     while True:
@@ -155,7 +159,7 @@ class Voix(Gtk.Application):
         v.append(self.t); v.append(self.s); b.append(v); w.set_child(b); w.present()
         def fond():
             try:
-                txt = ecouter()
+                txt = ecouter(avis=lambda t: GLib.idle_add(lambda: (self.t.set_text(t), False)[1]))
                 GLib.idle_add(lambda: (self.t.set_text("« %s »" % txt if txt else "Je n'ai rien entendu."), False)[1])
                 a, arg, ph = comprendre(txt)
                 rep = executer(a, arg, ph) if a else ph
