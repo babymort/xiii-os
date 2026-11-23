@@ -12,6 +12,8 @@ R=/out/zz.txt; : > $R
 python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(_histo=False, visite_faite=True)'
 xiii-shell > /out/shell.log 2>&1 &
 sleep 6
+pss_shell() { p=$(pgrep -f "xiii.shell import" | head -1); [ -n "$p" ] && awk '/^Pss:/{print int($2/1024)}' /proc/$p/smaps_rollup; }
+echo "$(pss_shell)" > /tmp/pss-6s; (sleep 40; pss_shell > /tmp/pss-46s) &
 verifier() {  # nom, motif du processus, journal
   local nom=$1 motif=$2 log=$3
   if grep -q "Traceback" "$log" 2>/dev/null; then echo "PLANTAGE  $nom" >> $R; sed -n '/Traceback/,/^[A-Za-z]*Error\|^[A-Za-z]*Exception/p' "$log" | tail -6 | sed 's/^/          /' >> $R
@@ -166,10 +168,10 @@ python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC
 pkill -f radicale
 
 echo "== Version Stable (mémoire, démarrage)" >> $R
-mkdir -p /etc/xiii; rm -f /etc/xiii/parefeu.json; XIII_PAREFEU_HORS_LIGNE=1 /usr/local/sbin/xiii-parefeu init > /tmp/pf.log 2>&1
+mkdir -p /etc/xiii; rm -f /etc/xiii/parefeu.json; command -v ufw > /tmp/pf.log 2>&1; XIII_PAREFEU_HORS_LIGNE=1 XIII_PAREFEU_BAVARD=1 /usr/local/sbin/xiii-parefeu init >> /tmp/pf.log 2>&1
 n=$(grep -c "XIII" /etc/ufw/user.rules 2>/dev/null); grep -q "^ENABLED=yes" /etc/ufw/ufw.conf 2>/dev/null && [ "${n:-0}" -gt 0 ] && echo "OK        pare-feu écrit à la construction de l'ISO : $n lignes d'exceptions, actif au 1er démarrage" >> $R || echo "ÉCHEC     pare-feu hors ligne : $(tail -3 /tmp/pf.log | tr '\n' ' ')" >> $R
 rm -f /etc/xiii/parefeu.json
-p=$(pgrep -f "xiii.shell import" | head -1); [ -n "$p" ] && echo "INFO      shell : $(awk '/^Pss:/{print int($2/1024)" Mo"}' /proc/$p/smaps_rollup) (PSS) avec panneaux construits à la demande" >> $R
+echo "INFO      mémoire du shell (PSS) : $(cat /tmp/pss-6s) Mo à 6 s, $(cat /tmp/pss-46s 2>/dev/null) Mo à 46 s (après libération), $(pss_shell) Mo maintenant (après des centaines d'ouvertures et 20 changements de thème)" >> $R
 
 echo "== Phase M (distribution)" >> $R
 truncate -s 60M /tmp/f.iso; printf 'label: dos\n,40M,83\n' | sfdisk -q /tmp/f.iso; truncate -s 800M /tmp/cle.img

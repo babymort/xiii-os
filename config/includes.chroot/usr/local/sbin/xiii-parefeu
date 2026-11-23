@@ -26,7 +26,9 @@ EXCEPTIONS = {
 
 
 def ufw(*a):
-    return subprocess.run(["ufw"] + list(a), capture_output=True, text=True)
+    r = subprocess.run(["ufw"] + list(a), capture_output=True, text=True)
+    if r.returncode and os.environ.get("XIII_PAREFEU_BAVARD"): print("ufw %s → %s" % (" ".join(a[:3]), (r.stderr or r.stdout).strip()[:200]))
+    return r
 
 
 def lire():
