@@ -2388,6 +2388,61 @@ class Parametres(Gtk.Application):
                                                               "sed -i 's/^# *%s/%s/' /etc/locale.gen && locale-gen && localectl set-locale LANG=%s" % (v.replace(".", "\\."), v.replace(".", "\\."), v)), 260)))
         c.append(reglage("keyboard", "Clavier", "Disposition et raccourcis", clic=lambda: self.aller("clavier")))
 
+    # ---- Phase L : aides (vision, audition, saisie)
+    def p_vision(self, c, cle):
+        from . import acces as AC
+        e = AC.etat()
+        c.append(groupe_titre("Lecteur d'écran"))
+        c.append(reglage("speech" if os.path.exists(theme.LUCIDE + "/speech.svg") else "volume-2", "Lire l'écran à voix haute (Orca)",
+                         "Annonce les fenêtres, boutons et textes sous le focus clavier. Super + Alt + S partout, même sans voir l'écran." if e["orca_installe"] else "Orca n'est pas installé sur cette édition : Applications › Logiciels › « orca ».",
+                         droite=interrupteur(e["lecteur_ecran"], lambda on: AC.lecteur(on)) if e["orca_installe"] else None))
+        c.append(groupe_titre("Loupe"))
+        c.append(reglage("zoom-in", "Zoomer autour du pointeur", "Super + =  pour zoomer, Super + -  pour dézoomer, Super + Alt + M pour couper. L'image suit la souris.",
+                         droite=bouton("Essayer", None, "pilule", rappel=lambda: S.detacher(["wtype", "-M", "logo", "-M", "alt", "-k", "m", "-m", "alt", "-m", "logo"]))))
+        c.append(groupe_titre("Lisibilité"))
+        c.append(reglage("contrast", "Contraste renforcé", "Super + Alt + C. Bordures marquées, texte plus gras, avec n'importe quel thème",
+                         droite=interrupteur(self.cfg.get("contraste", False), lambda on: self.regler(contraste=on))))
+        c.append(reglage("sun", "Thème Plein soleil", "Contraste maximal (noir sur blanc)", clic=lambda: self.regler(theme="soleil")))
+        c.append(reglage("type", "Taille du texte", "%d %%" % round(self.cfg["taille_texte"] * 100), clic=lambda: self.aller("texte")))
+        c.append(reglage("mouse-pointer-2", "Taille du pointeur", "", clic=lambda: self.aller("curseur")))
+        c.append(reglage("wand-sparkles", "Réduire les animations", "Rien ne bouge ni ne clignote à l'écran",
+                         droite=interrupteur(not self.cfg["animations"], lambda on: self.regler(animations=not on))))
+
+    def p_audition(self, c, cle):
+        from . import acces as AC
+        c.append(groupe_titre("Sous-titres en direct"))
+        c.append(reglage("captions", "Sous-titrer ce qui se dit", "Super + Ctrl + L. Vidéos, visios, appels : le texte s'affiche en bas de l'écran, "
+                         "par-dessus toutes les fenêtres. Tout est reconnu sur ce PC, rien n'est envoyé.",
+                         droite=bouton("Arrêter" if AC.actif_st() else "Lancer", None, "pilule", rappel=lambda: (S.detacher(["xiii-acces", "--soustitres"]), GLib.timeout_add(800, lambda: (self.aller(cle, False), False)[1])))))
+        c.append(reglage("audio-lines", "Ce qu'on sous-titre", "",
+                         droite=deroulant([("pc", "Le son du PC"), ("micro", "Le micro (personne en face)")], self.cfg.get("soustitres_source", "pc"), lambda v: self.regler(soustitres_source=v), 230)))
+        c.append(reglage("type", "Taille des sous-titres", "", droite=dim(curseur(self.cfg.get("soustitres_taille", 28), lambda v: self.regler(soustitres_taille=int(v)), 18, 56, 2, 400), 260)))
+        c.append(info("La reconnaissance est en français. Le copier, en haut à droite des sous-titres, met toute la transcription dans le presse-papiers."))
+        c.append(groupe_titre("Son"))
+        c.append(reglage("volume-2", "Son mono, sons d'alerte, volume", "", clic=lambda: self.aller("son")))
+        c.append(reglage("bell", "Notifications", "Durée d'affichage, ne pas déranger", clic=lambda: self.aller("notifications")))
+
+    def p_saisie(self, c, cle):
+        from . import acces as AC
+        e = AC.etat()
+        c.append(groupe_titre("Dictée partout"))
+        c.append(reglage("mic", "Écrire en parlant", "Super + Alt + H dans n'importe quelle application : parlez, le texte s'écrit là où est le curseur. "
+                         "Dites « virgule », « point », « à la ligne », « point d'interrogation ». Hors ligne.",
+                         droite=bouton("Essayer", None, "pilule", rappel=lambda: S.detacher(["xiii-acces", "--dicter"]))))
+        c.append(reglage("audio-lines", "Commandes vocales", "Super + H : « ouvre CONDUCO », « mode production », « cherche les vidéos de cette semaine »",
+                         droite=bouton("Essayer", None, "fantome", rappel=lambda: S.detacher(["xiii-voix"]))))
+        c.append(groupe_titre("Clavier visuel"))
+        c.append(reglage("keyboard", "Clavier à l'écran", "Super + Alt + K. Pour un écran tactile, ou si le clavier est difficile à utiliser"
+                         if e["clavier_installe"] else "wvkbd n'est pas installé sur cette édition",
+                         droite=interrupteur(e["clavier_visuel"], lambda on: AC.clavier(on)) if e["clavier_installe"] else None))
+        c.append(groupe_titre("Traduction"))
+        c.append(reglage("languages", "Traduire le texte sélectionné", "Super + Alt + T : sélectionnez un texte dans n'importe quelle appli, "
+                         "l'IA choisie en haut de l'écran le traduit (français ↔ anglais). Le texte part vers cette IA.",
+                         droite=bouton("Essayer", None, "fantome", rappel=lambda: S.detacher(["xiii-acces", "--traduire"]))))
+        c.append(groupe_titre("Tous les raccourcis d'accessibilité"))
+        for k, t in AC.RACCOURCIS:
+            r = boite(False, 12, "reglage"); r.append(label(k, "gras", width_chars=24)); r.append(label(t, "attenue", wrap=True)); c.append(r)
+
     # ================================================================== ACCESSIBILITÉ
     def p_effets(self, c, cle):
         cfg = self.cfg

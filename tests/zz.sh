@@ -165,6 +165,13 @@ curl -s -u zz:x -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null -w
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
+echo "== Phase L (accessibilité)" >> $R
+espeak-ng -v fr -s 140 -w /tmp/st.wav "bonjour à tous, nous tournons demain matin" 2>/dev/null
+XIII_TEST_WAV=/tmp/st.wav xiii-acces --test >> $R 2>&1 || echo "ÉCHEC     accessibilité (voir zz.txt)" >> $R
+xiii-soustitres > /out/xiii-soustitres.log 2>&1 & sleep 4; grim -s 0.5 /out/app-soustitres.png; xiii-acces --soustitres; sleep 1
+pgrep -f "acces import main.*--soustitres" >/dev/null && echo "ÉCHEC     sous-titres : le second appui ne ferme pas" >> $R || echo "OK        sous-titres : second appui = fermeture" >> $R
+grep -q 'ZoomIn' /root/.config/labwc/rc.xml && echo "OK        loupe : raccourcis Super + = / Super + -" >> $R
+
 echo "== Phase K (sécurité)" >> $R
 xiii-coffre --test >> $R 2>&1 || echo "ÉCHEC     Coffre XIII" >> $R
 xiii-sauvegarde --test >> $R 2>&1 || echo "ÉCHEC     Sauvegarde XIII" >> $R

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Sous-titres en direct
+Comment=Sous-titres de ce qui joue sur le PC, hors ligne
+Exec=xiii-soustitres %F
+Icon=xiii-soustitres
+Type=Application
+Categories=Utility;Accessibility;XIII;
+Keywords=sous-titres;captions;malentendant;transcription;

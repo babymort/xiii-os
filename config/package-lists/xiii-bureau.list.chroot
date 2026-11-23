@@ -57,3 +57,9 @@ xserver-xorg
 ffmpegthumbnailer
 libimage-exiftool-perl
 poppler-utils
+orca
+at-spi2-core
+speech-dispatcher
+speech-dispatcher-espeak-ng
+espeak-ng
+wvkbd

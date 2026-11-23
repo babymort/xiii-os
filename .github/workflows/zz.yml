@@ -22,7 +22,9 @@ jobs:
             libgtk4-layer-shell0 gir1.2-gtk4layershell-1.0 librsvg2-common gir1.2-gdkpixbuf-2.0 python3-gi-cairo fonts-ibm-plex fonts-noto-core fonts-noto-color-emoji \
             papirus-icon-theme adwaita-icon-theme dbus dbus-user-session libglib2.0-bin libnotify-bin thunar mousepad imv pavucontrol gnome-disk-utility \
             shared-mime-info hicolor-icon-theme python3-xxhash pciutils \
-            gir1.2-webkit-6.0 gstreamer1.0-plugins-good libgl1-mesa-dri ca-certificates desktop-file-utils gtk-update-icon-cache qrencode curl python3-serial wtype python3-pil fonts-dejavu-core zip foot gir1.2-manette-0.2 network-manager iputils-ping iproute2 7zip unar wlrctl ffmpeg ffmpegthumbnailer libimage-exiftool-perl poppler-utils mpv tesseract-ocr tesseract-ocr-fra python3-dateutil socat python3-venv python3-pykeepass restic >/dev/null
+            gir1.2-webkit-6.0 gstreamer1.0-plugins-good libgl1-mesa-dri ca-certificates desktop-file-utils gtk-update-icon-cache qrencode curl python3-serial wtype python3-pil fonts-dejavu-core zip foot gir1.2-manette-0.2 network-manager iputils-ping iproute2 7zip unar wlrctl ffmpeg ffmpegthumbnailer libimage-exiftool-perl poppler-utils mpv tesseract-ocr tesseract-ocr-fra python3-dateutil socat python3-venv python3-pykeepass restic espeak-ng python3-pip unzip >/dev/null
+          pip3 install -q --break-system-packages vosk >/dev/null 2>&1 || true
+          mkdir -p /usr/share/vosk && curl -fsSL --retry 3 -o /tmp/v.zip https://alphacephei.com/vosk/models/vosk-model-small-fr-0.22.zip && unzip -q /tmp/v.zip -d /tmp/v && mv /tmp/v/vosk-model-small-fr-0.22 /usr/share/vosk/fr || true
       - name: Installation des fichiers XIII
         run: |
           cp -a config/includes.chroot/. /

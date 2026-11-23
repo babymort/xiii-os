@@ -11,6 +11,7 @@
     <font place="ActiveWindow"><name>IBM Plex Sans</name><size>10</size><weight>bold</weight></font>
     <font place="MenuItem"><name>IBM Plex Sans</name><size>10</size></font>
   </theme>
+  <magnifier><width>-1</width><height>-1</height><initScale>2.0</initScale><increment>0.5</increment><useFilter>true</useFilter></magnifier>
   <regions>
     <region name="gauche" x="0%" y="0%" width="50%" height="100%" />
     <region name="droite" x="50%" y="0%" width="50%" height="100%" />
@@ -77,6 +78,16 @@
     <keybind key="W-S-c"><action name="Execute" command="xiii-claude-code" /></keybind>
     <keybind key="W-Return"><action name="Execute" command="foot --app-id=fr.xiii.terminal" /></keybind>
     <keybind key="W-j"><action name="Execute" command="xiii-ia" /></keybind>
+    <keybind key="W-A-s"><action name="Execute" command="xiii-acces --lecteur" /></keybind>
+    <keybind key="W-equal"><action name="ZoomIn" /></keybind>
+    <keybind key="W-plus"><action name="ZoomIn" /></keybind>
+    <keybind key="W-minus"><action name="ZoomOut" /></keybind>
+    <keybind key="W-A-m"><action name="ToggleMagnify" /></keybind>
+    <keybind key="W-A-c"><action name="Execute" command="xiii-acces --contraste" /></keybind>
+    <keybind key="W-A-k"><action name="Execute" command="xiii-acces --clavier" /></keybind>
+    <keybind key="C-W-l"><action name="Execute" command="xiii-acces --soustitres" /></keybind>
+    <keybind key="W-A-h"><action name="Execute" command="xiii-acces --dicter" /></keybind>
+    <keybind key="W-A-t"><action name="Execute" command="xiii-acces --traduire" /></keybind>
     <keybind key="W-h"><action name="Execute" command="xiii-voix" /></keybind>
     <keybind key="C-A-t"><action name="Execute" command="foot --app-id=fr.xiii.terminal" /></keybind>
     <keybind key="C-S-Escape"><action name="Execute" command="xiii-taches" /></keybind>
