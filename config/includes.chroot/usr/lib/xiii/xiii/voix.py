@@ -75,7 +75,7 @@ def chercher_filtres(q):
         if re.search(rx, q): jours = n; break
     vides = r"\b(les|le|la|l|des|de|du|d|mes|mon|ma|tous|toutes|fichiers?|videos?|rushs?|photos?|images?|sons?|audios?|musiques?|pdf|documents?|aujourd.?hui|hier|cette|ce|semaine|derniere|dernier|mois|projet)\b"
     texte = re.sub(r"\s+", " ", re.sub(vides, " ", q)).strip()
-    if typ == "doc" and re.search(r"\bdevis\b", q): texte = ("devis " + texte).strip()
+    if typ == "doc" and re.search(r"\bdevis\b", q) and "devis" not in texte.split(): texte = ("devis " + texte).strip()
     return texte, typ, jours
 
 

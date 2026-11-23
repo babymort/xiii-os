@@ -107,7 +107,7 @@ class Enregistreur(Gtk.Application):
     def do_activate(self):
         if getattr(self, "win", None): self.win.present(); return
         preparer(".compte { font-size: 96px; font-weight: 800; color: #f0b378; }")
-        self.win = Gtk.ApplicationWindow(application=self, title="XIII Enregistreur", default_width=560, default_height=600)
+        self.win = Gtk.ApplicationWindow(application=self, title="XIII Enregistreur", default_width=580, default_height=780)
         sc, v = page("Enregistreur", "Écran, webcam incrustée, micro et son de l'ordinateur — un seul fichier MP4 à la fin", "circle-dot")
         self.win.set_child(sc); c = config.charger()
         if en_cours():

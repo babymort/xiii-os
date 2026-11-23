@@ -56,8 +56,8 @@ local function afficher()
   elseif a then boucle = "   ⟲ A posé (l pour B)" end
   local source = debut_tc and "TC caméra" or "TC fichier"
   local w, h = mp.get_osd_size()
-  mp.set_osd_ass(w, h, string.format("{\\an7\\pos(24,22)\\fnIBM Plex Mono\\fs34\\bord2\\3c&H12161A&\\1c&H78B3F0&}%s{\\fs20\\1c&HE3E9EE&}   %s · %.3g i/s · image %d%s",
-    txt, source, f, n, boucle))
+  mp.set_osd_ass(w, h, string.format("{\\an9\\pos(%d,22)\\fnIBM Plex Mono\\fs34\\bord2\\3c&H12161A&\\1c&H78B3F0&}%s{\\fs20\\1c&HE3E9EE&}   %s · %.3g i/s · image %d%s",
+    w - 24, txt, source, f, n, boucle))
 end
 
 local function scope_filtre(k)

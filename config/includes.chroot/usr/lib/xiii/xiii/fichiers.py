@@ -66,7 +66,7 @@ class Fichiers(Gtk.Application):
         if pj and config.charger().get("fichiers_depart_projet", True) and os.path.isdir(os.path.expanduser("~/XIII/" + pj)):
             depart = os.path.expanduser("~/XIII/" + pj)       # le projet choisi en haut à gauche est le point de départ
         A0 = cl.get_arguments()
-        a = [x for i, x in enumerate(A0[1:], 1) if not (A0[i - 1] in ("--chercher", "--type", "--jours"))]
+        a = [x for i, x in enumerate(A0[1:], 1) if not x.startswith("--") and A0[i - 1] not in ("--chercher", "--type", "--jours")]
         d = Gio.File.new_for_commandline_arg_and_cwd(a[0], cl.get_cwd() or "/").get_path() if a else depart
         if d and os.path.isfile(d): d = os.path.dirname(d)
         self.activer(); self.aller(d or os.path.expanduser("~"))
