@@ -2611,6 +2611,9 @@ class Parametres(Gtk.Application):
         v = maj.version()
         c.append(groupe_titre("OS XIII"))
         c.append(reglage("tag", "Version installée", "%s · canal %s" % (v.get("version", "?"), "Stable" if v.get("branche") == "main" else "Beta")))
+        if os.path.exists("/usr/share/xiii/NOUVEAUTES.md"):
+            c.append(reglage("sparkles", "Nouveautés de cette version", "Ce qu'apporte OS XIII %s" % v.get("version", "").split("-")[0],
+                             droite=bouton("Lire", None, "fantome", rappel=lambda: S.detacher(["xdg-open", "/usr/share/xiii/NOUVEAUTES.md"]))))
         canal = {"v": "stable" if v.get("branche") == "main" else "beta"}
         c.append(reglage("git-branch", "Canal de mise à jour", "Stable : versions publiées · Beta : nouveautés en avant-première",
                          droite=deroulant([("stable", "Stable"), ("beta", "Beta")], canal["v"], lambda x: canal.__setitem__("v", x))))

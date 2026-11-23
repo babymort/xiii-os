@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p config/includes.chroot/usr/share/xiii config/includes.chroot/var/lib/xiii
-          printf '{"version": "%s", "branche": "%s", "commit": "%s", "date": "%s", "architecture": "arm64"}\n' "$(date +%Y%m%d)-${GITHUB_REF_NAME}-${GITHUB_SHA::7}" "${GITHUB_REF_NAME}" "${GITHUB_SHA::7}" "$(date +%F)" > config/includes.chroot/usr/share/xiii/VERSION.json
+          printf '{"version": "%s", "branche": "%s", "commit": "%s", "date": "%s", "architecture": "arm64"}\n' "$(B=$(cat VERSION 2>/dev/null || echo 1.0); case "$GITHUB_REF" in refs/tags/v*) echo "${GITHUB_REF_NAME#v}";; refs/heads/main) echo "$B";; *) echo "$B-beta.$(date +%Y%m%d).${GITHUB_SHA::7}";; esac)" "$(case "$GITHUB_REF" in refs/tags/v*|refs/heads/main) echo main;; *) echo "${GITHUB_REF_NAME}";; esac)" "${GITHUB_SHA::7}" "$(date +%F)" > config/includes.chroot/usr/share/xiii/VERSION.json
           python3 -c "import hashlib,json,glob,os; print(json.dumps({'scripts': {os.path.basename(f): hashlib.sha256(open(f,'rb').read()).hexdigest() for f in glob.glob('config/hooks/normal/*.hook.chroot') if b'xiii-maj: relancer' in open(f,'rb').read()}}))" > config/includes.chroot/var/lib/xiii/maj.json
       - name: Configuration (arm64)
         run: XIII_ARCH=arm64 lb config

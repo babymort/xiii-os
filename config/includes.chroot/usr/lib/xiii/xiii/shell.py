@@ -63,6 +63,7 @@ class Shell(Gtk.Application):
         GLib.timeout_add_seconds(12, differe)
         if self.cfg.get("lecteur_ecran") and not S.DEMO: S.detacher(["xiii-acces", "--lecteur", "on"])     # le lecteur d'écran, lui, n'attend pas
         GLib.timeout_add_seconds(90, self.precharger)
+        GLib.timeout_add_seconds(30, lambda: (self.liberer_memoire(), False)[1]); GLib.timeout_add_seconds(600, self.liberer_memoire)
         GLib.idle_add(self.noter_pret)
         self.surveiller_batterie()
         self.surveiller_reseau()
@@ -157,21 +158,10 @@ class Shell(Gtk.Application):
             "volet": (P.Volet, {T: HH + 8, B: HB + 10, R: 8}, (T, B, R)), "widgets": (W.Tableau, {T: HH + 8, B: HB + 10, Lf: 8}, (T, B, Lf)),
             "presse": (vues.PressePapiers, {B: HB + 10}, (B,)), "emoji": (vues.Emojis, {B: HB + 10}, (B,)),
         }
-        for nom, (cls, marges, ancres) in defs.items():
-            w = Gtk.Window(application=self)
-            couche(w, LS.Layer.OVERLAY, ancres, marges, LS.KeyboardMode.EXCLUSIVE if nom in ("demarrer", "wifi", "presse", "emoji") else LS.KeyboardMode.ON_DEMAND, ns="xiii-" + nom)
-            k = Gtk.EventControllerKey(); k.connect("key-pressed", self._touche); w.add_controller(k)
-            # filet de sécurité : un panneau qui perd le focus (clic dans une autre fenêtre) se ferme
-            def focus(win, _p, n=nom):
-                if win.is_active(): win._etait_actif = True
-                elif getattr(win, "_etait_actif", False) and self.ouvert == n:
-                    win._etait_actif = False; GLib.idle_add(lambda: (self.fermer() if self.ouvert == n else None, False)[1])
-            w.connect("notify::is-active", focus)
-            if nom == "demarrer":
-                self.menu = MenuDemarrer(self); w.set_child(self.menu.widget); obj = self.menu
-            else:
-                obj = cls(self); w.set_child(obj.widget)
-            self.panneaux[nom] = (w, obj)
+        # mémoire : seuls le menu Démarrer est construit au démarrage ; chaque panneau (émojis, widgets, presse-papiers, volet…)
+        # est construit à sa première ouverture, puis gardé
+        self._defs = defs
+        self.construire_panneau("demarrer")
         # bulles de notification
         self.bulles = Gtk.Window(application=self)
         couche(self.bulles, LS.Layer.OVERLAY, (B, R), {B: HB + 10, R: 10}, ns="xiii-bulles")
@@ -218,8 +208,36 @@ class Shell(Gtk.Application):
         if self.ouvert == nom: self.fermer()
         else: self.ouvrir(nom)
 
+    def construire_panneau(self, nom):
+        cls, marges, ancres = self._defs[nom]
+        T, B, Lf, R = LS.Edge.TOP, LS.Edge.BOTTOM, LS.Edge.LEFT, LS.Edge.RIGHT
+        w = Gtk.Window(application=self)
+        couche(w, LS.Layer.OVERLAY, ancres, marges, LS.KeyboardMode.EXCLUSIVE if nom in ("demarrer", "wifi", "presse", "emoji") else LS.KeyboardMode.ON_DEMAND, ns="xiii-" + nom)
+        k = Gtk.EventControllerKey(); k.connect("key-pressed", self._touche); w.add_controller(k)
+        # filet de sécurité : un panneau qui perd le focus (clic dans une autre fenêtre) se ferme
+        def focus(win, _p, n=nom):
+            if win.is_active(): win._etait_actif = True
+            elif getattr(win, "_etait_actif", False) and self.ouvert == n:
+                win._etait_actif = False; GLib.idle_add(lambda: (self.fermer() if self.ouvert == n else None, False)[1])
+        w.connect("notify::is-active", focus)
+        if nom == "demarrer":
+            self.menu = MenuDemarrer(self); w.set_child(self.menu.widget); obj = self.menu
+        else:
+            obj = cls(self); w.set_child(obj.widget)
+        self.panneaux[nom] = (w, obj)
+        return w, obj
+
+    def liberer_memoire(self):
+        """Rend au système la mémoire libérée par Python et GTK (malloc_trim) : plusieurs Mo après le démarrage."""
+        try:
+            import ctypes, gc
+            gc.collect(); ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception: pass
+        return True
+
     def ouvrir(self, nom):
-        if nom not in self.panneaux: return
+        if nom not in self._defs: return
+        if nom not in self.panneaux: self.construire_panneau(nom)
         self.fermer(garder_voile=True)
         self.bulles.set_visible(False)
         w, obj = self.panneaux[nom]

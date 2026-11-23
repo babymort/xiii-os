@@ -13,3 +13,6 @@ mkdir -p /etc/systemd/system.conf.d /etc/systemd/user.conf.d
 printf '[Manager]\nDefaultTimeoutStopSec=10s\n' > /etc/systemd/system.conf.d/xiii-rapide.conf
 printf '[Manager]\nDefaultTimeoutStopSec=8s\n' > /etc/systemd/user.conf.d/xiii-rapide.conf
 systemctl enable xiii-parefeu-init.service ufw.service 2>/dev/null || true
+# pare-feu : règles et exceptions du réseau local écrites dès la construction de l'ISO (ufw actif dès le premier démarrage,
+# plus rien à faire au démarrage) ; le service xiii-parefeu-init ne sert plus que de filet si ce fichier manque
+[ -f /etc/xiii/parefeu.json ] || XIII_PAREFEU_HORS_LIGNE=1 /usr/local/sbin/xiii-parefeu init || echo "pare-feu : règles écrites au premier démarrage"

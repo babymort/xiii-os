@@ -1,6 +1,8 @@
 #!/bin/bash
 # OS XIII — lance le bureau, avec repli automatique si la carte graphique pose problème.
 mkdir -p ~/.cache/xiii; LOG=~/.cache/xiii/bureau.log; : > "$LOG"
+# mémoire : au plus 2 réserves malloc par processus (les applis Python à fils n'en gardent plus 8 à moitié vides)
+export MALLOC_ARENA_MAX=2
 export XDG_CURRENT_DESKTOP=labwc XDG_SESSION_TYPE=wayland XCURSOR_THEME=XIII-curseur XCURSOR_SIZE=24
 # mode sans échec graphique (menu de démarrage) : pilote d'affichage de base, rendu logiciel, pas d'effets
 if grep -qw xiii.sans-echec /proc/cmdline; then

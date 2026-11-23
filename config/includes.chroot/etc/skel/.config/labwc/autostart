@@ -8,7 +8,8 @@ python3 -c 'import sys; sys.path.insert(0, "/usr/lib/xiii"); from xiii import cl
 [ -n "$(ls /sys/class/bluetooth 2>/dev/null)" ] && blueman-applet >/dev/null 2>&1 &
 wl-paste --watch cliphist store >/dev/null 2>&1 &
 # Téléphone connecté (KDE Connect, édition complète ou installé depuis le Centre de logiciels)
-command -v kdeconnect-cli >/dev/null && (sleep 12; kdeconnect-cli --refresh) >/dev/null 2>&1 &
+# (seulement si un téléphone a déjà été appairé : sinon le service de 40 Mo ne démarre pas pour rien)
+command -v kdeconnect-cli >/dev/null && ls "$HOME"/.config/kdeconnect/trusted_devices >/dev/null 2>&1 && (sleep 12; kdeconnect-cli --refresh) >/dev/null 2>&1 &
 # Profils réseau appliqués automatiquement selon le Wi-Fi rejoint : surveillés par xiii-shell (plus de processus à part)
 (sleep 8; xiii-verif-pilotes) >/dev/null 2>&1 &
 # Session live : écran d'accueil (Essayer / Installer)

@@ -1,7 +1,7 @@
 PRETTY_NAME="OS XIII"
 NAME="OS XIII"
-VERSION_ID="0.9"
-VERSION="0.9 (beta)"
+VERSION_ID="1.0"
+VERSION="1.0 (beta)"
 ID=xiii
 ID_LIKE=debian
 HOME_URL="https://suite-xiii.netlify.app/"

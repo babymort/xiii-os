@@ -6,7 +6,7 @@
 #   xiii-parefeu ouvrir CLÉ | fermer CLÉ
 #   xiii-parefeu activer | desactiver
 # Application développée par Matthieu Lamotte.
-import json, os, subprocess, sys
+import json, os, re, subprocess, sys
 
 ETAT = "/etc/xiii/parefeu.json"
 LOCAL = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "fe80::/10", "fc00::/7"]
@@ -55,7 +55,12 @@ def main():
         ufw("default", "deny", "incoming"); ufw("default", "allow", "outgoing")
         for k, v in EXCEPTIONS.items():
             if v[3]: regle(k, True); e.setdefault("ouvert", {})[k] = True
-        r = ufw("--force", "enable"); e["actif"] = r.returncode == 0; e["init"] = True
+        if os.environ.get("XIII_PAREFEU_HORS_LIGNE"):     # construction de l'ISO : règles écrites dans les fichiers, ufw actif dès le 1er démarrage
+            c = open("/etc/ufw/ufw.conf").read(); open("/etc/ufw/ufw.conf", "w").write(re.sub(r"(?m)^ENABLED=.*$", "ENABLED=yes", c))
+            e["actif"] = True
+        else:
+            r = ufw("--force", "enable"); e["actif"] = r.returncode == 0
+        e["init"] = True
     elif a[0] in ("ouvrir", "fermer") and len(a) > 1 and a[1] in EXCEPTIONS:
         regle(a[1], a[0] == "ouvrir"); e.setdefault("ouvert", {})[a[1]] = a[0] == "ouvrir"
     elif a[0] == "activer":

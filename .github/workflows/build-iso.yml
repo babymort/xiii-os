@@ -31,14 +31,22 @@ jobs:
         shell: bash
         run: |
           mkdir -p config/includes.chroot/usr/share/xiii
-          printf '{"version": "%s", "branche": "%s", "commit": "%s", "date": "%s"}\n' "$(date +%Y%m%d)-${GITHUB_REF_NAME}-${GITHUB_SHA::7}" "${GITHUB_REF_NAME}" "${GITHUB_SHA::7}" "$(date +%F)" > config/includes.chroot/usr/share/xiii/VERSION.json
+          # numéro de version : fichier VERSION (ex. 1.0) ; étiquette vX.Y = version publiée, main = Stable, beta = 1.0-beta.date.commit
+          BASE=$(cat VERSION 2>/dev/null || echo 1.0)
+          case "$GITHUB_REF" in
+            refs/tags/v*) V="${GITHUB_REF_NAME#v}"; BR=main;;
+            refs/heads/main) V="$BASE"; BR=main;;
+            *) V="$BASE-beta.$(date +%Y%m%d).${GITHUB_SHA::7}"; BR="${GITHUB_REF_NAME}";;
+          esac
+          echo "XIII_V=$V" >> $GITHUB_ENV; echo "XIII_BR=$BR" >> $GITHUB_ENV
+          printf '{"version": "%s", "branche": "%s", "commit": "%s", "date": "%s"}\n' "$V" "$BR" "${GITHUB_SHA::7}" "$(date +%F)" > config/includes.chroot/usr/share/xiii/VERSION.json
           mkdir -p config/includes.chroot/etc/xiii
           echo "${{ matrix.edition }}" > config/includes.chroot/etc/xiii/edition
           sed -i 's/}$/, "edition": "${{ matrix.edition }}"}/' config/includes.chroot/usr/share/xiii/VERSION.json
           # numéro affiché par le système (os-release, écran texte) = version construite
-          V="$(date +%Y.%m.%d)"; ED="${{ matrix.edition == 'leger' && ' légère' || '' }}"
-          sed -i "s/^VERSION_ID=.*/VERSION_ID=\"$V\"/; s/^VERSION=.*/VERSION=\"$V ($GITHUB_REF_NAME$ED)\"/" config/includes.chroot/etc/os-release
-          sed -i "s/OS XIII 0\.9 — beta/OS XIII $V — $GITHUB_REF_NAME$ED/" config/includes.chroot/etc/issue
+          V="$XIII_V"; ED="${{ matrix.edition == 'leger' && ' légère' || '' }}"; C=$([ "$XIII_BR" = main ] && echo Stable || echo Beta)
+          sed -i "s/^VERSION_ID=.*/VERSION_ID=\"$V\"/; s/^VERSION=.*/VERSION=\"$V ($C$ED)\"/" config/includes.chroot/etc/os-release
+          sed -i "s/OS XIII 0\.9 — beta/OS XIII $V — $C$ED/" config/includes.chroot/etc/issue
           cat config/includes.chroot/usr/share/xiii/VERSION.json
           mkdir -p config/includes.chroot/var/lib/xiii
           python3 -c "import hashlib,json,glob,os; print(json.dumps({'scripts': {os.path.basename(f): hashlib.sha256(open(f,'rb').read()).hexdigest() for f in glob.glob('config/hooks/normal/*.hook.chroot') if b'xiii-maj: relancer' in open(f,'rb').read()}}))" > config/includes.chroot/var/lib/xiii/maj.json || true
@@ -61,7 +69,7 @@ jobs:
       - name: Nommage
         shell: bash
         run: |
-          V=$(date +%Y%m%d)-${GITHUB_REF_NAME}-${GITHUB_SHA::7}
+          V="$XIII_V"
           N=OS-XIII; [ "${{ matrix.edition }}" = leger ] && N=OS-XIII-Leger
           mv *.iso "$N-$V.iso"
           sha256sum $N-*.iso > SHA256SUMS
@@ -166,6 +174,7 @@ jobs:
     needs: [iso, essai]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5      # notes de version (NOUVEAUTES-X.Y.md)
       - uses: actions/download-artifact@v5
         with: { name: "OS-XIII-Leger-${{ github.ref_name }}", path: leger }
       - uses: actions/download-artifact@v5
@@ -194,4 +203,6 @@ jobs:
           Écrire l'ISO sur une clé USB de 8 Go avec balenaEtcher, Rufus ou Ventoy, puis démarrer dessus : « Essayer » ou « Installer ».
           Vérification : `SHA256SUMS`.
           N
+          V="${{ github.ref_name }}"; F="NOUVEAUTES-${V#v}.md"
+          [ -f "$GITHUB_WORKSPACE/$F" ] && { echo; cat "$GITHUB_WORKSPACE/$F"; } >> notes.md || true
           gh release create "${{ github.ref_name }}" pub/* --repo "${{ github.repository }}" --title "OS XIII ${{ github.ref_name }}" --notes-file notes.md

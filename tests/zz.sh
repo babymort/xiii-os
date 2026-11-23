@@ -165,6 +165,12 @@ curl -s -u zz:x -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null -w
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
+echo "== Version Stable (mémoire, démarrage)" >> $R
+mkdir -p /etc/xiii; rm -f /etc/xiii/parefeu.json; XIII_PAREFEU_HORS_LIGNE=1 /usr/local/sbin/xiii-parefeu init > /tmp/pf.log 2>&1
+n=$(grep -c "XIII" /etc/ufw/user.rules 2>/dev/null); grep -q "^ENABLED=yes" /etc/ufw/ufw.conf 2>/dev/null && [ "${n:-0}" -gt 0 ] && echo "OK        pare-feu écrit à la construction de l'ISO : $n lignes d'exceptions, actif au 1er démarrage" >> $R || echo "ÉCHEC     pare-feu hors ligne : $(tail -3 /tmp/pf.log | tr '\n' ' ')" >> $R
+rm -f /etc/xiii/parefeu.json
+p=$(pgrep -f "xiii.shell import" | head -1); [ -n "$p" ] && echo "INFO      shell : $(awk '/^Pss:/{print int($2/1024)" Mo"}' /proc/$p/smaps_rollup) (PSS) avec panneaux construits à la demande" >> $R
+
 echo "== Phase M (distribution)" >> $R
 truncate -s 60M /tmp/f.iso; printf 'label: dos\n,40M,83\n' | sfdisk -q /tmp/f.iso; truncate -s 800M /tmp/cle.img
 if xiii-cle-ecrire /tmp/f.iso /tmp/cle.img > /tmp/cle.log 2>&1 && grep -q FINI /tmp/cle.log; then
