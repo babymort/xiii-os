@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=XIII Notes
+Comment=Notes Markdown, cases à cocher et croquis, rangés avec le projet
+Exec=xiii-notes %F
+Icon=xiii-notes
+Type=Application
+Categories=Office;Utility;XIII;
+Keywords=notes;markdown;croquis;dessin;todo;liste;

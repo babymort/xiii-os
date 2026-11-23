@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=XIII Lecteur
+GenericName=Lecteur vidéo
+Comment=Lecteur pro : image par image, timecode, boucle A/B, scopes, sous-titres
+Exec=xiii-lecteur %F
+Icon=xiii-lecteur
+Type=Application
+Categories=AudioVideo;Video;Player;XIII;
+MimeType=video/mp4;video/quicktime;video/x-matroska;video/webm;video/x-msvideo;video/mpeg;video/mp2t;video/x-m4v;video/MP2T;application/mxf;video/x-ogm+ogg;video/ogg;video/3gpp;video/x-flv;video/x-ms-wmv;
+Keywords=video;lecteur;mpv;timecode;scopes;

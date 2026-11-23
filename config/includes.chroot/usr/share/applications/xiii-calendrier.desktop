@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=XIII Calendrier
+Comment=Agenda avec rappels, agendas Google et Outlook, jours de tournage du plan de travail
+Exec=xiii-calendrier %F
+Icon=xiii-calendrier
+Type=Application
+Categories=Office;Calendar;XIII;
+Keywords=calendrier;agenda;rendez-vous;google agenda;outlook;tournage;planning;

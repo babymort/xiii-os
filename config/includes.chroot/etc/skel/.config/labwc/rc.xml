@@ -77,6 +77,7 @@
     <keybind key="W-S-c"><action name="Execute" command="xiii-claude-code" /></keybind>
     <keybind key="W-Return"><action name="Execute" command="foot --app-id=fr.xiii.terminal" /></keybind>
     <keybind key="W-j"><action name="Execute" command="xiii-ia" /></keybind>
+    <keybind key="W-h"><action name="Execute" command="xiii-voix" /></keybind>
     <keybind key="C-A-t"><action name="Execute" command="foot --app-id=fr.xiii.terminal" /></keybind>
     <keybind key="C-S-Escape"><action name="Execute" command="xiii-taches" /></keybind>
     <keybind key="W-e"><action name="Execute" command="xiii-fichiers" /></keybind>

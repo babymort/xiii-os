@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=XIII Scanner
+Comment=Numériser des documents (webcam, scanner, photo) en PDF cherchable
+Exec=xiii-scanner %F
+Icon=xiii-scanner
+Type=Application
+Categories=Office;Graphics;Scanning;XIII;
+Keywords=scanner;numeriser;pdf;ocr;document;webcam;

@@ -1,9 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Gestionnaire des tâches
+Name=Moniteur système XIII
+GenericName=Gestionnaire des tâches
 Comment=Processus, performances, applications au démarrage (Ctrl + Maj + Échap)
 Exec=xiii-taches
 Icon=xiii-bilan
 Categories=System;Monitor;X-XIII;
-Keywords=taches;processus;task manager;performances;memoire;processeur;tuer;fin de tache;
+Keywords=gestionnaire des taches;moniteur;temperature;gpu;bloque;taches;processus;task manager;performances;memoire;processeur;tuer;fin de tache;
 StartupWMClass=fr.xiii.taches

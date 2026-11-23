@@ -23,6 +23,10 @@ pavucontrol
 network-manager-gnome
 network-manager-openvpn
 wireguard-tools
+python3-dateutil
+tesseract-ocr
+tesseract-ocr-fra
+sane-utils
 blueman
 # Droits administrateur graphiques
 polkitd

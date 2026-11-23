@@ -65,12 +65,18 @@ class Fichiers(Gtk.Application):
         pj = config.charger().get("projet_actif")
         if pj and config.charger().get("fichiers_depart_projet", True) and os.path.isdir(os.path.expanduser("~/XIII/" + pj)):
             depart = os.path.expanduser("~/XIII/" + pj)       # le projet choisi en haut à gauche est le point de départ
+        A0 = cl.get_arguments()
+        a = [x for i, x in enumerate(A0[1:], 1) if not (A0[i - 1] in ("--chercher", "--type", "--jours"))]
         d = Gio.File.new_for_commandline_arg_and_cwd(a[0], cl.get_cwd() or "/").get_path() if a else depart
         if d and os.path.isfile(d): d = os.path.dirname(d)
         self.activer(); self.aller(d or os.path.expanduser("~"))
         if "--test-colonnes" in cl.get_arguments(): GLib.timeout_add(1500, self.test_colonnes)
         if "--infos" in cl.get_arguments() and a: GLib.timeout_add(800, lambda: (self.infos_fichier(os.path.abspath(a[0])), False)[1])
         if "--corbeille" in cl.get_arguments(): GLib.timeout_add(500, lambda: (self.vue_corbeille(), False)[1])
+        A = cl.get_arguments()
+        if "--chercher" in A:       # commandes vocales : « cherche les vidéos de cette semaine »
+            g = lambda k: A[A.index(k) + 1] if k in A and A.index(k) + 1 < len(A) else None
+            GLib.timeout_add(500, lambda: (self.recherche_filtree(g("--chercher") or "", g("--type"), int(g("--jours") or 0)), False)[1])
         return 0
 
     def test_colonnes(self):
@@ -659,6 +665,8 @@ class Fichiers(Gtk.Application):
                   ("square-terminal", "Ouvrir dans le terminal", lambda: S.detacher(["foot", "--app-id=fr.xiii.terminal", "-D", p if os.path.isdir(p) else os.path.dirname(p)])),
                   ("info", "Propriétés", lambda: S.detacher(["dbus-send", "--session", "--dest=org.xfce.FileManager", "--type=method_call", "/org/xfce/FileManager",
                                                             "org.xfce.FileManager.DisplayFileProperties", "string:" + uri, "string:", "string:"]))]
+        if len(L) == 1 and L[0].lower().endswith((".pdf", ".docx", ".odt", ".pptx", ".odp", ".txt", ".md", ".srt")):
+            items.append(("sparkles", "Résumer avec l'IA", lambda: S.detacher(["xiii-voix", "--resumer", L[0]])))
         return items
 
     def menu_etiquette(self, L):
@@ -953,6 +961,33 @@ class Fichiers(Gtk.Application):
                         elif k == "gros" and st.st_size > 1e9: R.append(p)
                         elif k == "projet" and maintenant - st.st_mtime < 14 * 86400: R.append(p)
                         elif k == "jour" and maintenant - st.st_mtime < 86400 and not r.startswith(os.path.expanduser("~/.")): R.append(p)
+                    if len(R) > 800: return R
+            return R
+        S.en_fond(tache, lambda R: self.montrer_liste(R if isinstance(R, list) else [], titre))
+
+    def recherche_filtree(self, texte, typ=None, jours=0):
+        """Recherche par nom, type et ancienneté (projet actif d'abord, puis dossier personnel et disques)."""
+        racines = [os.path.expanduser("~")] + [m.get_root().get_path() for m in Gio.VolumeMonitor.get().get_mounts() if m.get_root() and m.get_root().get_path() and m.get_root().get_path().startswith(("/media", "/run/media", "/mnt"))]
+        mots = [m for m in sans_accents(texte.lower()).split() if len(m) > 1]; lim = time.time() - jours * 86400 if jours else 0
+        EXT = {"video": medias.VIDEO + tuple(medias.FERMES), "image": (".jpg", ".jpeg", ".png", ".webp", ".heic", ".tif", ".tiff", ".cr2", ".cr3", ".nef", ".arw", ".raf", ".dng"),
+               "audio": (".wav", ".mp3", ".flac", ".aac", ".m4a", ".ogg", ".bwf"), "pdf": (".pdf",), "doc": (".pdf", ".docx", ".doc", ".odt", ".xlsx", ".ods", ".txt", ".md", ".pptx")}.get(typ)
+        titre = "Recherche : " + " ".join(x for x in (texte, {"video": "vidéos", "image": "photos", "audio": "sons", "pdf": "PDF", "doc": "documents"}.get(typ, ""), ("%d derniers jours" % jours) if jours else "") if x)
+        self.etat.set_text(titre + "…")
+        def tache():
+            R = []
+            for base in racines:
+                for r, ds, fs in os.walk(base):
+                    ds[:] = [d for d in ds if not d.startswith(".") and d not in ("node_modules", "__pycache__", "Trash")]
+                    for x in fs:
+                        if EXT and not x.lower().endswith(EXT): continue
+                        nx = sans_accents(x.lower())
+                        if mots and not all(m in nx or m in sans_accents(r.lower()) for m in mots): continue
+                        p = os.path.join(r, x)
+                        if lim:
+                            try:
+                                if os.stat(p).st_mtime < lim: continue
+                            except OSError: continue
+                        R.append(p)
                     if len(R) > 800: return R
             return R
         S.en_fond(tache, lambda R: self.montrer_liste(R if isinstance(R, list) else [], titre))

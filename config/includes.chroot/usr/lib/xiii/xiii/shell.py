@@ -58,6 +58,7 @@ class Shell(Gtk.Application):
         self.surveiller_reseau()
         GLib.timeout_add_seconds(15, self.surveiller_streamdeck); self.surveiller_streamdeck()
         GLib.timeout_add_seconds(1800, self.maj_nuit)
+        GLib.timeout_add_seconds(60, self.rappels_agenda)
         GLib.timeout_add_seconds(900, lambda: (self.verifier_maj_xiii(), False)[1]); GLib.timeout_add_seconds(86400, self.verifier_maj_xiii)
         if self.cfg.get("decklink_pont") and not S.DEMO:      # pont DeckLink → caméra virtuelle
             try:
@@ -739,6 +740,20 @@ class Shell(Gtk.Application):
         if a == "bureau-suivant": raccourcis.declencher("GoToDesktop", {"to": "right"}, "C-W-Right")
         elif a == "bureau-precedent": raccourcis.declencher("GoToDesktop", {"to": "left"}, "C-W-Left")
         else: self.basculer(a)
+
+    def rappels_agenda(self):
+        """Rappels de XIII Calendrier, même fenêtre fermée."""
+        if S.DEMO or not os.path.exists(os.path.expanduser("~/.local/share/xiii/agenda.json")): return True
+        try:
+            from . import agenda
+            import datetime as _dt
+            for e in agenda.rappels_a_venir():
+                h = _dt.datetime.fromisoformat(e["debut"]).strftime("%H:%M")
+                S.detacher(["notify-send", "-a", "XIII Calendrier", "-i", "xiii-calendrier", "-u", "critical" if e.get("rappel") in (0, 5) else "normal",
+                            "%s à %s" % (e["titre"], h), e.get("lieu") or "Dans %d min" % int(e["rappel"])])
+        except Exception as ex:
+            print("rappels agenda :", ex)
+        return True
 
     def maj_nuit(self):
         """Applications de l'utilisateur (Flathub, GitHub) mises à jour vers 3 h, si activé ; jamais en mode Tournage."""

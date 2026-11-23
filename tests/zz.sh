@@ -157,6 +157,36 @@ xiii-logiciels --page packs > /dev/null 2>&1 & sleep 5; grim -s 0.5 /out/logicie
 xiii-logiciels --page maj > /dev/null 2>&1 & sleep 12; grim -s 0.5 /out/logiciels-maj.png; pkill -f "xiii.logiciels import"; sleep 1
 for app in xiii-polices xiii-resolve xiii-vm; do $app > /out/$app.log 2>&1 & sleep 6; grim -s 0.5 /out/$app.png; pkill -f "$app" ; pkill -f "xiii.$(echo $app | cut -c6-) import"; sleep 1; done
 
+echo "== Phase I (applis XIII)" >> $R
+for q in "ouvre conduco" "cherche les vidéos de cette semaine" "mode production" "quelle heure est-il" "trouve le devis dupont"; do
+  echo "OK        voix « $q » → $(xiii-voix --comprendre "$q")" >> $R
+done
+python3 - <<'PY' >> $R 2>&1
+from PIL import Image, ImageDraw, ImageFont
+f = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 42)
+im = Image.new("RGB", (1600, 1200), (55, 48, 44)); d = ImageDraw.Draw(im)
+d.polygon([(160, 96), (1440, 144), (1408, 1104), (192, 1080)], fill=(236, 231, 222))
+for i, t in enumerate(["DEVIS XIII", "Tournage Concert Dome", "Camera principale 1200 euros", "Total 4800 euros"]): d.text((330, 260 + i * 120), t, font=f, fill=(25, 25, 25))
+im.save("/tmp/scan-test.jpg"); print("OK        image de document créée")
+PY
+xiii-scanner --test /tmp/scan-test.jpg /tmp/scan-test.pdf >> $R 2>&1
+t=$(pdftotext /tmp/scan-test.pdf - 2>/dev/null | tr '\n' ' ' | cut -c1-90); case "$t" in *DEVIS*|*Tournage*) echo "OK        OCR : « $t »" >> $R;; *) echo "ÉCHEC     OCR : « $t »" >> $R;; esac
+pdftoppm -r 40 -png -singlefile /tmp/scan-test.pdf /out/scanner-pdf
+mkdir -p /root/Images/Essai; for c in 1 2 3; do ffmpeg -loglevel error -y -f lavfi -i "testsrc2=s=3000x2000,format=yuv420p" -frames:v 1 /root/Images/Essai/photo-$c.jpg; done
+xiii-photos /root/Images/Essai/photo-1.jpg > /out/xiii-photos.log 2>&1 & sleep 6; grim -s 0.5 /out/app-photos.png; pkill -f "xiii.photos import"; sleep 1
+mkdir -p /root/XIII/Test/03_Documents/Notes; printf '# Réunion de prod\n\n- [x] Valider le devis\n- [ ] Repérage **jeudi**\n- [ ] Appeler la *régie*\n' > /root/XIII/Test/03_Documents/Notes/Reunion.md
+xiii-notes > /out/xiii-notes.log 2>&1 & sleep 5; grim -s 0.5 /out/app-notes.png; pkill -f "xiii.carnet import"; sleep 1
+python3 -c 'import json,os,datetime as d; n=d.datetime.now().astimezone(); os.makedirs("/root/.local/share/xiii", exist_ok=True); json.dump([{"id":"a1","titre":"Repérage Lyon","debut":(n.replace(hour=10,minute=0)).isoformat(),"fin":(n.replace(hour=12,minute=0)).isoformat(),"journee":False,"lieu":"Halle Tony Garnier","rappel":15}], open("/root/.local/share/xiii/agenda.json","w"))'
+xiii-calendrier > /out/xiii-calendrier.log 2>&1 & sleep 5; grim -s 0.5 /out/app-calendrier.png; pkill -f "xiii.agenda import"; sleep 1
+xiii-scanner > /out/xiii-scanner.log 2>&1 & sleep 5; grim -s 0.5 /out/app-scanner.png; pkill -f "xiii.scanner import"; sleep 1
+xiii-enregistreur > /out/xiii-enregistreur.log 2>&1 & sleep 5; grim -s 0.5 /out/app-enregistreur.png; pkill -f "xiii.enregistreur import"; sleep 1
+xiii-taches > /out/xiii-taches.log 2>&1 & sleep 6; grim -s 0.5 /out/app-moniteur.png; pkill -f "xiii.taches import"; sleep 1
+ffmpeg -loglevel error -y -f lavfi -i "testsrc2=s=1280x720:r=25:d=20" -f lavfi -i "sine=d=20" -timecode 10:00:00:00 -c:v libx264 -preset ultrafast -c:a aac /tmp/essai-tc.mov
+xiii-lecteur --input-ipc-server=/tmp/mpv.sock --pause --start=4 /tmp/essai-tc.mov > /out/xiii-lecteur.log 2>&1 & sleep 5
+echo '{ "command": ["script-binding", "xiii/waveform"] }' | socat - /tmp/mpv.sock >/dev/null 2>&1; sleep 2; grim -s 0.5 /out/app-lecteur.png
+grep -i "error\|erreur\|lua" /out/xiii-lecteur.log | head -3 | sed 's/^/INFO      lecteur : /' >> $R
+echo '{ "command": ["quit"] }' | socat - /tmp/mpv.sock >/dev/null 2>&1; sleep 1; pkill mpv
+
 echo "== Phase E (régie, déchargement → BACKUPO + DOSSIER)" >> $R
 mkdir -p /root/Navette
 python3 - >> $R 2>&1 <<'PY'

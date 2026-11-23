@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=XIII Enregistreur
+Comment=Enregistrer l'écran avec la webcam incrustée, le micro et le son de l'ordinateur
+Exec=xiii-enregistreur %F
+Icon=xiii-enregistreur
+Type=Application
+Categories=AudioVideo;Video;Recorder;XIII;
+Keywords=enregistrer;ecran;webcam;tutoriel;screencast;capture video;
