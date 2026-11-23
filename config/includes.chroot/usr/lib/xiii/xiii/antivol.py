@@ -19,7 +19,7 @@ def cfg():
 
 
 def nouveau_canal():
-    return "xiii-" + secrets.token_urlsafe(18).replace("_", "").replace("-", "")[:24]
+    return "xiii-" + "".join(c for c in secrets.token_urlsafe(32) if c.isalnum())[:24]
 
 
 def serveur(c=None): return ((c or cfg()).get("antivol_serveur") or "https://ntfy.sh").rstrip("/")

@@ -133,7 +133,7 @@ def automatique():
 
 # ===================================================================== fenêtre
 def fenetre():
-    from .ui import boite, label, bouton, ico, vider, deroulant
+    from .ui import boite, label, bouton, ico, vider
     from .appli import preparer, page
 
     class App(Gtk.Application):
