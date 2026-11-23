@@ -16,7 +16,7 @@ class Bienvenue(Gtk.Application):
 button.choix { background: #2a2928; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 22px; box-shadow: none; }
 button.choix:hover { border-color: #f0b378; background: alpha(#f0b378,0.08); }
 button.choix.principal { border-color: alpha(#f0b378,0.6); }
-.grand-titre { font-family: Astoria, sans-serif; font-size: 40px; color: #f0b378; }
+.grand-titre { font-family: "Space Grotesk", sans-serif; font-weight: 600; letter-spacing: -0.5px; font-size: 40px; color: #f0b378; }
 """)
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css, 900)
         w = Gtk.ApplicationWindow(application=self, title="Bienvenue dans OS XIII", default_width=820, default_height=520)

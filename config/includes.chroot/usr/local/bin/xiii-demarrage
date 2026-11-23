@@ -5,7 +5,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib, Gdk, Gio
 CSS = b"""
 window { background:#1e1e1e; color:#eee9e3; }
-.titre { font-family: Astoria, sans-serif; font-size: 26px; color:#f0b378; }
+.titre { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 26px; color:#f0b378; }
 .sous { color:#9b938a; } .credit { color:#6d675f; font-size:11px; }
 .carte { background:#2d2d2d; border-radius:10px; padding:12px 14px; border:1px solid #35302b; }
 .carte.actif { border-color:#f0b378; background: alpha(#f0b378,0.08); }

@@ -6,8 +6,8 @@ from gi.repository import Gtk, GLib, Gdk
 
 CSS = b"""
 window { background: #1e1e1e; color: #eee9e3; }
-.wm { font-family: Astoria, 'Archivo Black', sans-serif; font-size: 64px; color: alpha(#f0b378,0.10); }
-.titre { font-family: Astoria, sans-serif; font-size: 26px; color: #f0b378; }
+.wm { font-family: 'Space Grotesk', 'Archivo Black'; font-weight: 700, sans-serif; font-size: 64px; color: alpha(#f0b378,0.10); }
+.titre { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 26px; color: #f0b378; }
 .sous { color: #9b938a; }
 .carte { background: #2d2d2d; border-radius: 10px; padding: 12px 14px; border: 1px solid #35302b; }
 .nom { font-weight: bold; }
@@ -248,7 +248,7 @@ def rapport(chemin=None):
     lignes = lambda L: "".join("<tr><td>%s</td><td><b>%s</b></td><td>%s</td></tr>" % (pastille(ok), e(n), e(str(v)).replace("\n", "<br>")) for n, v, ok in L)
     ok_n = sum(1 for x in B if x[2]) + sum(1 for x in Pl if x[2]); tot = len(B) + len(Pl)
     h = """<!doctype html><html lang=fr><meta charset=utf-8><title>Compatibilité OS XIII — %s</title><style>
-body{font-family:'IBM Plex Sans',sans-serif;max-width:900px;margin:30px auto;padding:0 20px;color:#1d1b19}h1{font-family:Astoria,'Archivo Black',sans-serif;color:#b8651f;margin-bottom:0}
+body{font-family:'IBM Plex Sans',sans-serif;max-width:900px;margin:30px auto;padding:0 20px;color:#1d1b19}h1{font-family:'Space Grotesk','Archivo Black',sans-serif;font-weight:600;color:#b8651f;margin-bottom:0}
 .s{color:#6d675f}table{width:100%%;border-collapse:collapse;margin:8px 0 20px}td{padding:7px 8px;border-bottom:1px solid #e6e1da;vertical-align:top}td:first-child{width:18px}
 .p{font-size:15px}.ok{color:#2e7d32}.ko{color:#c0392b}.nt{color:#b8651f}.n{font-size:40px;font-weight:800;color:#b8651f}.c{background:#f6f1ea;border-radius:10px;padding:12px 16px;margin:10px 0}
 code{background:#f0ebe4;padding:1px 5px;border-radius:4px}@media print{.no{display:none}}</style>

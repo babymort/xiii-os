@@ -51,7 +51,7 @@ class Volet:
         if self.pile.get_child_by_name(cle): self.pile.set_visible_child_name(cle)
 
 def page(titre, sous=None, icone=None):
-    """Page avec en-tête (titre en Astoria) ; renvoie (défilant, contenu)."""
+    """Page avec en-tête (titre en Space Grotesk) ; renvoie (défilant, contenu)."""
     v = boite(True, 12, margin_start=22, margin_end=22, margin_top=18, margin_bottom=18)
     h = boite(False, 12)
     if icone: h.append(ico(icone, 30, "c"))

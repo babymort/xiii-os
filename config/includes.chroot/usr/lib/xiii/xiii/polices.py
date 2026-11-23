@@ -1,6 +1,6 @@
 # OS XIII — Polices XIII : toutes les polices de l'ordinateur avec aperçu, recherche, activation / désactivation,
 # import d'un fichier (.ttf, .otf, glisser-déposer) et téléchargement depuis Google Fonts (libres, licence OFL).
-# Les polices de la DA XIII (Astoria, IBM Plex, Archivo, Orbitron…) sont préinstallées et signalées.
+# Les polices de la DA XIII (Space Grotesk, IBM Plex, Archivo, Orbitron…) sont préinstallées et signalées.
 # Application développée par Matthieu Lamotte.
 import os, sys, re, json, shutil, subprocess, threading, urllib.request, urllib.parse
 import gi
@@ -12,7 +12,7 @@ from .appli import preparer, Volet, page
 
 PERSO = os.path.expanduser("~/.local/share/fonts")
 ARRET = os.path.expanduser("~/.local/share/fonts-desactivees")
-DA = ("astoria", "ibm plex", "archivo", "orbitron", "rajdhani", "share tech", "press start", "pixelify", "courier prime")
+DA = ("space grotesk", "ibm plex", "archivo", "orbitron", "rajdhani", "share tech", "press start", "pixelify", "courier prime")
 UA = {"User-Agent": "OS-XIII"}
 
 

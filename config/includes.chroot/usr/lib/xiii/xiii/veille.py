@@ -22,7 +22,7 @@ window.veille { background: #050505; }
 .v-heure { font-family: "IBM Plex Mono", monospace; font-size: 150px; font-weight: 300; color: #eee9e3; }
 .v-sec { font-family: "IBM Plex Mono", monospace; font-size: 60px; color: %s; }
 .v-date { font-size: 30px; color: #9b938a; }
-.v-titre { font-family: Astoria, sans-serif; font-size: 44px; color: %s; }
+.v-titre { font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 40px; color: %s; }
 .v-item { font-size: 26px; color: #eee9e3; }
 """ % (self.p["accent"], self.p["accent"]))
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css, 900)

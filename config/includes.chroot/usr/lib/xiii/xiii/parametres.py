@@ -1311,7 +1311,7 @@ class Parametres(Gtk.Application):
         c.append(reglage("wand-sparkles", "Animations", "Ouverture des menus et panneaux, indicateur glissant de la barre des tâches", droite=interrupteur(cfg["animations"], lambda on: self.regler(animations=on))))
         c.append(reglage("rows-3" if os.path.exists(theme.LUCIDE + "/rows-3.svg") else "list", "Densité", "Espacement des listes et réglages",
                          droite=deroulant([("compact", "Compacte"), ("normal", "Normale"), ("aere", "Aérée")], cfg.get("densite", "normal"), lambda v: self.regler(densite=v), 160)))
-        c.append(reglage("type", "Taille et police du texte", "Astoria pour les titres, IBM Plex pour le texte", clic=lambda: self.aller("texte")))
+        c.append(reglage("type", "Taille et police du texte", "Space Grotesk pour les titres, IBM Plex pour le texte", clic=lambda: self.aller("texte")))
         c.append(groupe_titre("Partout"))
         c.append(reglage("log-in", "Écran de connexion et démarrage", "Appliquer aussi ce thème à l'écran de connexion et à l'animation de démarrage (mot de passe administrateur)",
                          droite=bouton("Appliquer", None, "pilule", rappel=lambda: S.en_fond(theme.appliquer_connexion, lambda ok: self.toast("Écran de connexion et démarrage mis à jour" if ok is True else "Annulé"), dict(self.cfg)))))

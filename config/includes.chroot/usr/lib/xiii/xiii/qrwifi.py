@@ -99,7 +99,7 @@ class QRWifi(Gtk.Application):
         q = tempfile.NamedTemporaryFile(suffix=".png", delete=False); q.write(png(self.texte(), 20)); q.close()
         import html
         page = """<!doctype html><meta charset=utf-8><style>@page{size:A4;margin:18mm}body{font-family:'IBM Plex Sans',sans-serif;text-align:center;color:#1d1b19}
-        h1{font-family:Astoria,serif;font-weight:400;font-size:40pt;color:#b8651f;margin:10mm 0 4mm}.s{font-size:20pt;margin:2mm}.p{font-family:'IBM Plex Mono',monospace;font-size:18pt}
+        h1{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:40pt;color:#b8651f;margin:10mm 0 4mm}.s{font-size:20pt;margin:2mm}.p{font-family:'IBM Plex Mono',monospace;font-size:18pt}
         img{width:120mm;margin:10mm auto;display:block}.x{margin-top:12mm;color:#8a837b;font-size:10pt}</style>
         <h1>%s</h1><div class=s>Réseau : <b>%s</b></div>%s<img src="file://%s"><div>Scannez avec l'appareil photo de votre téléphone</div><div class=x>OS XIII</div>""" % (
             html.escape(self.titre.get_text() or "Wi-Fi"), html.escape(self.ssid.get_text()), ('<div class="s p">Mot de passe : %s</div>' % html.escape(self.mdp.get_text())) if self.mdp.get_text() else "", q.name)

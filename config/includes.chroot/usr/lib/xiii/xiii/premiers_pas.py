@@ -17,7 +17,7 @@ class PremiersPas(Gtk.Application):
 
     def do_activate(self):
         if getattr(self, "win", None): self.win.present(); return
-        preparer(".grand-titre { font-family: Astoria, sans-serif; font-size: 34px; } .choix-carte { padding: 14px; border-radius: 14px; }")
+        preparer(".grand-titre { font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: -0.5px; font-size: 34px; } .choix-carte { padding: 14px; border-radius: 14px; }")
         self.win = Gtk.ApplicationWindow(application=self, title="Premiers pas avec OS XIII", default_width=820, default_height=600)
         self.win.add_css_class("parametres")
         r = boite(True, 0)

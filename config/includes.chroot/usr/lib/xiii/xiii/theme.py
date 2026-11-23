@@ -219,11 +219,11 @@ def effets(p):
 def css_commun(p):
     return f"""
 * {{ font-family: "{p['police']}", "IBM Plex Sans", sans-serif; }}
-{effets(p)}{('.titre-astoria, .page-titre, .hero-grand, .panneau-titre, .nav-titre { font-family: Orbitron, Astoria, sans-serif; letter-spacing: 1px; }' if p['neon'] else '')}{('.page-titre, .hero-grand, .panneau-titre, .nav-titre { font-family: "Press Start 2P", Astoria, monospace; font-size: 16px; }' if p['pixel'] else '')}
+{effets(p)}{('.titre-astoria, .page-titre, .hero-grand, .panneau-titre, .nav-titre { font-family: Orbitron, "Space Grotesk", sans-serif; letter-spacing: 1px; }' if p['neon'] else '')}{('.page-titre, .hero-grand, .panneau-titre, .nav-titre { font-family: "Press Start 2P", "Space Grotesk", monospace; font-size: 16px; }' if p['pixel'] else '')}
 label {{ color: {p['texte']}; }}
 .attenue, .attenue label {{ color: {p['attenue']}; }}
 .petit {{ font-size: 11.5px; }}
-.titre-astoria {{ font-family: Astoria, "Archivo Black", sans-serif; color: {p['accent_texte']}; }}
+.titre-astoria {{ font-family: "Space Grotesk", "Archivo Black", sans-serif; font-weight: 600; letter-spacing: -0.3px; color: {p['accent_texte']}; }}
 .accent {{ color: {p['accent_texte']}; }}
 .gras {{ font-weight: 600; }}
 .vue-mode {{ background: alpha({p['fond']}, .72); }}
@@ -321,7 +321,7 @@ window.xiii-surface {{ background: transparent; }}
 .pastille-nom {{ background: alpha({p['accent']},0.18); border-radius: 999px; padding: 0 8px; }}
 .pastille-nom label {{ color: {p['accent_texte']}; font-weight: 700; font-size: 11.5px; }}
 .haut-titre {{ font-weight: 600; font-size: 12.5px; }}
-.haut-logo {{ font-family: Astoria, sans-serif; font-size: 17px; color: {p['accent_texte']}; padding: 0 6px; }}
+.haut-logo {{ font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 1px; color: {p['accent_texte']}; padding: 0 6px; }}
 button.tb {{ background: transparent; border: none; box-shadow: none; border-radius: {p['rayon_petit']}; padding: 2px 6px; min-height: 40px; min-width: 40px; }}
 button.tb:hover {{ background: {p['survol']}; }}
 button.tb.actif {{ background: alpha({p['texte']},0.09); }}
@@ -350,8 +350,8 @@ picture.miniature {{ border-radius: {p['rayon_petit']}; border: 1px solid {p['bo
 .badge {{ background: {p['accent']}; color: {p['sur_accent']}; border-radius: 999px; font-size: 10px; font-weight: 700; min-width: 16px; min-height: 16px; padding: 0 4px; }}
 .meteo-t {{ font-weight: 600; font-size: 12.5px; }}
 .panneau {{ background: {p['panneau_verre']}; border: 1px solid alpha({p['accent']},0.28); border-radius: {p['rayon']}; box-shadow: 0 12px 40px {p['ombre']}{', ' + p['lueur'] if p['lueur'] != 'none' else ''}; padding: 16px; }}
-.panneau-titre {{ font-family: Astoria, sans-serif; font-size: 22px; color: {p['accent_texte']}; }}
-.filigrane {{ font-family: Astoria, sans-serif; font-size: 72px; color: alpha({p['accent']},0.06); }}
+.panneau-titre {{ font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 18px; letter-spacing: -0.2px; color: {p['accent_texte']}; }}
+.filigrane {{ font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 64px; color: alpha({p['accent']},0.06); }}
 .recherche {{ background: {p['carte']}; border-radius: 999px; border: 1px solid {p['bord']}; padding: 4px 14px; min-height: 38px; }}
 .recherche:focus-within {{ border-color: {p['accent']}; box-shadow: 0 0 0 2px alpha({p['accent']},0.22); }}
 .recherche text {{ color: {p['texte']}; }}
@@ -402,17 +402,17 @@ def css_parametres(cfg):
 
 window.parametres {{ background: {p['fond']}; }}
 .nav {{ background: {p['carte2']}; border-right: 1px solid {p['bord']}; }}
-.nav-titre {{ font-family: Astoria, sans-serif; font-size: 24px; color: {p['accent_texte']}; }}
+.nav-titre {{ font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 20px; letter-spacing: -0.3px; color: {p['accent_texte']}; }}
 button.nav-item {{ background: transparent; border: none; box-shadow: none; border-radius: {p['rayon_petit']}; padding: 8px 10px; }}
 button.nav-item:hover {{ background: {p['survol']}; }}
 button.nav-item.sel {{ background: alpha({p['accent']},0.14); }}
 button.nav-item.sel label {{ color: {p['accent_texte']}; font-weight: 600; }}
 .nav-barre {{ background: transparent; min-width: 3px; min-height: 16px; border-radius: 2px; }}
 .nav-barre.sel {{ background: {p['accent']}; }}
-.page-titre {{ font-family: Astoria, sans-serif; font-size: 32px; color: {p['accent_texte']}; }}
+.page-titre {{ font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 26px; letter-spacing: -0.5px; color: {p['accent_texte']}; }}
 .fil {{ font-size: 15px; color: {p['attenue']}; }}
 button.fil-lien {{ background: transparent; border: none; box-shadow: none; padding: 0 2px; }}
-button.fil-lien label {{ font-family: Astoria, sans-serif; font-size: 26px; color: {p['attenue']}; }}
+button.fil-lien label {{ font-family: "Space Grotesk", sans-serif; font-weight: 500; font-size: 22px; letter-spacing: -0.4px; color: {p['attenue']}; }}
 button.fil-lien:hover label {{ color: {p['accent_texte']}; }}
 .reglage {{ background: {p['carte']}; border: 1px solid {p['bord']}; border-radius: {p['rayon_petit']}; padding: {int(12 * p['densite'])}px 16px; min-height: {int(40 * p['densite'])}px; }}
 button.reglage {{ box-shadow: none; }}
@@ -422,7 +422,7 @@ button.reglage:hover {{ background: alpha({p['accent']},0.06); border-color: alp
 .groupe {{ margin-bottom: 2px; }}
 .groupe-titre {{ font-weight: 600; font-size: 13.5px; margin: 14px 0 6px 2px; }}
 .hero {{ background: {p['panneau_verre'] if p['verre'] else p['carte']}; border: 1px solid {('alpha(' + p['accent'] + ',0.25)') if p['verre'] else p['bord']}; border-radius: {p['rayon']}; padding: 16px; box-shadow: {p['lueur'] if p['verre'] else 'none'}; }}
-.hero-grand {{ font-family: Astoria, sans-serif; font-size: 26px; color: {p['accent_texte']}; }}
+.hero-grand {{ font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 22px; letter-spacing: -0.3px; color: {p['accent_texte']}; }}
 button.pastille {{ border-radius: 50%; min-width: 30px; min-height: 30px; padding: 0; border: 2px solid transparent; box-shadow: none; }}
 button.pastille.sel {{ border-color: {p['texte']}; }}
 button.vignette {{ padding: 3px; border-radius: {p['rayon_petit']}; border: 2px solid transparent; background: transparent; box-shadow: none; }}

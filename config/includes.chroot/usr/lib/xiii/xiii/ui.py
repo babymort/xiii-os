@@ -34,8 +34,9 @@ def vignette(chemin, l, h, couvrir=True, echelle=2):
     p.set_size_request(l, h); p.set_can_shrink(True)
     return p
 
-# classes écrites en Astoria : cette police n'a pas de lettres accentuées → on les retire (« Réglages » → « Reglages »)
-ASTORIA = {"hero-grand", "page-titre", "panneau-titre", "nav-titre", "titre-astoria", "haut-logo", "filigrane", "fil-txt", "grand-titre", "v-titre", "surimp-titre-astoria"}
+# classes de titres (ex-Astoria, sans accents) : Space Grotesk a tous les accents, plus rien à retirer
+ASTORIA = set()
+_ANCIEN_ASTORIA = {"hero-grand", "page-titre", "panneau-titre", "nav-titre", "titre-astoria", "haut-logo", "filigrane", "fil-txt", "grand-titre", "v-titre", "surimp-titre-astoria"}
 
 def sans_accents_astoria(s):
     s = (s or "").replace("œ", "oe").replace("Œ", "OE").replace("æ", "ae").replace("Æ", "AE")
