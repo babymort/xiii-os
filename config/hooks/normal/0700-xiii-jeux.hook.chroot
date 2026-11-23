@@ -18,6 +18,8 @@ apt-get clean
 
 # Console XIII (mode Gaming) : émulateurs libres de Debian, chacun facultatif — jeux, BIOS et clés non fournis
 EMUS="retroarch libretro-core-info"
+# édition légère : RetroArch (et ses 440 Mo de polices et d'images) s'installe depuis la Console au premier jeu
+[ "$ED" = leger ] && EMUS=""
 [ "$ED" = leger ] || EMUS="$EMUS libretro-nestopia libretro-snes9x libretro-mgba libretro-gambatte libretro-genesisplusgx libretro-beetle-vb libretro-beetle-wswan dolphin-emu mupen64plus-ui-console desmume mednafen mame stella dosbox scummvm fs-uae openmsx vice hatari atari800 fuse-emulator-gtk spectrum-roms"
 for p in $EMUS flatpak; do
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$p" || echo "absent : $p"

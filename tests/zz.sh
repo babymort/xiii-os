@@ -165,6 +165,17 @@ curl -s -u zz:x -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null -w
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
+echo "== Phase M (distribution)" >> $R
+truncate -s 60M /tmp/f.iso; printf 'label: dos\n,40M,83\n' | sfdisk -q /tmp/f.iso; truncate -s 800M /tmp/cle.img
+if xiii-cle-ecrire /tmp/f.iso /tmp/cle.img > /tmp/cle.log 2>&1 && grep -q FINI /tmp/cle.log; then
+  o=$(sfdisk -J /tmp/cle.img | python3 -c 'import json,sys; p=json.load(sys.stdin)["partitiontable"]["partitions"]; print(len(p), p[-1]["start"]*512)')
+  n=${o% *}; off=${o#* }; c=$(debugfs -R "cat persistence.conf" "/tmp/cle.img?offset=$off" 2>/dev/null)
+  echo "OK        Clé OS XIII : $n partitions, persistance « $c », $(grep INFO /tmp/cle.log | tail -1)" >> $R
+else echo "ÉCHEC     Clé OS XIII : $(tr '\n' ' ' < /tmp/cle.log | tail -c 300)" >> $R; fi
+truncate -s 70M /tmp/petite.img; xiii-cle-ecrire /tmp/f.iso /tmp/petite.img > /tmp/cle2.log 2>&1; grep -q "pas de persistance" /tmp/cle2.log && echo "OK        Clé trop petite : image copiée sans persistance" >> $R || echo "ÉCHEC     clé trop petite : $(cat /tmp/cle2.log | tail -2)" >> $R
+xiii-cle > /out/xiii-cle.log 2>&1 & sleep 4; grim -s 0.5 /out/app-cle.png; pkill -f "xiii.cle import"; sleep 1
+fc-list | grep -qi "Space Grotesk" && echo "OK        police des titres : Space Grotesk installée" >> $R || echo "ÉCHEC     police Space Grotesk absente" >> $R
+
 echo "== Phase L (accessibilité)" >> $R
 espeak-ng -v fr -s 140 -w /tmp/st.wav "bonjour à tous, nous tournons demain matin" 2>/dev/null
 XIII_TEST_WAV=/tmp/st.wav xiii-acces --test >> $R 2>&1 || echo "ÉCHEC     accessibilité (voir zz.txt)" >> $R

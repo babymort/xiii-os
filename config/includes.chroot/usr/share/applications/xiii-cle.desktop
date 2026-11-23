@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Clé OS XIII
+Comment=Créer une clé USB OS XIII qui garde fichiers et réglages
+Exec=xiii-cle %F
+Icon=xiii-cle
+Type=Application
+Categories=System;Utility;XIII;
+Keywords=usb;cle;persistance;live;tournage;

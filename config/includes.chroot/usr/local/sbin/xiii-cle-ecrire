@@ -1,0 +1,48 @@
+#!/bin/bash
+# OS XIII — écrit une image OS XIII sur une clé USB, puis ajoute une partition « xiii-persist » dans la place restante :
+# au démarrage depuis la clé, fichiers, réglages et logiciels installés y sont gardés (live-boot, persistence.conf « / union »).
+#   xiii-cle-ecrire <image.iso> <clé /dev/sdX | fichier de test> [--sans-persistance]
+# Sécurité : refuse tout disque qui n'est pas amovible / USB, et le disque du système en cours.
+# Lignes « ETAPE … » et « % » lues par la fenêtre Clé OS XIII. Application développée par Matthieu Lamotte.
+set -euo pipefail
+ISO=${1:?image}; D=${2:?clé}; PERSIST=1; [ "${3:-}" = --sans-persistance ] && PERSIST=0
+[ -f "$ISO" ] || { echo "ERREUR image introuvable : $ISO"; exit 2; }
+TI=$(stat -c %s "$ISO")
+if [ -b "$D" ]; then
+  n=$(basename "$D")
+  [ "$(lsblk -dno TYPE "$D")" = disk ] || { echo "ERREUR $D n'est pas un disque entier"; exit 3; }
+  if [ "$(cat /sys/block/$n/removable 2>/dev/null)" != 1 ] && [ "$(lsblk -dno TRAN "$D")" != usb ]; then echo "ERREUR $D n'est pas une clé USB : refusé"; exit 3; fi
+  for m in / /run/live/medium /boot /home; do
+    s=$(findmnt -no SOURCE "$m" 2>/dev/null) || continue
+    p=$(lsblk -no PKNAME "$s" 2>/dev/null | head -1)
+    [ "$p" = "$n" ] && { echo "ERREUR $D contient le système en cours ($m) : refusé"; exit 3; }
+  done
+  TD=$(blockdev --getsize64 "$D")
+  for p in $(lsblk -lnpo NAME "$D" | tail -n +2); do umount "$p" 2>/dev/null || true; done
+else
+  TD=$(stat -c %s "$D")
+fi
+[ "$TD" -gt "$TI" ] || { echo "ERREUR la clé ($((TD/1048576)) Mo) est plus petite que l'image ($((TI/1048576)) Mo)"; exit 4; }
+[ $((TD - TI)) -lt $((512*1048576)) ] && { PERSIST=0; echo "INFO moins de 512 Mo libres après l'image : pas de persistance"; }
+
+echo "ETAPE Copie d'OS XIII sur la clé"
+if [ -b "$D" ]; then dd if="$ISO" of="$D" bs=4M oflag=direct conv=fsync status=progress 2>&1 | tr '\r' '\n' | grep --line-buffered -o '^[0-9]* bytes' | while read o _; do echo "% $((o*100/TI))"; done
+else dd if="$ISO" of="$D" bs=4M conv=notrunc,fsync status=none; fi
+sync; echo "% 100"
+
+if [ "$PERSIST" = 1 ]; then
+  echo "ETAPE Préparation de l'espace qui garde vos fichiers et réglages"
+  T=$(sfdisk -J "$D" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["partitiontable"]["label"])' || echo dos)
+  [ "$T" = gpt ] && { sfdisk --relocate gpt-bak-std "$D" >/dev/null 2>&1 || true; }
+  echo ',,L' | sfdisk --append --no-reread --no-tell-kernel -q "$D" 2>&1 | grep -v "^$" || true
+  read -r DEB TAILLE < <(sfdisk -J "$D" | python3 -c 'import json,sys; p=json.load(sys.stdin)["partitiontable"]["partitions"][-1]; print(p["start"], p["size"])')
+  O=$((DEB*512)); K=$((TAILLE/2))
+  mkfs.ext4 -q -F -L xiii-persist -E offset=$O "$D" ${K}k
+  printf '/ union\n' > /tmp/xiii-persistence.conf
+  debugfs -w -R "write /tmp/xiii-persistence.conf persistence.conf" "$D?offset=$O" >/dev/null 2>&1
+  debugfs -R "cat persistence.conf" "$D?offset=$O" 2>/dev/null | grep -q union || { echo "ERREUR persistance non écrite"; exit 5; }
+  [ -b "$D" ] && { partprobe "$D" 2>/dev/null || blockdev --rereadpt "$D" 2>/dev/null || true; }
+  echo "INFO persistance : $((K/1024)) Mo pour vos fichiers et réglages"
+fi
+sync
+echo "FINI"

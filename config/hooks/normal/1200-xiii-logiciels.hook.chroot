@@ -4,7 +4,7 @@
 ED=$(cat /etc/xiii/edition 2>/dev/null || echo complete)   # « leger » : ISO allégée, le reste s'installe à la demande
 export DEBIAN_FRONTEND=noninteractive
 echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections
-LISTE="chromium chromium-l10n iperf3 remmina"
+LISTE="iperf3 remmina"      # édition légère : Firefox suffit, Chromium s'installe d'un clic (−170 Mo sur l'ISO)
 [ "$ED" = leger ] || LISTE="chromium chromium-l10n wireshark iperf3 kismet remmina input-leap kdeconnect"
 for p in $LISTE; do apt-get install -y --no-install-recommends "$p" || echo "absent : $p"; done
 # Tailscale (dépôt officiel)

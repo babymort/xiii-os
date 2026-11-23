@@ -531,7 +531,11 @@ class Parametres(Gtk.Application):
         r.append(bouton("Copier", "copy", "fantome", taille=14, rappel=lambda: (Gdk.Display.get_default().get_clipboard().set_text("\n".join(txt)), self.toast("Copié"))))
         r.append(bouton("Bilan matériel", "gauge", "fantome", taille=14, rappel=lambda: S.detacher("xiii-bilan")))
         r.append(bouton("Pilotes", "cpu", "fantome", taille=14, rappel=lambda: S.detacher("xiii-bilan --pilotes"))); c.append(r)
-        c.append(info("OS XIII — basé sur Debian. Icônes Lucide (licence ISC). Application développée par Matthieu Lamotte."))
+        c.append(info("OS XIII — basé sur Debian. Titres en Space Grotesk et texte en IBM Plex (licence OFL), icônes Lucide (licence ISC). "
+                      "NDI® is a registered trademark of Vizrt NDI AB. Application développée par Matthieu Lamotte."))
+        c.append(reglage("scale", "Licences des logiciels", "Ce que contient OS XIII et sous quelles conditions", droite=bouton("Lire", None, "fantome",
+                         rappel=lambda: S.detacher(["xdg-open", "/usr/share/xiii/LICENCES.md"]))))
+        c.append(reglage("usb", "Créer une clé OS XIII", "Clé à emporter en tournage, qui garde vos fichiers et réglages", droite=bouton("Ouvrir", None, "fantome", rappel=lambda: S.detacher("xiii-cle"))))
 
     def renommer(self):
         def ok(nom):

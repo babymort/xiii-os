@@ -4,7 +4,7 @@
 set -e
 CANDIDATS="fonts-noto fonts-noto-mono fonts-noto-extra fonts-noto-ui-extra fonts-noto-cjk-extra firmware-netronome firmware-marvell-prestera firmware-qcom-soc firmware-nvidia-tesla-535-gsp
  firmware-nvidia-tesla-470-gsp firmware-ast firmware-qlogic firmware-bnx2x firmware-cavium firmware-myricom firmware-netxen firmware-siano firmware-ivtv
- pocketsphinx-en-us build-essential dpkg-dev g++ gcc g++-14 gcc-14 libstdc++-14-dev cpp cpp-14 libc6-dev linux-libc-dev
+ pocketsphinx-en-us g++-x86-64-linux-gnu g++-14-x86-64-linux-gnu build-essential dpkg-dev g++ gcc g++-14 gcc-14 libstdc++-14-dev cpp cpp-14 libc6-dev linux-libc-dev
  manpages-dev qemu-system-data xserver-xorg-video-all mlocate texlive-base yelp gnome-user-docs"
 for p in $CANDIDATS; do
   dpkg -s "$p" >/dev/null 2>&1 || continue
