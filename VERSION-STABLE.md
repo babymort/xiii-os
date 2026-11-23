@@ -17,7 +17,7 @@
 - [ ] Essais sur du vrai matériel avec la dernière ISO beta (prévu par Matthieu une fois la version finale prête) :
   clé persistante, installation avec disque chiffré, pare-feu avec les appareils du plateau (NDI, ATEM, tally, téléphone),
   Stream Deck, deux cartes Wi-Fi, Orca, loupe, comptes Google / Outlook du Calendrier.
-- [ ] Vérifier que l'édition légère fait moins de 2 Go (taille affichée dans le résumé de la construction GitHub).
+- [x] Édition légère sous 2 Go : 1,77 Go (construction du 23/11).
 
 ## À faire avant l'étape 3 (publication)
 - [ ] Choisir la licence du code d'OS XIII et de la Suite XIII (voir `LICENCES.md`).

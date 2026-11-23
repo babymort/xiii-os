@@ -25,7 +25,7 @@ Première version Stable d'OS XIII : un Linux léger et complet pour la producti
 - DaVinci Resolve guidé, logiciels Windows, machines virtuelles, polices, jeux (Heroic, Lutris, Console XIII).
 
 ### Rapide, même sur un vieux PC
-- Bureau prêt en 15 à 20 secondes environ (mesuré en machine virtuelle), applis préchargées, économie d'énergie sur batterie.
+- Bureau prêt en 14 à 19 secondes environ (mesuré en machine virtuelle), applis préchargées, économie d'énergie sur batterie.
 - Environ 450 Mo de mémoire au repos pour l'édition légère.
 
 ### Sécurité
