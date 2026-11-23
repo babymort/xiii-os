@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Assistant DaVinci Resolve
+Comment=Vérifier l'ordinateur, installer les pilotes et DaVinci Resolve
+Exec=xiii-resolve %F
+Icon=xiii-resolve
+Type=Application
+Categories=AudioVideo;Video;XIII;
+Keywords=resolve;davinci;blackmagic;montage;etalonnage;

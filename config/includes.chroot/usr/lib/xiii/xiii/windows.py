@@ -50,14 +50,30 @@ def composants_detectes(fichier):
         return set()
     return {k for k, _, motifs in COMPOSANTS if any(m.lower() in d for m in motifs)}
 
-def profil(nom):
+def infos_pe(fichier):
+    """Nom du produit et éditeur inscrits dans le .exe / .msi (exiftool) : reconnaît un logiciel même si le fichier s'appelle « setup.exe »."""
+    try:
+        o = subprocess.run(["exiftool", "-j", "-ProductName", "-CompanyName", "-FileDescription", "-Title", "-Author", fichier], capture_output=True, text=True, timeout=20).stdout
+        d = json.loads(o)[0]
+        return {"produit": (d.get("ProductName") or d.get("Title") or d.get("FileDescription") or "").strip(), "editeur": (d.get("CompanyName") or d.get("Author") or "").strip()}
+    except Exception:
+        return {"produit": "", "editeur": ""}
+
+def profil(nom, infos=None):
+    """Profil du logiciel : d'abord d'après le produit et l'éditeur inscrits dans le fichier, sinon d'après son nom."""
     try:
         regles = json.load(open(PROFILS))
     except Exception:
         return None
+    textes = [((infos or {}).get("produit", "") + " " + (infos or {}).get("editeur", "")).strip().lower(), nom.lower()]
+    for t in textes:
+        if not t: continue
+        for r in regles:
+            if r["motifs"] in (["*setup*.exe", "*install*.exe"],): continue
+            if any(fnmatch.fnmatch(t, m) or fnmatch.fnmatch(t, "*" + m.strip("*") + "*") for m in r["motifs"]):
+                return r
     for r in regles:
-        if any(fnmatch.fnmatch(nom.lower(), m) for m in r["motifs"]):
-            return r
+        if any(fnmatch.fnmatch(nom.lower(), m) for m in r["motifs"]): return r
     return None
 
 def extraire_icone(exe, dest_png):
@@ -214,7 +230,12 @@ class AppWindows(Gtk.Application):
         self.dd = Gtk.DropDown(model=Gtk.StringList.new(["Un programme d'installation — installer le logiciel", "Un logiciel portable — le lancer directement"]))
         self.dd.set_selected(0 if self.installeur else 1)
         r = boite(False, 12, "reglage"); r.append(ico("package", 20, "c")); r.append(label("Type", "reglage-titre", hexpand=True)); r.append(self.dd); v.append(r)
-        pr = profil(self.nom)
+        self.pe = infos_pe(fichier)
+        if self.pe["produit"] and re.search(r"(?i)^(setup|install|installer|application)$", self.nom):
+            self.nom = self.pe["produit"][:40]; self.e_nom.set_text(self.nom)
+        pr = profil(self.nom, self.pe)
+        if self.pe["produit"]:
+            v.append(label("Reconnu : %s%s" % (self.pe["produit"], (" — " + self.pe["editeur"]) if self.pe["editeur"] else ""), "petit", "accent"))
         if pr and pr.get("note"):
             n = boite(False, 10, "info-bulle"); n.append(ico("info", 16, "c")); n.append(label(pr["note"], wrap=True, hexpand=True)); v.append(n)
         det = composants_detectes(fichier) | set((pr or {}).get("composants", []))

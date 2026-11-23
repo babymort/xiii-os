@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Polices XIII
+Comment=Aperçu, activation, import de polices et Google Fonts
+Exec=xiii-polices %F
+Icon=xiii-polices
+Type=Application
+Categories=Graphics;Utility;XIII;
+Keywords=polices;fonts;typographie;google fonts;ttf;otf;

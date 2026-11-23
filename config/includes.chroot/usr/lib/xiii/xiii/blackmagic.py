@@ -291,8 +291,8 @@ class Blackmagic(Gtk.Application):
         r = resolve()
         if r: self.ligne(v, "check", "DaVinci Resolve", "Installé", bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher([r])))
         else:
-            self.ligne(v, "download", "DaVinci Resolve pour Linux", "Gratuit, à télécharger chez Blackmagic (formulaire), puis double-clic sur le fichier .run téléchargé",
-                       bouton("Télécharger", None, "pilule", rappel=lambda: S.detacher(["xdg-open", "https://www.blackmagicdesign.com/products/davinciresolve"])))
+            self.ligne(v, "download", "DaVinci Resolve pour Linux", "L'assistant vérifie la carte graphique, installe les pilotes, repère le fichier téléchargé et installe Resolve",
+                       bouton("Assistant d'installation", None, "pilule", rappel=lambda: S.detacher(["xiii-resolve"])))
             v.append(label("Resolve demande une carte graphique récente (NVIDIA conseillée, 4 Go de mémoire vidéo ou plus).", "petit", "attenue", wrap=True))
 
     def p_streamdeck(self, v):

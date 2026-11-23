@@ -273,6 +273,133 @@
  },
  {
   "motifs": [
+   "*x32*edit*",
+   "*x-air*edit*",
+   "*m32*edit*",
+   "*wing*edit*",
+   "*behringer*",
+   "*midas*"
+  ],
+  "note": "X32-Edit / X-Air-Edit / M32-Edit / WING-Edit existent aussi en version Linux native chez Behringer et Midas : préférez-la. La version Windows fonctionne en général sous Wine.",
+  "composants": [
+   "vcrun2022"
+  ]
+ },
+ {
+  "motifs": [
+   "*stagemix*",
+   "*yamaha*console*",
+   "*yamaha*editor*",
+   "*cl*editor*",
+   "*ql*editor*",
+   "*tf*editor*",
+   "*dm7*editor*"
+  ],
+  "note": "Éditeurs de consoles Yamaha : fonctionnent souvent sous Wine pour le pilotage réseau ; la connexion USB n'est pas garantie.",
+  "composants": [
+   "vcrun2022",
+   "dotnet48",
+   "corefonts"
+  ]
+ },
+ {
+  "motifs": [
+   "*allen*heath*",
+   "*sq*mixpad*",
+   "*dlive*director*",
+   "*qu*pad*",
+   "*avantis*director*"
+  ],
+  "note": "Logiciels Allen & Heath (Director, MixPad) : pilotage réseau en général fonctionnel sous Wine.",
+  "composants": [
+   "vcrun2022",
+   "corefonts"
+  ]
+ },
+ {
+  "motifs": [
+   "*aw-rp*",
+   "*panasonic*ptz*",
+   "*panasonic*camera*",
+   "*easy*ip*setup*",
+   "*sony*rm-ip*",
+   "*ptz*control*",
+   "*birddog*",
+   "*ptzoptics*"
+  ],
+  "note": "Contrôle de caméras PTZ par réseau : fonctionne en général sous Wine. Pensez au câble en IP fixe (Paramètres › Interfaces réseau) pour joindre les caméras.",
+  "composants": [
+   "vcrun2022",
+   "dotnet48"
+  ]
+ },
+ {
+  "motifs": [
+   "*propresenter*",
+   "*easyworship*",
+   "*mediashout*"
+  ],
+  "note": "Logiciels de projection : fonctionnement partiel sous Wine (vidéo et sortie plein écran limitées). Alternatives natives : OBS Studio, le prompteur et la régie XIII.",
+  "composants": [
+   "vcrun2022",
+   "dotnet48",
+   "d3dcompiler_47"
+  ]
+ },
+ {
+  "motifs": [
+   "*magicq*",
+   "*chamsys*"
+  ],
+  "note": "ChamSys MagicQ existe en version Linux native (site ChamSys) : préférez-la.",
+  "composants": []
+ },
+ {
+  "motifs": [
+   "*qlab*",
+   "*show*cue*systems*",
+   "*scs*"
+  ],
+  "note": "QLab n'existe que sur Mac. Show Cue Systems (Windows) fonctionne partiellement sous Wine. Alternative native : Linux Show Player (Centre de logiciels).",
+  "composants": [
+   "vcrun2022",
+   "dotnet48"
+  ]
+ },
+ {
+  "motifs": [
+   "*aja*control*",
+   "*aja*system*test*",
+   "*magewell*",
+   "*decklink*",
+   "*desktop*video*"
+  ],
+  "note": "Utilitaires de cartes d'acquisition : les pilotes Windows ne s'installent pas sous Wine. AJA et Blackmagic (Desktop Video) publient des pilotes Linux : voir Blackmagic XIII.",
+  "composants": []
+ },
+ {
+  "motifs": [
+   "*elgato*",
+   "*stream*deck*",
+   "*camera*hub*",
+   "*control*center*"
+  ],
+  "note": "Les logiciels Elgato ne fonctionnent pas sous Wine (accès USB). Le Stream Deck est piloté nativement par Boutons XIII ou par Companion.",
+  "composants": []
+ },
+ {
+  "motifs": [
+   "*rode*central*",
+   "*rode*connect*",
+   "*focusrite*control*",
+   "*universal*audio*",
+   "*motu*"
+  ],
+  "note": "Logiciels de cartes son USB : en général inutiles sous Linux (la carte est reconnue directement) ; les réglages internes de la carte ne sont pas garantis sous Wine.",
+  "composants": []
+ },
+ {
+  "motifs": [
    "*setup*.exe",
    "*install*.exe"
   ],

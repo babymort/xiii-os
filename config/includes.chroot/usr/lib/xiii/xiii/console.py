@@ -128,11 +128,41 @@ def jeux_pc():
             L.append({"nom": a.get_display_name(), "chemin": "app:" + a.get_id(), "taille": 0})
     return sorted(L, key=lambda j: j["nom"].lower())
 
+def jeux_heroic():
+    """Jeux Epic, GOG et Amazon installés avec Heroic (version Flathub ou paquet)."""
+    L = []
+    for base in (os.path.expanduser("~/.var/app/com.heroicgameslauncher.hgl/config/heroic"), os.path.expanduser("~/.config/heroic")):
+        for f, runner in ((os.path.join(base, "legendaryConfig/legendary/installed.json"), "legendary"), (os.path.join(base, "gog_store/installed.json"), "gog"),
+                          (os.path.join(base, "nile_config/nile/installed.json"), "nile")):
+            try: d = json.load(open(f))
+            except Exception: continue
+            items = d.values() if isinstance(d, dict) and "installed" not in d else (d.get("installed") or [])
+            for g in items:
+                if not isinstance(g, dict): continue
+                app = g.get("app_name") or g.get("appName") or g.get("id"); nom = g.get("title") or g.get("name") or app
+                if app and not any(j["chemin"].endswith("/" + str(app)) for j in L): L.append({"nom": nom, "chemin": "heroic:%s/%s" % (runner, app), "taille": 0})
+    return sorted(L, key=lambda j: j["nom"].lower())
+
+def jeux_lutris():
+    if not shutil.which("lutris"): return []
+    try:
+        d = json.loads(subprocess.run(["lutris", "-l", "-o", "-j"], capture_output=True, text=True, timeout=30).stdout or "[]")
+        return sorted([{"nom": g.get("name"), "chemin": "lutris:%s" % (g.get("slug") or g.get("id")), "taille": 0} for g in d if g.get("name")], key=lambda j: j["nom"].lower())
+    except Exception:
+        return []
+
 def donnees():
     out = [{"id": "steam", "nom": "Steam", "fabricant": "Valve", "annee": 2003, "support": "pc", "c1": "#1b2838", "c2": "#66c0f4",
             "jeux": jeux_steam(), "installe": bool(shutil.which("steam")), "source": "apt:steam", "remarque": "", "exts": "", "dossier": ""},
            {"id": "pc", "nom": "Jeux PC", "fabricant": "OS XIII", "annee": 2026, "support": "pc", "c1": "#2a1f16", "c2": "#f0b378",
             "jeux": jeux_pc(), "installe": True, "source": "", "remarque": "Jeux Linux installés et jeux Windows installés avec Applications Windows", "exts": "", "dossier": ""}]
+    h, l = jeux_heroic(), jeux_lutris()
+    if h or shutil.which("heroic") or os.path.isdir(os.path.expanduser("~/.var/app/com.heroicgameslauncher.hgl")):
+        out.append({"id": "heroic", "nom": "Epic, GOG, Amazon", "fabricant": "Heroic", "annee": 2021, "support": "pc", "c1": "#0b1a2a", "c2": "#a2d2ff",
+                    "jeux": h, "installe": True, "source": "flatpak:com.heroicgameslauncher.hgl", "remarque": "Jeux installés avec Heroic (Epic Games, GOG, Amazon Prime Gaming)", "exts": "", "dossier": ""})
+    if l:
+        out.append({"id": "lutris", "nom": "Lutris", "fabricant": "Lutris", "annee": 2013, "support": "pc", "c1": "#1f1d14", "c2": "#ffb23f",
+                    "jeux": l, "installe": True, "source": "apt:lutris", "remarque": "Jeux installés avec Lutris (Battle.net, Ubisoft, EA…)", "exts": "", "dossier": ""})
     for sid, nom, fab, an, sup, (c1, c2), exts, cmd, src, rem in S:
         out.append({"id": sid, "nom": nom, "fabricant": fab, "annee": an, "support": sup, "c1": c1, "c2": c2, "exts": exts,
                     "jeux": jeux_de(sid, exts), "installe": installe(src), "source": src, "remarque": rem, "dossier": os.path.join(JEUX, sid)})
@@ -290,6 +320,11 @@ class Console(Gtk.Application):
         if self.proc and self.proc.poll() is None: return
         if chemin == "steam:bigpicture": cmd = ["steam", "-gamepadui"]
         elif chemin.startswith("steam:"): cmd = ["steam", "-gamepadui", "steam://rungameid/" + chemin[6:]]
+        elif chemin.startswith("heroic:"):
+            runner, _, app = chemin[7:].partition("/")
+            cmd = (["flatpak", "run", "com.heroicgameslauncher.hgl"] if not shutil.which("heroic") else ["heroic"]) + ["--no-gui", "--no-sandbox", "heroic://launch/%s/%s" % (runner, app)]
+        elif chemin.startswith("lutris:"):
+            cmd = ["lutris", "lutris:rungame/" + chemin[7:]]
         elif chemin.startswith("app:"):
             a = Gio.DesktopAppInfo.new(chemin[4:])
             if a: a.launch([], None)

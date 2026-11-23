@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Windows XIII (machine virtuelle)
+Comment=Un Windows 11 complet dans une fenêtre, pour les logiciels qui ne passent pas sous Wine
+Exec=xiii-vm %F
+Icon=xiii-vm
+Type=Application
+Categories=System;Emulator;XIII;
+Keywords=windows;machine virtuelle;vm;qemu;quickemu;vmix;

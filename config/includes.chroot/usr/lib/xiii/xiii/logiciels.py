@@ -63,6 +63,8 @@ CATALOGUE = {
     ],
     "Internet et quotidien": [
         ("steam", "Steam", "Boutique et bibliothèque de jeux PC (licence de Valve acceptée à l'installation)", "steam", "steam", "gamepad-2"),
+        ("vmwindows", "Windows XIII (machine virtuelle)", "Un vrai Windows 11 dans une fenêtre, pour ce qui ne passe pas sous Wine (créé en un clic)", "inclus", "xiii-vm", "app-window"),
+        ("polices", "Polices XIII", "Aperçu, activation, import et Google Fonts", "inclus", "xiii-polices", "type"),
         ("wine32", "Wine 32 bits", "Pour les anciens logiciels Windows en 32 bits", "apt:wine32:i386", None, "app-window"),
         ("chromium", "Chromium", "Navigateur web (base de Chrome)", "apt:chromium", "chromium", "globe"),
         ("plex", "Plex", "Vos films, séries et musiques, depuis votre serveur Plex", "inclus", "xiii-plex", "monitor-play"),

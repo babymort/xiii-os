@@ -147,6 +147,16 @@ python3 -c "$CFG"'config.modifier(envoi_actif=True)'
 curl -s http://127.0.0.1:53317/api/localsend/v2/info | python3 -c 'import sys,json; d=json.load(sys.stdin); print("OK        LocalSend /info :", d["alias"], d["version"], d["protocol"])' >> $R 2>&1
 xiii-envoi /tmp/essai-envoi.bin /tmp/essai-envoi.txt > /out/app-envoi.log 2>&1 & sleep 5; grim -s 0.5 /out/app-envoi.png; pkill -f "essai-envoi.bin"; sleep 1
 
+echo "== Phase H (logiciels, Stream Deck, polices, Resolve, VM)" >> $R
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import streamdeck; streamdeck.apercu("/out/streamdeck-pages.png")' >> $R 2>&1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import windows as W; import json; r=W.profil("setup", {"produit":"X32-Edit","editeur":"Behringer"}); print("OK        Wine : setup.exe de « X32-Edit » reconnu →", (r or {}).get("note","AUCUN")[:60])' >> $R 2>&1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import logiciels_plus as L, logiciels as C; R=L.chercher_partout("vlc", C.CATALOGUE); print("OK        recherche partout « vlc » :", ", ".join("%s %d" % (k, len(v)) for k, v in R) or "AUCUN RÉSULTAT")' >> $R 2>&1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import logiciels_plus as L; F=L.fiche("flatpak:org.videolan.VLC"); print("OK        fiche VLC :", F.get("version"), "·", F.get("popularite"), "·", len(F.get("captures", [])), "captures", F.get("erreur",""))' >> $R 2>&1
+xiii-logiciels > /out/app-logiciels2.log 2>&1 & sleep 6; grim -s 0.5 /out/logiciels-accueil.png; pkill -f "xiii.logiciels import"; sleep 1
+xiii-logiciels --page packs > /dev/null 2>&1 & sleep 5; grim -s 0.5 /out/logiciels-packs.png; pkill -f "xiii.logiciels import"; sleep 1
+xiii-logiciels --page maj > /dev/null 2>&1 & sleep 12; grim -s 0.5 /out/logiciels-maj.png; pkill -f "xiii.logiciels import"; sleep 1
+for app in xiii-polices xiii-resolve xiii-vm; do $app > /out/$app.log 2>&1 & sleep 6; grim -s 0.5 /out/$app.png; pkill -f "$app" ; pkill -f "xiii.$(echo $app | cut -c6-) import"; sleep 1; done
+
 echo "== Phase E (régie, déchargement → BACKUPO + DOSSIER)" >> $R
 mkdir -p /root/Navette
 python3 - >> $R 2>&1 <<'PY'
