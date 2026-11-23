@@ -179,8 +179,8 @@ L=""; for pn in son wifi centre volet widgets presse emoji demarrer bluetooth ba
   for i in $(seq 1 5); do gapplication action fr.xiii.Shell basculer "'$pn'"; sleep 0.2; gapplication action fr.xiii.Shell fermer; done; sleep 1; a=$(pss_shell)
   for i in $(seq 1 50); do gapplication action fr.xiii.Shell basculer "'$pn'"; sleep 0.2; gapplication action fr.xiii.Shell fermer; sleep 0.05; done; sleep 4; L="$L $pn:+$(( $(pss_shell) - a ))"
 done; echo "INFO      fuite par panneau (Mo pour 50 ouvertures) :$L" >> $R
-for t in clair sombre clair sombre clair sombre clair sombre clair sombre; do python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, theme='$t')"; sleep 1.2; done; sleep 7; m4=$(pss_shell)
-for t in clair sombre clair sombre clair sombre clair sombre clair sombre; do python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, theme='$t')"; sleep 1.2; done; sleep 7; m5=$(pss_shell)
+for t in clair sombre clair sombre clair sombre clair sombre clair sombre; do python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, theme='$t')"; sleep 1.2; done; sleep 24; m4=$(pss_shell)
+for t in clair sombre clair sombre clair sombre clair sombre clair sombre; do python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, theme='$t')"; sleep 1.2; done; sleep 24; m5=$(pss_shell)
 echo "INFO      fuite ? panneaux ×160 : $m1 → $m2 → $m3 Mo ; thèmes ×10 : $m4 Mo, ×10 encore : $m5 Mo" >> $R
 echo "INFO      mémoire du shell (PSS) : $(cat /tmp/pss-6s) Mo à 6 s, $(cat /tmp/pss-46s 2>/dev/null) Mo à 46 s (après libération), $(pss_shell) Mo maintenant (après des centaines d'ouvertures et 20 changements de thème)" >> $R
 

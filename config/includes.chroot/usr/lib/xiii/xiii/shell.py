@@ -1036,12 +1036,16 @@ class Shell(Gtk.Application):
         ov = self.b_cloche.get_child(); ov.set_child(ico("bell", 19))
         self.maj_taches(); self.maj_icones(); self.maj_badge(); self.tic()
         if self._meteo: self._rendu_meteo(self._meteo)
-        for nom, (w, obj) in self.panneaux.items():
+        for nom, (w, obj) in list(self.panneaux.items()):
             if nom == "demarrer":
                 self.menu = MenuDemarrer(self); w.set_child(self.menu.widget); self.panneaux[nom] = (w, self.menu)
             else:
                 o = type(obj)(self); w.set_child(o.widget); self.panneaux[nom] = (w, o)
                 if self.ouvert == nom: o.rafraichir()
+            # l'ancien panneau et ses boutons se retiennent mutuellement (gestionnaires → objet → widgets) : on coupe le lien
+            # pour que GTK libère l'ancien contenu (sinon ≈ 4 Mo perdus à chaque changement de thème)
+            # (après 20 s : une lecture en arrière-plan encore en cours peut finir sans erreur)
+            GLib.timeout_add_seconds(20, lambda o=obj: (o.__dict__.clear(), False)[1])
         self.services()
 
     def processus(self, nom, cmd):
