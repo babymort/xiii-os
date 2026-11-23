@@ -344,6 +344,7 @@ def fenetre(fichiers):
             hh = boite(False, 8); hh.append(label("Appareils à proximité", "section", hexpand=True))
             hh.append(bouton("Actualiser", "refresh-cw", "fantome", rappel=lambda: self.chercher(True))); v.append(hh)
             self.g = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=6, min_children_per_line=2, column_spacing=8, row_spacing=8, homogeneous=True); v.append(self.g)
+            self.vide = label("Recherche… Les appareils doivent être sur le même réseau, avec LocalSend ouvert (ou OS XIII).", "attenue", wrap=True); v.append(self.vide)
             m = boite(False, 8); self.ip = Gtk.Entry(placeholder_text="Pas dans la liste ? Adresse IP de l'appareil (ex. 192.168.1.23)", hexpand=True)
             m.append(self.ip); m.append(bouton("Ajouter", None, "fantome", rappel=self.ajouter_ip)); self.ip.connect("activate", lambda *_: self.ajouter_ip()); v.append(m)
             self.etat = label("", "attenue", wrap=True); v.append(self.etat)
@@ -407,10 +408,8 @@ def fenetre(fichiers):
             L = (L or []) + [a for a in self.manuels if a["fingerprint"] not in vus]
             sig = [(a["fingerprint"], a["alias"]) for a in L]
             if sig == getattr(self, "_sig", None): return
-            self._sig = sig; vider(self.g)
-            if not L:
-                self.g.append(label("Recherche… Les appareils doivent être sur le même réseau, avec LocalSend ouvert (ou OS XIII).", "attenue", wrap=True))
-                return
+            self._sig = sig; vider(self.g); self.vide.set_visible(not L)
+            if not L: return
             for a in L:
                 b = Gtk.Button(); b.add_css_class("appareil"); b.add_css_class("plat")
                 c = boite(True, 6); c.append(ico(ICONES.get(a.get("deviceType"), "monitor"), 34, "c")); c.append(label(a["alias"], "gras", xalign=0.5, ellipsize=True))
