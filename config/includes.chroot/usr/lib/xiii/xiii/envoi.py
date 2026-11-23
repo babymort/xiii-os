@@ -16,12 +16,9 @@ ID = os.path.expanduser("~/.local/share/xiii/envoi-id")
 
 
 def cfg():
-    try:
-        sys.path.insert(0, "/usr/lib/xiii")
-        from xiii import config
-        return config.charger()
-    except Exception:
-        return {}
+    """Réglages lus directement (sans charger GTK : le service de réception reste léger)."""
+    try: return json.load(open(os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "xiii", "reglages.json")))
+    except Exception: return {}
 
 
 def empreinte():
@@ -41,12 +38,12 @@ def identite(annonce=None):
 
 
 def dossier_reception():
-    try:
-        import gi
-        from gi.repository import GLib
-        base = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) or os.path.expanduser("~/Téléchargements")
-    except Exception:
-        base = os.path.expanduser("~/Téléchargements")
+    base = None
+    try:     # dossier Téléchargements de l'utilisateur, sans charger GLib
+        for l in open(os.path.expanduser("~/.config/user-dirs.dirs")):
+            if l.startswith("XDG_DOWNLOAD_DIR="): base = os.path.expandvars(l.split("=", 1)[1].strip().strip('"'))
+    except OSError: pass
+    base = base or os.path.expanduser("~/Téléchargements")
     d = os.path.join(base, "Reçus"); os.makedirs(d, exist_ok=True); return d
 
 

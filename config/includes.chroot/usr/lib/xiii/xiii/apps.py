@@ -103,7 +103,20 @@ def deux_cartes():
     return len(glob.glob("/sys/class/drm/card[0-9]")) > 1
 
 
+USAGE = os.path.expanduser("~/.local/share/xiii/usage.json")
+
+def noter_usage(a):
+    """Compte les lancements (préchargement des applis fréquentes au démarrage)."""
+    try:
+        import json
+        try: d = json.load(open(USAGE))
+        except Exception: d = {}
+        k = a.get_id() or ""; d[k] = d.get(k, 0) + 1
+        os.makedirs(os.path.dirname(USAGE), exist_ok=True); json.dump(d, open(USAGE, "w"))
+    except Exception: pass
+
 def lancer(a, fichiers=None, dediee=False):
+    noter_usage(a)
     try:
         ctx = Gdk.Display.get_default().get_app_launch_context()
         if dediee:      # carte dédiée : Mesa (AMD, nouveau) et pilote NVIDIA officiel

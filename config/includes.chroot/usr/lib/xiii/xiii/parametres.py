@@ -401,6 +401,17 @@ class Parametres(Gtk.Application):
                              droite=deroulant([(k, n) for k, n, _ in S.PROFILS if k in dispo], S.profil(), lambda v: S.en_fond(S.regler_profil, None, v))))
         else:
             c.append(info("Les profils d'alimentation ne sont pas disponibles sur cet ordinateur."))
+        c.append(reglage("battery-charging" if os.path.exists(theme.LUCIDE + "/battery-charging.svg") else "battery", "Économie automatique sur batterie",
+                         "Mode Économie dès que le portable est débranché, retour au mode Équilibré sur secteur",
+                         droite=interrupteur(cfg.get("energie_auto", True), lambda v: self.regler(energie_auto=v))))
+        c.append(groupe_titre("Démarrage"))
+        try:
+            L = json.load(open(os.path.expanduser("~/.local/share/xiii/demarrages.json")))
+            moy = sum(x["bureau_s"] for x in L[-5:]) / len(L[-5:])
+            c.append(reglage("timer", "Temps de démarrage", "Bureau affiché %.0f s après l'allumage (moyenne des derniers démarrages, mot de passe compris)" % moy))
+        except Exception: pass
+        c.append(reglage("rocket", "Préchargement des applis fréquentes", "Vos 5 applis les plus utilisées sont préparées en mémoire après le démarrage : elles s'ouvrent plus vite",
+                         droite=interrupteur(cfg.get("precharge", True), lambda v: self.regler(precharge=v))))
         c.append(groupe_titre("Écran et mise en veille"))
         c.append(reglage("lock", "Verrouiller l'écran après inactivité", "", droite=interrupteur(cfg["verrou_actif"], lambda on: self.regler(verrou_actif=on))))
         c.append(reglage("timer", "Délai avant verrouillage", "", droite=deroulant([(str(s), t) for s, t in ((60, "1 minute"), (120, "2 minutes"), (300, "5 minutes"),

@@ -1,0 +1,15 @@
+#!/bin/sh
+# xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
+# Phase J — démarrage rapide : services inutiles au démarrage coupés (ils restent disponibles à la demande).
+# • attente du réseau : rien n'en a besoin, le bureau s'affiche sans attendre le Wi-Fi
+# • lm-sensors : les températures sont lues directement (Moniteur système)
+# • rpcbind / nfs-blkmap : seulement pour les partages NFS v3 (un montage NFS les relance)
+for s in NetworkManager-wait-online.service lm-sensors.service rpcbind.service rpcbind.socket nfs-blkmap.service; do
+  systemctl disable "$s" 2>/dev/null || true
+done
+systemctl mask NetworkManager-wait-online.service 2>/dev/null || true
+# arrêt plus rapide : un service bloqué n'attend plus 90 s
+mkdir -p /etc/systemd/system.conf.d /etc/systemd/user.conf.d
+printf '[Manager]\nDefaultTimeoutStopSec=10s\n' > /etc/systemd/system.conf.d/xiii-rapide.conf
+printf '[Manager]\nDefaultTimeoutStopSec=8s\n' > /etc/systemd/user.conf.d/xiii-rapide.conf
+true

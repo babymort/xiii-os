@@ -8,7 +8,8 @@ sleep 75   # bureau posé : la mesure est faite « au repos »
 U=$(getent passwd 1000 | cut -d: -f1)
 {
 echo "==XIII-MESURE-DEBUT=="
-echo "bureau prêt après : $( [ $i -lt 300 ] && echo "$(cut -d' ' -f1 /proc/uptime | cut -d. -f1) s (mesure à +75 s)" || echo "JAMAIS (xiii-shell absent)")"
+P=$(cat /run/user/1000/xiii-bureau-pret 2>/dev/null)
+echo "bureau prêt après : $( [ $i -lt 300 ] && echo "${P:-?} s depuis l'allumage (mesure de la mémoire à +75 s)" || echo "JAMAIS (xiii-shell absent)")"
 echo "processeur : $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2) · $(nproc) cœur(s)"
 echo "édition : $(cat /etc/xiii/edition 2>/dev/null || echo complete) · $(cat /usr/share/xiii/VERSION.json 2>/dev/null)"
 echo "--- mémoire"

@@ -53,8 +53,15 @@ class Shell(Gtk.Application):
         self.miniatures = Miniatures(self); self.progres = {}
         self.fenetres = Gestionnaire(self.maj_taches)
         self.ecouter_progres()
-        if not S.DEMO: S.detacher(["xiii-lecteurs", "--monter-tout"])      # NAS et clouds reconnectés
-        if self.cfg.get("envoi_actif", True) and not S.DEMO: S.detacher(["xiii-envoi", "--recevoir"])     # Envoi XIII : visible des appareils proches (LocalSend)
+        # démarrage rapide : ce qui n'est pas visible attend que le bureau soit affiché
+        def differe():
+            if not S.DEMO: S.detacher(["xiii-lecteurs", "--monter-tout"])      # NAS et clouds reconnectés
+            if self.cfg.get("envoi_actif", True) and not S.DEMO: S.detacher(["xiii-envoi", "--recevoir"])     # Envoi XIII : visible des appareils proches (LocalSend)
+            return False
+        GLib.timeout_add_seconds(12, differe)
+        GLib.timeout_add_seconds(90, self.precharger)
+        GLib.idle_add(self.noter_pret)
+        self.surveiller_batterie()
         self.surveiller_reseau()
         GLib.timeout_add_seconds(15, self.surveiller_streamdeck); self.surveiller_streamdeck()
         GLib.timeout_add_seconds(1800, self.maj_nuit)
@@ -776,6 +783,70 @@ class Shell(Gtk.Application):
             self._sd = subprocess.Popen(["xiii-streamdeck"], stdout=open(os.path.expanduser("~/.cache/xiii/streamdeck.log"), "w"), stderr=subprocess.STDOUT, start_new_session=True)
         return True
 
+    def noter_pret(self):
+        """Heure d'affichage du bureau (secondes depuis l'allumage) : mesurée par les essais et par Paramètres › Démarrage."""
+        try:
+            up = float(open("/proc/uptime").read().split()[0])
+            open(os.path.join(GLib.get_user_runtime_dir(), "xiii-bureau-pret"), "w").write("%.1f" % up)
+            import json
+            f = os.path.expanduser("~/.local/share/xiii/demarrages.json")
+            try: L = json.load(open(f))
+            except Exception: L = []
+            L = (L + [{"date": time.strftime("%Y-%m-%d %H:%M"), "bureau_s": round(up, 1)}])[-30:]
+            os.makedirs(os.path.dirname(f), exist_ok=True); json.dump(L, open(f, "w"))
+        except Exception: pass
+        return False
+
+    def precharger(self):
+        """Les 5 applis les plus utilisées sont lues à l'avance dans la mémoire cache (démarrage plus rapide ensuite)."""
+        if S.DEMO or not self.cfg.get("precharge", True): return False
+        def fond():
+            import json, shutil, re as _re
+            try: d = json.load(open(apps.USAGE))
+            except Exception: return
+            fichiers = set()
+            for k, _n in sorted(d.items(), key=lambda x: -x[1])[:5]:
+                a = Gio.DesktopAppInfo.new(k) if k else None
+                if not a: continue
+                exe = shutil.which((a.get_executable() or "").split("/")[-1]) or a.get_executable()
+                if not exe or not os.path.exists(exe): continue
+                fichiers.add(os.path.realpath(exe))
+                try:
+                    txt = open(exe, "rb").read(4096)
+                    m = _re.search(rb"from xiii\.(\w+) import", txt)
+                    if m: fichiers.update(f for f in os.popen("ls /usr/lib/xiii/xiii/__pycache__/%s.*.pyc 2>/dev/null" % m.group(1).decode()).read().split())
+                    elif not txt.startswith(b"#!"):
+                        for l in S.out(["ldd", exe], 5).splitlines():
+                            p = l.split("=>")[-1].split("(")[0].strip()
+                            if p.startswith("/"): fichiers.add(p)
+                except Exception: pass
+            for p in list(fichiers)[:200]:
+                try:
+                    fd = os.open(p, os.O_RDONLY); os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_WILLNEED); os.close(fd)
+                except OSError: pass
+        import threading
+        threading.Thread(target=fond, daemon=True).start()
+        return False
+
+    def surveiller_batterie(self):
+        """Sur batterie : profil Économie ; sur secteur : retour au profil choisi (Paramètres › Alimentation)."""
+        def change(*_a):
+            try:
+                v = self._upower.get_cached_property("OnBattery")
+                sur_batt = bool(v.unpack()) if v is not None else False
+            except Exception: return
+            if not self.cfg.get("energie_auto", True) or self.cfg.get("profil", "normal") not in ("normal", "voyage"): return
+            if sur_batt == getattr(self, "_sur_batt", None): return
+            premier = getattr(self, "_sur_batt", None) is None; self._sur_batt = sur_batt
+            S.en_fond(S.regler_profil, None, "power-saver" if sur_batt else "balanced")
+            if not premier: S.detacher(["notify-send", "-a", "OS XIII", "-i", "battery", "Économie d'énergie" if sur_batt else "Sur secteur",
+                                       "Sur batterie : performances réduites pour durer plus longtemps." if sur_batt else "Performances normales rétablies."])
+        try:
+            self._upower = Gio.DBusProxy.new_for_bus_sync(Gio.BusType.SYSTEM, Gio.DBusProxyFlags.NONE, None, "org.freedesktop.UPower", "/org/freedesktop/UPower", "org.freedesktop.UPower", None)
+            self._upower.connect("g-properties-changed", change); change()
+        except Exception as e:
+            print("batterie : UPower indisponible", e)
+
     def surveiller_reseau(self):
         """Retour sur un réseau : les NAS et clouds enregistrés se remontent tout seuls, Envoi XIII se présente aux appareils proches."""
         self._reseau_src = 0; self._reseau_etat = None
@@ -1028,11 +1099,27 @@ class Shell(Gtk.Application):
         if r.get("nuit") is not None: kw["lumiere_nocturne"] = r["nuit"]
         if any(self.cfg.get(x) != v for x, v in kw.items()): config.modifier(_histo=False, **kw)
         if r.get("jeu") and self.cfg.get("jeu_console") and not silencieux: S.detacher(["steam", "-gamepadui"])
+        self.tournage_taches(k == "tournage")
+        if (k == "tournage") != bool(self.cfg.get("animations_coupees_tournage")):    # animations coupées le temps de la captation
+            if k == "tournage" and self.cfg.get("animations", True): config.modifier(_histo=False, animations=False, animations_coupees_tournage=True)
+            elif k != "tournage" and self.cfg.get("animations_coupees_tournage"): config.modifier(_histo=False, animations=True, animations_coupees_tournage=False)
         if not silencieux:
             S.detacher(["notify-send", "-a", "OS XIII", "-i", "preferences-system", "Profil " + nom, desc])
 
     def mode_tournage(self, on):
         config.modifier(profil="tournage" if on else "normal", mode_tournage=on)
+
+    def tournage_taches(self, on):
+        """Mode / profil Tournage : rien ne doit ralentir l'ordinateur pendant une captation."""
+        if S.DEMO: return
+        if on:
+            # indexation des fichiers, miniatures, mises à jour en attente, Envoi XIII silencieux
+            for p in ("localsearch-3", "tracker-miner-fs-3", "tracker-extract-3", "tumblerd", "xiii-miniature", "apt-get", "flatpak"):
+                S.detacher(["pkill", "-STOP", "-x", p])
+            S.detacher(["systemctl", "--user", "stop", "localsearch-3.service", "tracker-miner-fs-3.service"])
+        else:
+            for p in ("localsearch-3", "tracker-miner-fs-3", "tracker-extract-3", "tumblerd", "xiii-miniature", "apt-get", "flatpak"):
+                S.detacher(["pkill", "-CONT", "-x", p])
 
     # ============================================================== timecode
     def demarrer_timecode(self):

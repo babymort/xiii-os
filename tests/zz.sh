@@ -165,6 +165,11 @@ curl -s -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
+echo "== Phase J (performance)" >> $R
+p=$(xiii-bilan --rapport /tmp/compat.html 2>&1 | tail -1); grep -q "Compatibilité OS XIII" /tmp/compat.html && echo "OK        rapport de compatibilité : $(grep -o '[0-9]* / [0-9]*</span> éléments reconnus' /tmp/compat.html | sed 's/<[^>]*>//g')" >> $R || echo "ÉCHEC     rapport de compatibilité : $p" >> $R
+cp /tmp/compat.html /out/compatibilite.html 2>/dev/null
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import envoi; print("OK        Envoi XIII sans GTK :", "gi" not in sys.modules)' >> $R 2>&1
+
 echo "== Phase I (applis XIII)" >> $R
 for q in "ouvre conduco" "cherche les vidéos de cette semaine" "mode production" "quelle heure est-il" "trouve le devis dupont"; do
   echo "OK        voix « $q » → $(xiii-voix --comprendre "$q")" >> $R

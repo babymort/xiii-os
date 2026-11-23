@@ -220,6 +220,50 @@ def sante():
     if not C: C.append("Cet ordinateur est en pleine forme pour OS XIII.")
     return max(0, note), L, C
 
+# ---------- rapport de compatibilité ----------
+def usb():
+    """Périphériques USB : nom et pilote utilisé (aucun = pas reconnu)."""
+    L = []
+    for d in glob.glob("/sys/bus/usb/devices/*"):
+        if not os.path.exists(d + "/idVendor") or os.path.basename(d).startswith("usb"): continue
+        try:
+            nom = " ".join(x for x in (sh("cat %s/manufacturer" % d), sh("cat %s/product" % d)) if x) or "%s:%s" % (sh("cat %s/idVendor" % d), sh("cat %s/idProduct" % d))
+            pil = sorted(set(os.path.basename(os.path.realpath(p)) for p in glob.glob(d + "/*:*/driver")))
+            if "hub" in pil and len(pil) == 1: continue
+            L.append((nom, ", ".join(pil)))
+        except Exception: pass
+    return sorted(set(L))
+
+
+def rapport(chemin=None):
+    """Rapport HTML lisible et imprimable : ce qui marche, ce qui manque, la solution proposée."""
+    import html, datetime
+    e = html.escape
+    B = bilan(); Pl, Pk = pilotes(); note, S_, C = sante(); U = usb()
+    modele = (sh("cat /sys/class/dmi/id/sys_vendor") + " " + sh("cat /sys/class/dmi/id/product_name")).strip() or "Ordinateur"
+    ver = ""
+    try: ver = __import__("json").load(open("/usr/share/xiii/VERSION.json")).get("version", "")
+    except Exception: pass
+    pastille = lambda ok: '<span class="p %s">●</span>' % ("ok" if ok else "ko" if ok is False else "nt")
+    lignes = lambda L: "".join("<tr><td>%s</td><td><b>%s</b></td><td>%s</td></tr>" % (pastille(ok), e(n), e(str(v)).replace("\n", "<br>")) for n, v, ok in L)
+    ok_n = sum(1 for x in B if x[2]) + sum(1 for x in Pl if x[2]); tot = len(B) + len(Pl)
+    h = """<!doctype html><html lang=fr><meta charset=utf-8><title>Compatibilité OS XIII — %s</title><style>
+body{font-family:'IBM Plex Sans',sans-serif;max-width:900px;margin:30px auto;padding:0 20px;color:#1d1b19}h1{font-family:Astoria,'Archivo Black',sans-serif;color:#b8651f;margin-bottom:0}
+.s{color:#6d675f}table{width:100%%;border-collapse:collapse;margin:8px 0 20px}td{padding:7px 8px;border-bottom:1px solid #e6e1da;vertical-align:top}td:first-child{width:18px}
+.p{font-size:15px}.ok{color:#2e7d32}.ko{color:#c0392b}.nt{color:#b8651f}.n{font-size:40px;font-weight:800;color:#b8651f}.c{background:#f6f1ea;border-radius:10px;padding:12px 16px;margin:10px 0}
+code{background:#f0ebe4;padding:1px 5px;border-radius:4px}@media print{.no{display:none}}</style>
+<h1>Compatibilité OS XIII</h1><p class=s>%s · OS XIII %s · rapport du %s</p>
+<div class=c><span class=n>%d / %d</span> éléments reconnus · note de forme <b>%d / 100</b></div>
+<h2>Matériel</h2><table>%s</table><h2>Pilotes et firmwares</h2><table>%s</table>""" % (e(modele), e(modele), e(ver), datetime.date.today().strftime("%d/%m/%Y"), ok_n, tot, note,
+        "".join("<tr><td>%s</td><td><b>%s</b></td><td>%s</td></tr>" % (pastille(ok), e(n), e(str(v)).replace("\n", "<br>")) for n, v, ok, _a in B), lignes(Pl))
+    if Pk: h += "<div class=c><b>Solution proposée :</b> installer <code>%s</code> — bouton « Installer les pilotes conseillés » dans Utilitaires XIII › Pilotes, puis redémarrer.</div>" % e(" ".join(Pk))
+    if U: h += "<h2>Périphériques USB</h2><table>%s</table>" % "".join("<tr><td>%s</td><td><b>%s</b></td><td>%s</td></tr>" % (pastille(bool(p)), e(n), e(p) if p else "pas de pilote : peut demander un logiciel du fabricant") for n, p in U)
+    h += "<h2>Santé</h2><table>%s</table><div class=c>%s</div>" % (lignes(S_), "".join("<p>• %s</p>" % e(t) for t in C))
+    h += "<p class=s>Rapport généré par OS XIII — Utilitaires XIII. Application développée par Matthieu Lamotte.</p></html>"
+    chemin = chemin or os.path.join(sh("xdg-user-dir DOCUMENTS") or os.path.expanduser("~/Documents"), "Compatibilité OS XIII — %s.html" % modele.replace("/", "-"))
+    os.makedirs(os.path.dirname(chemin), exist_ok=True); open(chemin, "w", encoding="utf-8").write(h)
+    return chemin
+
 # ---------- interface ----------
 class App(Gtk.Application):
     def __init__(self, page):
@@ -239,6 +283,14 @@ class App(Gtk.Application):
         self.p_pil = self.page_vide("pilotes", "Pilotes", "Scan des pilotes et firmwares manquants.", self.charge_pilotes)
         self.p_san = self.page_vide("sante", "Santé du PC", "Note de forme et conseils pour redonner vie à cet ordinateur.", self.charge_sante)
         root.append(self.stack)
+        br = Gtk.Button(label="📄 Rapport de compatibilité (à imprimer ou envoyer)", css_classes=["acc"], halign=Gtk.Align.START)
+        def gen(btn):
+            btn.set_sensitive(False); btn.set_label("Rapport en cours…")
+            def run():
+                try: p = rapport(); GLib.idle_add(lambda: (btn.set_label("Rapport enregistré dans Documents ✓"), btn.set_sensitive(True), subprocess.Popen(["xdg-open", p]), False)[-1])
+                except Exception as ex: GLib.idle_add(lambda: (btn.set_label("Erreur : %s" % ex), btn.set_sensitive(True), False)[-1])
+            threading.Thread(target=run, daemon=True).start()
+        br.connect("clicked", gen); root.append(br)
         root.append(Gtk.Label(label="Application développée par Matthieu Lamotte", css_classes=["credit"], xalign=1))
         self.stack.set_visible_child_name(self.page)
         self.win.present()
@@ -324,4 +376,6 @@ class App(Gtk.Application):
         self.async_(self.p_san, sante, rendu)
 
 if __name__ == "__main__":
+    if "--rapport" in sys.argv:
+        i = sys.argv.index("--rapport"); print(rapport(sys.argv[i + 1] if i + 1 < len(sys.argv) else None)); sys.exit(0)
     App("pilotes" if "--pilotes" in sys.argv else "sante" if "--sante" in sys.argv else "bilan").run([sys.argv[0]])
