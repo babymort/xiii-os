@@ -175,6 +175,10 @@ rm -f /etc/xiii/parefeu.json
 # fuite de mémoire ? 3 séries de 20 ouvertures de tous les panneaux, puis 10 changements de thème : la mémoire doit se stabiliser
 serie() { for i in $(seq 1 20); do for pn in son wifi centre volet widgets presse emoji demarrer; do gapplication action fr.xiii.Shell basculer "'$pn'" 2>/dev/null; sleep 0.15; done; gapplication action fr.xiii.Shell fermer 2>/dev/null; done; sleep 2; }
 serie; m1=$(pss_shell); serie; m2=$(pss_shell); serie; m3=$(pss_shell)
+L=""; for pn in son wifi centre volet widgets presse emoji demarrer bluetooth batterie alim; do
+  for i in $(seq 1 5); do gapplication action fr.xiii.Shell basculer "'$pn'"; sleep 0.2; gapplication action fr.xiii.Shell fermer; done; sleep 1; a=$(pss_shell)
+  for i in $(seq 1 50); do gapplication action fr.xiii.Shell basculer "'$pn'"; sleep 0.2; gapplication action fr.xiii.Shell fermer; sleep 0.05; done; sleep 2; L="$L $pn:+$(( $(pss_shell) - a ))"
+done; echo "INFO      fuite par panneau (Mo pour 50 ouvertures) :$L" >> $R
 for t in clair sombre clair sombre clair sombre clair sombre clair sombre; do python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, theme='$t')"; sleep 1.2; done; sleep 3; m4=$(pss_shell)
 for t in clair sombre clair sombre clair sombre clair sombre clair sombre; do python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, theme='$t')"; sleep 1.2; done; sleep 3; m5=$(pss_shell)
 echo "INFO      fuite ? panneaux ×160 : $m1 → $m2 → $m3 Mo ; thèmes ×10 : $m4 Mo, ×10 encore : $m5 Mo" >> $R
