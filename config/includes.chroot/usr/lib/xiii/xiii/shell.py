@@ -1013,7 +1013,7 @@ class Shell(Gtk.Application):
             GLib.timeout_add_seconds(1, lambda: (self.antivol(), False)[1])
         self.css.load_from_string(theme.css_shell(cfg))
         theme._cache.clear()
-        self.liberer_bientot(5)
+        self.liberer_bientot(22)
         if ancien["barre_alignement"] != cfg["barre_alignement"] or ancien["barre_meteo"] != cfg["barre_meteo"] or ancien["barre_recherche"] != cfg["barre_recherche"]:
             self.placer_barre(); self.aligner_menu()
         if (ancien["meteo_lat"], ancien["meteo_lon"]) != (cfg["meteo_lat"], cfg["meteo_lon"]): self.maj_meteo()
