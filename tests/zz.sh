@@ -165,6 +165,15 @@ curl -s -u zz:x -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null -w
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
+echo "== Phase K (sécurité)" >> $R
+xiii-coffre --test >> $R 2>&1 || echo "ÉCHEC     Coffre XIII" >> $R
+xiii-sauvegarde --test >> $R 2>&1 || echo "ÉCHEC     Sauvegarde XIII" >> $R
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import antivol as A; E=[]; A.envoyer=lambda t, c=None, **k: E.append(t); A.cfg=lambda: {"antivol": True, "antivol_canal": "x"}
+A.agir("etat"); A.agir("bonjour"); c=A.nouveau_canal(); print("OK        Antivol : canal secret de %d caractères, réponses :" % (len(c)-5), [e.split(chr(10))[0][:50] for e in E])' >> $R 2>&1
+python3 -c 'import ast,sys; ast.parse(open("/usr/local/sbin/xiii-parefeu").read()); sys.path.insert(0,"/usr/local/sbin"); import importlib.machinery as m; P=m.SourceFileLoader("pf","/usr/local/sbin/xiii-parefeu").load_module(); print("OK        pare-feu : %d exceptions dont %d ouvertes par défaut (réseau local seulement)" % (len(P.EXCEPTIONS), sum(1 for v in P.EXCEPTIONS.values() if v[3])))' >> $R 2>&1
+xiii-coffre > /out/xiii-coffre.log 2>&1 & sleep 5; grim -s 0.5 /out/app-coffre.png; pkill -f "xiii.coffre import"; sleep 1
+xiii-sauvegarde > /out/xiii-sauvegarde.log 2>&1 & sleep 5; grim -s 0.5 /out/app-sauvegarde.png; pkill -f "xiii.sauvegarde import"; sleep 1
+
 echo "== Phase J (performance)" >> $R
 p=$(xiii-bilan --rapport /tmp/compat.html 2>&1 | tail -1); grep -q "Compatibilité OS XIII" /tmp/compat.html && echo "OK        rapport de compatibilité : $(grep -o '[0-9]* / [0-9]*</span> éléments reconnus' /tmp/compat.html | sed 's/<[^>]*>//g')" >> $R || echo "ÉCHEC     rapport de compatibilité : $p" >> $R
 cp /tmp/compat.html /out/compatibilite.html 2>/dev/null

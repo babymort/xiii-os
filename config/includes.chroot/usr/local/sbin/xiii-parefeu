@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+# OS XIII — pare-feu simple (administrateur) : ufw activé par défaut (tout ce qui entre est refusé, sauf exceptions),
+# exceptions nommées par usage, ouvertes seulement au réseau local (pas à Internet) ; état lisible par tous dans
+# /etc/xiii/parefeu.json pour Paramètres › Pare-feu.
+#   xiii-parefeu init                 première activation (au démarrage, une seule fois)
+#   xiii-parefeu ouvrir CLÉ | fermer CLÉ
+#   xiii-parefeu activer | desactiver
+# Application développée par Matthieu Lamotte.
+import json, os, subprocess, sys
+
+ETAT = "/etc/xiii/parefeu.json"
+LOCAL = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "fe80::/10", "fc00::/7"]
+# clé : (nom, description, [(ports, protocole)], ouvert par défaut)
+EXCEPTIONS = {
+    "decouverte": ("Découverte des appareils", "Imprimantes, NAS et appareils du réseau (mDNS / Bonjour)", [("5353", "udp")], True),
+    "envoi": ("Envoi XIII / LocalSend", "Recevoir des fichiers des téléphones et ordinateurs proches", [("53317", "tcp"), ("53317", "udp")], True),
+    "kdeconnect": ("Téléphone connecté (KDE Connect)", "Notifications, SMS et fichiers du téléphone", [("1714:1764", "tcp"), ("1714:1764", "udp")], True),
+    "ndi": ("NDI", "Sources NDI et retours plateau sur le réseau", [("5959:5990", "tcp"), ("5959:5990", "udp"), ("6960:6990", "tcp"), ("7960:7990", "tcp")], True),
+    "tally": ("Tally XIII", "Téléphones et boîtiers de tally (page web, port 8790)", [("8790", "tcp")], True),
+    "partage": ("Partage d'un dossier (Transferts XIII)", "Dossier partagé par lien sur le réseau local", [("8800:8819", "tcp")], True),
+    "sunshine": ("Sunshine (jeu à distance)", "Diffuser ce PC vers Moonlight", [("47984:47990", "tcp"), ("48010", "tcp"), ("47998:48000", "udp")], False),
+    "ssh": ("Connexion à distance (SSH)", "Prendre la main sur ce PC en ligne de commande", [("22", "tcp")], False),
+    "debit": ("Test de débit (iperf3)", "Être le PC de réception d'un test de débit", [("5201", "tcp"), ("5201", "udp")], False),
+    "partage_fichiers": ("Partage de fichiers Windows (Samba)", "Dossiers partagés vus par Windows et Mac", [("139,445", "tcp"), ("137,138", "udp")], False),
+}
+
+
+def ufw(*a):
+    return subprocess.run(["ufw"] + list(a), capture_output=True, text=True)
+
+
+def lire():
+    try: return json.load(open(ETAT))
+    except Exception: return {"actif": False, "ouvert": {}}
+
+
+def ecrire(e):
+    os.makedirs(os.path.dirname(ETAT), exist_ok=True)
+    e["exceptions"] = {k: {"nom": v[0], "description": v[1], "ports": ["%s/%s" % p for p in v[2]]} for k, v in EXCEPTIONS.items()}
+    json.dump(e, open(ETAT, "w"), ensure_ascii=False, indent=1); os.chmod(ETAT, 0o644)
+
+
+def regle(cle, ouvrir):
+    for ports, proto in EXCEPTIONS[cle][2]:
+        for reseau in LOCAL:
+            if ouvrir: ufw("allow", "proto", proto, "from", reseau, "to", "any", "port", ports, "comment", "XIII " + cle)
+            else: ufw("delete", "allow", "proto", proto, "from", reseau, "to", "any", "port", ports)
+
+
+def main():
+    a = sys.argv[1:]; e = lire()
+    if not a: print(json.dumps(e, ensure_ascii=False, indent=1)); return
+    if a[0] == "init":
+        if e.get("init"): return
+        ufw("default", "deny", "incoming"); ufw("default", "allow", "outgoing")
+        for k, v in EXCEPTIONS.items():
+            if v[3]: regle(k, True); e.setdefault("ouvert", {})[k] = True
+        r = ufw("--force", "enable"); e["actif"] = r.returncode == 0; e["init"] = True
+    elif a[0] in ("ouvrir", "fermer") and len(a) > 1 and a[1] in EXCEPTIONS:
+        regle(a[1], a[0] == "ouvrir"); e.setdefault("ouvert", {})[a[1]] = a[0] == "ouvrir"
+    elif a[0] == "activer":
+        ufw("default", "deny", "incoming"); ufw("default", "allow", "outgoing"); e["actif"] = ufw("--force", "enable").returncode == 0
+    elif a[0] == "desactiver":
+        ufw("disable"); e["actif"] = False
+    else:
+        print(__doc__ or "usage : xiii-parefeu init | ouvrir CLÉ | fermer CLÉ | activer | desactiver"); sys.exit(2)
+    ecrire(e)
+
+
+if __name__ == "__main__":
+    main()

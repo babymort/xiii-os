@@ -1,6 +1,9 @@
 # Installation sur disque
 calamares
 calamares-settings-debian
+# chiffrement du disque à l'installation (LUKS), déverrouillé au démarrage
+cryptsetup
+cryptsetup-initramfs
 qt6-wayland
 # chargeur de démarrage installé sans Internet par l'installateur (UEFI et BIOS), autres systèmes détectés (double démarrage Windows)
 grub2-common

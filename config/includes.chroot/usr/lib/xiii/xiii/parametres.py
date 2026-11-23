@@ -2407,11 +2407,127 @@ class Parametres(Gtk.Application):
 
     # ================================================================== SÉCURITÉ
     def p_parefeu(self, c, cle):
+        """Qui peut se connecter à ce PC : pare-feu activé par défaut, exceptions nommées, ouvertes au réseau local seulement."""
         on = S.pare_feu()
         if on is None: c.append(info("Le pare-feu n'est pas installé.")); return
-        c.append(reglage("flame", "Pare-feu", "Bloque les connexions entrantes non sollicitées (recommandé)",
-                         droite=interrupteur(on, lambda v: S.en_fond(S.admin, lambda r: self.aller("parefeu", False), "ufw default deny incoming && ufw default allow outgoing && ufw --force enable" if v else "ufw disable"))))
-        c.append(info("LocalSend, KDE Connect, NDI et Sunshine ajouteront leurs exceptions automatiquement lors de leur installation."))
+        try: E = json.load(open("/etc/xiii/parefeu.json"))
+        except Exception: E = {"exceptions": {}, "ouvert": {}}
+        if S.DEMO: E = {"actif": True, "ouvert": {"envoi": True, "kdeconnect": True, "ndi": True, "decouverte": True, "tally": True},
+                        "exceptions": {"decouverte": {"nom": "Découverte des appareils", "description": "Imprimantes, NAS (mDNS)", "ports": ["5353/udp"]},
+                                       "envoi": {"nom": "Envoi XIII / LocalSend", "description": "Recevoir des fichiers", "ports": ["53317/tcp"]},
+                                       "ssh": {"nom": "Connexion à distance (SSH)", "description": "Ligne de commande à distance", "ports": ["22/tcp"]}}}
+        h = boite(False, 16, "hero"); h.append(ico("shield-check" if on else "shield-alert", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label("Ce PC est protégé" if on else "Pare-feu désactivé", "hero-grand"))
+        v.append(label("Personne ne peut se connecter à cet ordinateur, sauf les exceptions ci-dessous — et seulement depuis votre réseau local, jamais depuis Internet." if on
+                       else "Tout le monde sur le réseau peut tenter de se connecter aux services de ce PC.", "attenue", wrap=True)); h.append(v)
+        h.append(interrupteur(bool(on), lambda val: S.en_fond(lambda: subprocess.run(["pkexec", "xiii-parefeu", "activer" if val else "desactiver"]).returncode,
+                                                            lambda r: self.aller("parefeu", False))))
+        c.append(h)
+        c.append(groupe_titre("Qui peut se connecter à ce PC"))
+        for k, x in (E.get("exceptions") or {}).items():
+            ouvert = bool((E.get("ouvert") or {}).get(k))
+            c.append(reglage("door-open" if ouvert and os.path.exists(theme.LUCIDE + "/door-open.svg") else ("unlock" if ouvert else "lock"), x["nom"],
+                             "%s · %s" % (x["description"], ", ".join(x["ports"])),
+                             droite=interrupteur(ouvert, lambda val, k=k: S.en_fond(lambda: subprocess.run(["pkexec", "xiii-parefeu", "ouvrir" if val else "fermer", k]).returncode,
+                                                                                   lambda r: (self.toast("Exception %s" % ("ouverte" if val else "fermée")) if r == 0 else self.toast("Annulé"), self.aller("parefeu", False))))))
+        c.append(groupe_titre("En ce moment, à l'écoute sur ce PC"))
+        L = []
+        for l in (S.out(["ss", "-tulnpH"]) if not S.DEMO else "tcp LISTEN 0 128 0.0.0.0:53317 0.0.0.0:* users:((\"python3\",pid=1,fd=3))").splitlines():
+            p = l.split()
+            if len(p) < 5: continue
+            adr = p[4]; port = adr.rsplit(":", 1)[-1]
+            if adr.startswith(("127.", "[::1]", "::1")) or "%lo" in adr: continue
+            m = re.search(r'\(\("([^"]+)"', l); L.append((p[0], port, m.group(1) if m else "service du système"))
+        vus = set()
+        for proto, port, qui in L:
+            if (proto, port) in vus: continue
+            vus.add((proto, port))
+            c.append(reglage("radio", "%s — port %s/%s" % (qui, port, proto), "Écoute sur le réseau" + ("" if on else " (aucun filtrage)")))
+        if not L: c.append(info("Aucun service n'attend de connexion venant du réseau."))
+        c.append(info("Les applications qui se connectent vers l'extérieur (navigateur, Suite XIII, mises à jour, ATEM, NDI en réception) ne sont jamais bloquées."))
+
+    def p_antivol(self, c, cle):
+        """Antivol : verrouiller, afficher un message, faire sonner, localiser ce PC depuis son téléphone (canal ntfy privé)."""
+        on = bool(self.cfg.get("antivol")); canal = self.cfg.get("antivol_canal") or ""
+        serveur = (self.cfg.get("antivol_serveur") or "https://ntfy.sh").rstrip("/")
+        h = boite(False, 16, "hero"); h.append(ico("map-pin", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label("Antivol", "hero-grand"))
+        v.append(label("Si ce PC est perdu ou volé : le verrouiller, afficher un message, le faire sonner ou le localiser depuis votre téléphone.", "attenue", wrap=True)); h.append(v)
+        def basculer(val):
+            kw = {"antivol": val}
+            if val and not canal:
+                import secrets as _s
+                kw["antivol_canal"] = "xiii-" + "".join(ch for ch in _s.token_urlsafe(24) if ch.isalnum())[:24]
+            self.regler(**kw); GLib.timeout_add(300, lambda: (self.aller("antivol", False), False)[1])
+        h.append(interrupteur(on, basculer)); c.append(h)
+        if not on:
+            c.append(info("Aucun compte nécessaire. OS XIII écoute un canal privé (24 caractères aléatoires) sur le service gratuit ntfy.sh, ou sur votre propre serveur ntfy.")); return
+        url = "%s/%s" % (serveur, canal)
+        chemin = os.path.join(GLib.get_user_cache_dir(), "xiii", "antivol-qr.png"); os.makedirs(os.path.dirname(chemin), exist_ok=True)
+        S.sh(["qrencode", "-o", chemin, "-s", "8", "-m", "2", url])
+        q = boite(False, 18, "carte")
+        if os.path.exists(chemin): q.append(vignette(chemin, 200, 200, couvrir=False))
+        t = boite(True, 6, valign=Gtk.Align.CENTER)
+        t.append(label("Sur votre téléphone", "gras"))
+        t.append(label("Installez l'application gratuite « ntfy » et abonnez-vous à ce canal en scannant le code (ou ouvrez l'adresse dans un navigateur). Gardez cette adresse secrète.", "petit", "attenue", wrap=True))
+        t.append(label(url, "mono", "petit", selectable=True, wrap=True))
+        t.append(label("Écrivez dans le canal : verrouiller · message <texte> · sonner · localiser · etat", "petit", "accent", wrap=True))
+        q.append(t); c.append(q)
+        c.append(reglage("send", "Envoyer un message d'essai", "Vérifie que le téléphone le reçoit",
+                         droite=bouton("Essayer", None, "pilule", rappel=lambda: S.en_fond(lambda: subprocess.run(["xiii-antivol", "--essai"], capture_output=True).returncode,
+                                                                                         lambda r: self.toast("Message envoyé ✓" if r == 0 else "Envoi impossible (connexion ?)")))))
+        e = Gtk.Entry(text=self.cfg.get("antivol_serveur", ""), placeholder_text="https://ntfy.sh (par défaut)"); e.connect("activate", lambda w: self.regler(antivol_serveur=w.get_text().strip()))
+        c.append(reglage("server", "Serveur ntfy", "Votre propre serveur (NAS…) : plus privé", droite=dim(e, 260)))
+        c.append(reglage("refresh-cw", "Changer d'adresse secrète", "L'ancienne cesse de fonctionner",
+                         droite=bouton("Changer", None, "fantome", rappel=lambda: (self.regler(antivol_canal=""), basculer(True)))))
+        c.append(info("La position est approximative (déduite de l'adresse Internet, souvent la ville) ; la liste des réseaux Wi-Fi visibles est jointe pour la police ou l'assurance. "
+                      "L'ordinateur doit être allumé et connecté à Internet. Chiffrez le disque à l'installation pour que vos fichiers restent illisibles."))
+
+    def p_permissions(self, c, cle):
+        """Permissions des applis : qui utilise la caméra et le micro en ce moment ; caméra, micro, fichiers, réseau des applis Flathub."""
+        c.append(groupe_titre("En ce moment"))
+        qui = {"camera": set(), "micro": set()}
+        if S.DEMO: qui = {"camera": {"OBS Studio"}, "micro": {"Firefox"}}
+        else:
+            for d in glob.glob("/dev/video*"):
+                for pid in os.listdir("/proc"):
+                    if not pid.isdigit(): continue
+                    try:
+                        if any(os.readlink("/proc/%s/fd/%s" % (pid, fd)) == d for fd in os.listdir("/proc/%s/fd" % pid)):
+                            qui["camera"].add(open("/proc/%s/comm" % pid).read().strip())
+                    except OSError: pass
+            for l in S.out(["pactl", "list", "source-outputs"]).splitlines():
+                if "application.name" in l: qui["micro"].add(l.split("=", 1)[1].strip().strip('"'))
+        c.append(reglage("camera", "Caméra", ", ".join(sorted(qui["camera"])) or "Personne ne l'utilise"))
+        c.append(reglage("mic", "Micro", ", ".join(sorted(qui["micro"])) or "Personne ne l'utilise"))
+        c.append(groupe_titre("Applications Flathub (isolées)"))
+        apps_f = []
+        if S.DEMO: apps_f = [("com.spotify.Client", "Spotify"), ("org.signal.Signal", "Signal")]
+        elif shutil.which("flatpak"):
+            apps_f = [tuple(l.split("\t")[:2]) for l in S.out(["flatpak", "list", "--app", "--columns=application,name"]).splitlines() if "\t" in l]
+        if not apps_f: c.append(info("Aucune application Flathub installée."))
+        for app_id, nom in apps_f:
+            perm = S.out(["flatpak", "info", "--show-permissions", app_id]) if not S.DEMO else "sockets=pulseaudio;\ndevices=all;\nfilesystems=home;\nshared=network;"
+            ov = S.out(["flatpak", "override", "--user", "--show", app_id]) if not S.DEMO else ""
+            def a(mot, txt): return re.search(r"(^|;|=)%s(;|$)" % re.escape(mot), txt, re.M) is not None
+            etat = {"camera": a("all", perm.split("devices=")[-1].split("\n")[0] if "devices=" in perm else "") and not a("!all", ov),
+                    "micro": a("pulseaudio", perm) and not a("!pulseaudio", ov),
+                    "fichiers": (a("home", perm) or a("host", perm)) and not (a("!home", ov) or a("!host", ov)),
+                    "reseau": a("network", perm) and "network" not in ov.split("unshare=")[-1] if "unshare=" in ov else a("network", perm)}
+            d = boite(False, 4)
+            for k, ic, tip, on_, off_ in (("camera", "camera", "Caméra et périphériques", ["--device=all"], ["--nodevice=all"]),
+                                          ("micro", "mic", "Micro et son", ["--socket=pulseaudio"], ["--nosocket=pulseaudio"]),
+                                          ("fichiers", "folder", "Vos fichiers", ["--filesystem=home"], ["--nofilesystem=home", "--nofilesystem=host"]),
+                                          ("reseau", "globe", "Internet", ["--share=network"], ["--unshare=network"])):
+                b = Gtk.ToggleButton(active=bool(etat[k]), tooltip_text=tip); b.set_child(ico(ic, 16, "c" if etat[k] else "d")); b.add_css_class("plat")
+                b.connect("toggled", lambda w, app_id=app_id, on_=on_, off_=off_: S.en_fond(S.sh, lambda r: self.toast("Réglé — relancez l'application"),
+                                                                                        ["flatpak", "override", "--user"] + (on_ if w.get_active() else off_) + [app_id]))
+                d.append(b)
+            c.append(reglage("package", nom, app_id, droite=d))
+        c.append(groupe_titre("Suite XIII"))
+        c.append(reglage("app-window", "Caméra et micro dans les outils de la Suite", "Visio, enregistrement, prompteur, tally",
+                         droite=interrupteur(self.cfg.get("suite_media", True), lambda v: self.regler(suite_media=v))))
+        c.append(info("Les applications installées autrement (Debian, GitHub, Windows) ont les mêmes droits que vous : préférez la version Flathub d'un logiciel quand vous voulez pouvoir le limiter."))
 
     def p_confidentialite(self, c, cle):
         xbel = os.path.join(GLib.get_user_data_dir(), "recently-used.xbel")

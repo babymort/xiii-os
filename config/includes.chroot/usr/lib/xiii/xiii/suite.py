@@ -463,7 +463,10 @@ class Suite(Gtk.Application):
             except Exception: pass
 
     def permission(self, v, req):
-        req.allow(); return True  # outils locaux de confiance : caméra, micro, notifications, position, presse-papiers
+        """Outils locaux de confiance : notifications, presse-papiers… ; caméra et micro selon Paramètres › Permissions des applis."""
+        if isinstance(req, WebKit.UserMediaPermissionRequest) and not config.charger().get("suite_media", True):
+            req.deny(); return True
+        req.allow(); return True
 
     # ------------------------------------------------------------- téléchargements → projet actif
     def dossier_rangement(self, nom):

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Sauvegarde XIII
+Comment=Sauvegardes chiffrées 3-2-1 : disque, NAS, cloud, avec vérification et restauration
+Exec=xiii-sauvegarde %F
+Icon=xiii-sauvegarde
+Type=Application
+Categories=Utility;System;Archiving;XIII;
+Keywords=sauvegarde;backup;restic;restaurer;3-2-1;nas;cloud;

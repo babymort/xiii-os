@@ -12,4 +12,4 @@ systemctl mask NetworkManager-wait-online.service 2>/dev/null || true
 mkdir -p /etc/systemd/system.conf.d /etc/systemd/user.conf.d
 printf '[Manager]\nDefaultTimeoutStopSec=10s\n' > /etc/systemd/system.conf.d/xiii-rapide.conf
 printf '[Manager]\nDefaultTimeoutStopSec=8s\n' > /etc/systemd/user.conf.d/xiii-rapide.conf
-true
+systemctl enable xiii-parefeu-init.service ufw.service 2>/dev/null || true

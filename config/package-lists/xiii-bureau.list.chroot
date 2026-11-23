@@ -25,6 +25,8 @@ network-manager-openvpn
 wireguard-tools
 python3-dateutil
 python3-numpy
+python3-pykeepass
+restic
 tesseract-ocr
 tesseract-ocr-fra
 sane-utils

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Coffre XIII
+Comment=Mots de passe chiffrés, compatibles KeePass, import Bitwarden
+Exec=xiii-coffre %F
+Icon=xiii-coffre
+Type=Application
+Categories=Utility;Security;XIII;
+Keywords=mots de passe;password;keepass;bitwarden;coffre;securite;

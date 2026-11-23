@@ -1,0 +1,12 @@
+[Unit]
+Description=OS XIII — première activation du pare-feu (exceptions pour le réseau local)
+ConditionPathExists=!/etc/xiii/parefeu.json
+After=ufw.service local-fs.target
+Wants=ufw.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/xiii-parefeu init
+
+[Install]
+WantedBy=multi-user.target

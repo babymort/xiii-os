@@ -25,7 +25,7 @@ DEFAUTS = {
     "fichiers_vue": "windows",
     "ia": "claude", "ia_largeur": 480, "maj_auto": True, "maj_vue": "",      # windows | mac | arbre
     "mode_bureau": "classique",     # classique | production | fiction | multicam | backup | gaming
-    "mode_epingles": {}, "suite_theme_commun": True, "fichiers_depart_projet": True, "production_recents": [], "production_page": "accueil", "partage_nom": "", "partage_mdp": "", "envoi_nom": "", "envoi_auto": False, "envoi_actif": True, "streamdeck_xiii": True, "maj_nuit": False, "google_client_id": "", "google_client_secret": "", "microsoft_client_id": "", "agenda_defaut": "", "precharge": True, "energie_auto": True, "animations_coupees_tournage": False, "backup_destination": "", "backup_nom": "", "backup_auto": False, "backup_algo": "xxh64",         # icone | rond | barre | pourcentage | minimal
+    "mode_epingles": {}, "suite_theme_commun": True, "fichiers_depart_projet": True, "production_recents": [], "production_page": "accueil", "partage_nom": "", "partage_mdp": "", "envoi_nom": "", "envoi_auto": False, "envoi_actif": True, "streamdeck_xiii": True, "maj_nuit": False, "google_client_id": "", "google_client_secret": "", "microsoft_client_id": "", "agenda_defaut": "", "precharge": True, "antivol": False, "suite_media": True, "antivol_canal": "", "antivol_serveur": "", "energie_auto": True, "animations_coupees_tournage": False, "backup_destination": "", "backup_nom": "", "backup_auto": False, "backup_algo": "xxh64",         # icone | rond | barre | pourcentage | minimal
     "timecode_source": "",          # entrée audio du timecode LTC
     "timecode_canal": 0,
     "decklink_entree": 0, "decklink_mode": "auto", "decklink_pont": False,

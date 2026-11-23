@@ -57,6 +57,7 @@ class Shell(Gtk.Application):
         def differe():
             if not S.DEMO: S.detacher(["xiii-lecteurs", "--monter-tout"])      # NAS et clouds reconnectés
             if self.cfg.get("envoi_actif", True) and not S.DEMO: S.detacher(["xiii-envoi", "--recevoir"])     # Envoi XIII : visible des appareils proches (LocalSend)
+            self.antivol()
             return False
         GLib.timeout_add_seconds(12, differe)
         GLib.timeout_add_seconds(90, self.precharger)
@@ -66,6 +67,7 @@ class Shell(Gtk.Application):
         GLib.timeout_add_seconds(15, self.surveiller_streamdeck); self.surveiller_streamdeck()
         GLib.timeout_add_seconds(1800, self.maj_nuit)
         GLib.timeout_add_seconds(60, self.rappels_agenda)
+        GLib.timeout_add_seconds(3600, self.sauvegarde_auto); GLib.timeout_add_seconds(600, lambda: (self.sauvegarde_auto(), False)[1])
         GLib.timeout_add_seconds(900, lambda: (self.verifier_maj_xiii(), False)[1]); GLib.timeout_add_seconds(86400, self.verifier_maj_xiii)
         if self.cfg.get("decklink_pont") and not S.DEMO:      # pont DeckLink → caméra virtuelle
             try:
@@ -748,6 +750,20 @@ class Shell(Gtk.Application):
         elif a == "bureau-precedent": raccourcis.declencher("GoToDesktop", {"to": "left"}, "C-W-Left")
         else: self.basculer(a)
 
+    def antivol(self):
+        """Antivol XIII : écoute du canal privé tant qu'il est activé."""
+        if S.DEMO or not self.cfg.get("antivol") or not self.cfg.get("antivol_canal"): return
+        p = getattr(self, "_antivol", None)
+        if p and p.poll() is None: return
+        self._antivol = subprocess.Popen(["xiii-antivol"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+    def sauvegarde_auto(self):
+        """Sauvegarde XIII : une fois par jour vers chaque destination présente, jamais en mode Tournage."""
+        if S.DEMO or self.cfg.get("profil") == "tournage" or not os.path.exists(os.path.expanduser("~/.config/xiii/sauvegarde.json")): return True
+        if subprocess.run(["pgrep", "-f", "xiii.sauvegarde import"], capture_output=True).returncode != 0:
+            S.detacher(["nice", "-n", "15", "ionice", "-c", "3", "xiii-sauvegarde", "--auto"])
+        return True
+
     def rappels_agenda(self):
         """Rappels de XIII Calendrier, même fenêtre fermée."""
         if S.DEMO or not os.path.exists(os.path.expanduser("~/.local/share/xiii/agenda.json")): return True
@@ -967,6 +983,9 @@ class Shell(Gtk.Application):
             theme.appliquer_systeme(cfg)
         self.cfg = cfg; self.p = theme.palette(cfg); couleurs(cfg)
         Gtk.Settings.get_default().set_property("gtk-icon-theme-name", theme.nom_icones(cfg))
+        if (ancien.get("antivol"), ancien.get("antivol_canal")) != (cfg.get("antivol"), cfg.get("antivol_canal")):
+            if getattr(self, "_antivol", None) and self._antivol.poll() is None: self._antivol.terminate()
+            GLib.timeout_add_seconds(1, lambda: (self.antivol(), False)[1])
         self.css.load_from_string(theme.css_shell(cfg))
         theme._cache.clear()
         if ancien["barre_alignement"] != cfg["barre_alignement"] or ancien["barre_meteo"] != cfg["barre_meteo"] or ancien["barre_recherche"] != cfg["barre_recherche"]:
