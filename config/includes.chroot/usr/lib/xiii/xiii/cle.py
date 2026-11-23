@@ -45,7 +45,7 @@ class Fenetre:
         self.iso = (images() or [None])[0]
         v = boite(True, 14, margin_top=26, margin_bottom=22, margin_start=30, margin_end=30)
         h = boite(False, 12); h.append(ico("usb", 34, "c")); t = boite(True, 2)
-        t.append(label("Clé OS XIII", "titre-astoria")); t.append(label("Démarre OS XIII sur n'importe quel PC, et garde vos fichiers et réglages", "attenue", wrap=True))
+        t.append(label("Clé OS XIII", "titre-astoria", "grand-titre")); t.append(label("Démarre OS XIII sur n'importe quel PC, et garde vos fichiers et réglages", "attenue", wrap=True))
         h.append(t); v.append(h)
         v.append(label("1. Image OS XIII", "gras", margin_top=8))
         self.l_iso = label(os.path.basename(self.iso) if self.iso else "Aucune image trouvée dans Téléchargements", "attenue", ellipsize=True, hexpand=True)
