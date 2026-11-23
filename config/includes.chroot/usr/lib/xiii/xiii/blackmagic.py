@@ -310,8 +310,24 @@ class Blackmagic(Gtk.Application):
             for t_ in trouves: self.ligne(v, "keyboard", t_.strip(), "Reconnu, utilisable sans mot de passe par Companion", None)
         else:
             v.append(label("Aucun Stream Deck, X-keys ou Loupedeck branché pour l'instant.", "attenue"))
-        v.append(label("Sous OS XIII, les Stream Deck Elgato sont pilotés par Bitfocus Companion : branchez le Stream Deck, ouvrez Companion, il est reconnu tout seul.", "attenue", wrap=True))
+        from . import config
+        c = config.charger()
+        v.append(label("Boutons XIII", "section"))
+        v.append(label("Branchez un Stream Deck Elgato : il affiche tout seul deux pages — « Régie ATEM » (programme en rouge, preview en vert, CUT, AUTO, noir, "
+                       "avec l'ATEM réglé dans la page ATEM) et « Apps XIII » (régie, prompteur, mesure audio, Multiview, captures, micro…). Le dernier bouton change de page. "
+                       "Quand Companion est ouvert, il reprend la main.", "attenue", wrap=True))
+        sw = Gtk.Switch(active=c.get("streamdeck_xiii", True), valign=Gtk.Align.CENTER); sw.connect("notify::active", lambda w, _p: config.modifier(streamdeck_xiii=w.get_active()))
+        self.ligne(v, "keyboard", "Pages de boutons XIII", "Sans Companion, prêt à l'emploi", sw)
+        self.ligne(v, "file-json" if os.path.exists("/usr/share/xiii/lucide/file-json.svg") else "file", "Modifier les pages", "Fichier ~/.config/xiii/streamdeck.json (créé à la première ouverture)",
+                   bouton("Ouvrir", None, "fantome", rappel=self.editer_streamdeck))
+        v.append(label("Pour des boutons plus poussés (vMix, OBS, caméras…), utilisez Bitfocus Companion.", "attenue", wrap=True))
         self.ligne(v, "layout-grid", "Companion", "Configurer les boutons", bouton("Ouvrir", None, "pilule", rappel=lambda: self.volet.aller("companion")))
+
+    def editer_streamdeck(self):
+        from . import streamdeck as SD
+        if not os.path.exists(SD.CONF):
+            os.makedirs(os.path.dirname(SD.CONF), exist_ok=True); json.dump(SD.PAGES_DEFAUT, open(SD.CONF, "w"), ensure_ascii=False, indent=1)
+        S.detacher(["xdg-open", SD.CONF])
 
     def p_ndi(self, v):
         self.ligne(v, "radio-tower", "NDI XIII", "Sorties GRAPHICO / MELANGO en NDI, diffusion RTMP / SRT", bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("xiii-ndi")))

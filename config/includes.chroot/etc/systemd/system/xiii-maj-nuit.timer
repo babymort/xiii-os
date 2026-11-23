@@ -1,0 +1,10 @@
+[Unit]
+Description=OS XIII — mises à jour de nuit (vers 3 h, ou au démarrage suivant si l'ordinateur était éteint)
+
+[Timer]
+OnCalendar=*-*-* 03:10
+RandomizedDelaySec=40min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

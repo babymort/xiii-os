@@ -15,6 +15,7 @@ PAGES = [
     ("apropos", "À propos", "info", "systeme", "Nom de l'appareil, caractéristiques, version", "version materiel nom pc processeur memoire"),
     ("appareils", "Bluetooth et appareils", "bluetooth", None, "Bluetooth, imprimantes, souris, clavier", "peripheriques"),
     ("bluetooth", "Bluetooth", "bluetooth", "appareils", "Appareils appairés, ajouter un appareil", "casque enceinte appairer"),
+    ("telephone", "Téléphone", "smartphone", "appareils", "Notifications, SMS, presse-papiers, fichiers avec votre téléphone Android", "telephone android kde connect sms notifications presse-papiers sonner mobile"),
     ("imprimantes", "Imprimantes et scanners", "printer", "appareils", "Ajouter, imprimante par défaut", "imprimer scanner"),
     ("souris", "Souris et pavé tactile", "mouse", "appareils", "Vitesse, défilement, tap pour cliquer", "touchpad trackpad pointeur defilement"),
     ("clavier", "Clavier", "keyboard", "appareils", "Disposition, répétition, raccourcis", "azerty qwerty raccourcis disposition"),

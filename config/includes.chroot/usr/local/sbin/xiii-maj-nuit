@@ -1,0 +1,8 @@
+#!/bin/sh
+# OS XIII — mises à jour de nuit : paquets Debian et applications Flathub du système. Les applications de l'utilisateur
+# (Flathub --user, GitHub) sont mises à jour par le bureau à la même heure. Rien pendant une captation (mode Tournage).
+{ [ -e /run/xiii/tournage ] || grep -qs "\"profil\": \"tournage\"" /home/*/.config/xiii/reglages.json; } && { echo "mode Tournage actif : mises à jour remises à plus tard"; exit 0; }
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq && apt-get -y -o Dpkg::Options::=--force-confold -o Dpkg::Options::=--force-confdef upgrade
+command -v flatpak >/dev/null && flatpak update --system -y --noninteractive
+date '+%F %H:%M' > /var/lib/xiii/maj-nuit.date

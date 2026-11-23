@@ -26,6 +26,11 @@ class VideoFrameV2(ctypes.Structure):
                 ("p_data", ctypes.POINTER(ctypes.c_uint8)), ("line_stride_in_bytes", ctypes.c_int), ("p_metadata", ctypes.c_char_p), ("timestamp", ctypes.c_int64)]
 
 
+class AudioFrameV2(ctypes.Structure):
+    _fields_ = [("sample_rate", ctypes.c_int), ("no_channels", ctypes.c_int), ("no_samples", ctypes.c_int), ("timecode", ctypes.c_int64),
+                ("p_data", ctypes.POINTER(ctypes.c_float)), ("channel_stride_in_bytes", ctypes.c_int), ("p_metadata", ctypes.c_char_p), ("timestamp", ctypes.c_int64)]
+
+
 class Tally(ctypes.Structure):
     _fields_ = [("on_program", ctypes.c_bool), ("on_preview", ctypes.c_bool)]
 
@@ -75,6 +80,7 @@ def lib():
     L.NDIlib_recv_capture_v2.restype = ctypes.c_int
     L.NDIlib_recv_capture_v2.argtypes = [ctypes.c_void_p, ctypes.POINTER(VideoFrameV2), ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint32]
     L.NDIlib_recv_free_video_v2.argtypes = [ctypes.c_void_p, ctypes.POINTER(VideoFrameV2)]
+    L.NDIlib_recv_free_audio_v2.argtypes = [ctypes.c_void_p, ctypes.POINTER(AudioFrameV2)]
     L.NDIlib_recv_destroy.argtypes = [ctypes.c_void_p]
     L.NDIlib_recv_set_tally.restype = ctypes.c_bool; L.NDIlib_recv_set_tally.argtypes = [ctypes.c_void_p, ctypes.POINTER(Tally)]
     L.NDIlib_recv_get_no_connections.restype = ctypes.c_int; L.NDIlib_recv_get_no_connections.argtypes = [ctypes.c_void_p]
@@ -119,6 +125,26 @@ class Recepteur:
             return (f.xres, h, pas, ctypes.string_at(f.p_data, pas * h))
         finally:
             lib().NDIlib_recv_free_video_v2(self.inst, ctypes.byref(f))
+
+    def capturer(self, attente_ms=200):
+        """Image et son : ("video", (l, h, pas, octets)) | ("audio", [crête dBFS par canal]) | (None, None)."""
+        a = getattr(self, "a", None) or AudioFrameV2(); self.a = a
+        t = lib().NDIlib_recv_capture_v2(self.inst, ctypes.byref(self.f), ctypes.byref(a), None, attente_ms)
+        if t == FRAME_VIDEO:
+            f = self.f
+            try: return "video", (f.xres, f.yres, f.line_stride_in_bytes, ctypes.string_at(f.p_data, f.line_stride_in_bytes * f.yres))
+            finally: lib().NDIlib_recv_free_video_v2(self.inst, ctypes.byref(f))
+        if t == FRAME_AUDIO:
+            try:
+                import math, array
+                n, pas = a.no_samples, a.channel_stride_in_bytes // 4; base = ctypes.cast(a.p_data, ctypes.POINTER(ctypes.c_float)); N = []
+                for c in range(min(a.no_channels, 8)):
+                    buf = (ctypes.c_float * n).from_address(ctypes.addressof(base.contents) + c * pas * 4)
+                    pk = max((abs(x) for x in array.array("f", bytes(buf))[::4]), default=0.0)
+                    N.append(20 * math.log10(pk) if pk > 1e-6 else -90.0)
+                return "audio", N
+            finally: lib().NDIlib_recv_free_audio_v2(self.inst, ctypes.byref(a))
+        return None, None
 
     def tally(self, programme=False, preview=False):
         t = Tally(programme, preview); lib().NDIlib_recv_set_tally(self.inst, ctypes.byref(t))

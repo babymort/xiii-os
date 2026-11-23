@@ -4,6 +4,6 @@ set -e
 # xiii-maj: relancer
 systemctl enable NetworkManager bluetooth cups acpid power-profiles-daemon || true
 # suivi des démarrages ratés, retour arrière automatique, noyau de secours (inactifs sur la clé live)
-systemctl enable xiii-demarrage-suivi.service xiii-demarrage-ok.service xiii-gestes.service || true
+systemctl enable xiii-demarrage-suivi.service xiii-demarrage-ok.service xiii-gestes.service xiii-maj-nuit.timer || true
 # les instantanés sont préparés au premier démarrage du système installé (xiii-demarrage-ok)
 [ -f /etc/snapper/configs/root ] || systemctl disable snapper-timeline.timer snapper-cleanup.timer snapper-boot.timer 2>/dev/null || true

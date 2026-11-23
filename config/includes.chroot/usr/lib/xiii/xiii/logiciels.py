@@ -172,19 +172,127 @@ def lancer(src, cmd):
 
 class Centre(Gtk.Application):
     def __init__(self):
-        super().__init__(application_id="fr.xiii.logiciels")
+        super().__init__(application_id="fr.xiii.logiciels", flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
 
     def do_activate(self):
         if getattr(self, "win", None): self.win.present(); return
         preparer(".logiciel { padding: 12px; } .etat-ok { color: #6fdc8c; }")
         self.win = Gtk.ApplicationWindow(application=self, title="Centre de logiciels XIII"); self.win.set_default_size(1120, 760)
         self.volet = Volet("Logiciels", "Installer, ouvrir, retirer — sans terminal")
+        self.volet.ajouter("accueil", "house", "Accueil", rappel=self.p_accueil)
+        self.volet.ajouter("partout", "search", "Rechercher partout", rappel=lambda: self.p_partout(""))
+        self.volet.ajouter("packs", "package-plus" if os.path.exists("/usr/share/xiii/lucide/package-plus.svg") else "package", "Packs métiers", rappel=self.p_packs)
         for i, cat in enumerate(CATALOGUE):
             self.volet.ajouter("c%d" % i, ["share-2", "network", "clapperboard", "monitor", "mouse", "gamepad-2", "globe"][i], cat, rappel=lambda c=cat, i=i: self.p_cat(c, "c%d" % i), section="Sélection XIII" if i == 0 else None)
-        self.volet.ajouter("flathub", "search", "Rechercher sur Flathub", rappel=self.p_flathub, section="Tous les logiciels")
-        self.volet.ajouter("github", "package", "Store GitHub", rappel=lambda: S.detacher("xiii-store-github"))
+        self.volet.ajouter("github", "package", "Store GitHub", rappel=lambda: S.detacher("xiii-store-github"), section="Plus")
+        self.volet.ajouter("resolve", "film", "DaVinci Resolve", rappel=lambda: S.detacher(["xiii-resolve"]))
         self.volet.ajouter("maj", "refresh-cw", "Mises à jour", rappel=self.p_maj)
-        self.win.set_child(self.volet.racine); self.volet.aller("c0"); self.win.present()
+        self.win.set_child(self.volet.racine); self.volet.aller(getattr(self, "_page", None) or "accueil"); self.win.present()
+        if getattr(self, "_installer_cle", None): GLib.idle_add(lambda: (self.installer_cle(self._installer_cle), False)[1])
+
+    def do_command_line(self, cl):
+        a = cl.get_arguments()[1:]
+        if "--maj-nuit" in a:      # lancé par le bureau la nuit : Flathub et GitHub (le système est mis à jour par le service xiii-maj-nuit)
+            from .logiciels_plus import tout_mettre_a_jour
+            threading.Thread(target=lambda: tout_mettre_a_jour(lambda t: None, nuit=True)).start(); return 0
+        if "--installer" in a and a.index("--installer") + 1 < len(a): self._installer_cle = a[a.index("--installer") + 1]
+        if "--page" in a and a.index("--page") + 1 < len(a): self._page = a[a.index("--page") + 1]
+        self.activate()
+        if getattr(self, "win", None) and getattr(self, "_page", None): self.volet.aller(self._page)
+        return 0
+
+    def installer_cle(self, cle):
+        x = next((x for x in tous() if x[0] == cle), None)
+        if not x: return
+        d = Gtk.Window(transient_for=self.win, modal=True, title="Installer " + x[1], default_width=460); v = boite(True, 12, margin_top=20, margin_bottom=20, margin_start=20, margin_end=20)
+        v.append(self.carte(*x)); d.set_child(v); d.present()
+
+    # ------------------------------------------------------------ accueil, recherche partout, fiches
+    def p_accueil(self):
+        from .logiciels_plus import PACKS
+        sc, v = page("Centre de logiciels", "Une sélection pour la production, et toute la logithèque Linux", "package")
+        e = Gtk.SearchEntry(placeholder_text="Rechercher partout : Flathub, Debian, AppImage, GitHub… (ex. montage, VLC, Teams, NDI)"); v.append(e)
+        e.connect("activate", lambda *_: self.p_partout(e.get_text().strip()))
+        v.append(label("Packs métiers", "section"))
+        g = Gtk.FlowBox(max_children_per_line=3, min_children_per_line=1, selection_mode=Gtk.SelectionMode.NONE, column_spacing=10, row_spacing=10, homogeneous=True)
+        for k, nom, ic, desc, L, _n in PACKS:
+            b = Gtk.Button(); b.add_css_class("carte"); b.add_css_class("plat")
+            c = boite(False, 10); c.append(ico(ic, 28, "c")); t = boite(True, 0); t.append(label(nom, "gras")); t.append(label(desc, "petit", "attenue", wrap=True, largeur=30)); c.append(t); b.set_child(c)
+            b.connect("clicked", lambda _b, k=k: self.p_packs(k)); g.append(b)
+        v.append(g)
+        v.append(label("À la une pour la production", "section"))
+        g2 = Gtk.FlowBox(max_children_per_line=2, min_children_per_line=1, selection_mode=Gtk.SelectionMode.NONE, column_spacing=10, row_spacing=10, homogeneous=True)
+        for k in ("obs", "companion", "kdenlive", "darktable", "localsend", "qlcplus"):
+            x = next((x for x in tous() if x[0] == k), None)
+            if x: g2.append(self.carte(*x))
+        v.append(g2); self.remplacer("accueil", sc); e.grab_focus()
+
+    def p_partout(self, q):
+        from .logiciels_plus import chercher_partout
+        sc, v = page("Rechercher partout", "Sélection XIII, Flathub, Debian, AppImage et GitHub en une seule recherche", "search")
+        e = Gtk.SearchEntry(text=q, placeholder_text="ex. montage vidéo, VLC, Teams, NDI, timecode…"); v.append(e)
+        zone = boite(True, 10); v.append(zone)
+        def go(*_):
+            qq = e.get_text().strip()
+            if not qq: return
+            vider(zone); zone.append(label("Recherche dans cinq sources…", "attenue"))
+            def fin(R):
+                vider(zone)
+                if isinstance(R, Exception) or not R: zone.append(label("Aucun résultat (connexion Internet ?).", "attenue")); return
+                for origine, L in R:
+                    zone.append(label("%s · %d" % (origine, len(L)), "section"))
+                    g = Gtk.FlowBox(max_children_per_line=2, min_children_per_line=1, selection_mode=Gtk.SelectionMode.NONE, column_spacing=10, row_spacing=10, homogeneous=True)
+                    for x in L: g.append(self.carte(x["cle"], x["nom"], x["desc"], x["src"], x["cmd"], x["ic"], x.get("popularite")))
+                    zone.append(g)
+            S.en_fond(chercher_partout, fin, qq, CATALOGUE)
+        e.connect("activate", go); self.remplacer("partout", sc); e.grab_focus()
+        if q: go()
+
+    def fiche(self, nom, desc, src, cmd, ic):
+        from .logiciels_plus import fiche, image_locale
+        d = Gtk.Window(transient_for=self.win, modal=True, title=nom, default_width=760, default_height=640)
+        sc, v = page(nom, desc, ic); d.set_child(sc)
+        info = boite(True, 6); v.append(info); info.append(label("Lecture de la fiche…", "attenue"))
+        caps = boite(False, 10); csc = Gtk.ScrolledWindow(vscrollbar_policy=Gtk.PolicyType.NEVER); csc.set_child(caps); csc.set_size_request(-1, 0); v.append(csc)
+        v.append(self.carte(nom.lower(), nom, desc, src, cmd, ic))
+        def fin(F):
+            vider(info)
+            if isinstance(F, Exception): info.append(label(str(F), "attenue")); return
+            lignes = [("Version", F.get("version")), ("Taille installée", F.get("taille")), ("Téléchargement", F.get("telechargement")), ("Popularité", F.get("popularite")),
+                      ("Licence", F.get("licence")), ("Site", F.get("site"))]
+            for k, val in lignes:
+                if val:
+                    r = boite(False, 10); r.append(label(k, "attenue", "petit")); r.append(label(str(val), "petit", selectable=True, hexpand=True, xalign=1, ellipsize=True)); info.append(r)
+            if F.get("description"): info.append(label(F["description"][:2000], wrap=True, margin_top=6))
+            if not any(v_ for _, v_ in lignes) and not F.get("description"): info.append(label("Pas d'informations supplémentaires.", "attenue"))
+            for u in F.get("captures", []):
+                S.en_fond(image_locale, lambda p: (caps.append(vignette(p, 420, 236)), csc.set_size_request(-1, 250)) if isinstance(p, str) else None, u)
+        S.en_fond(fiche, fin, src); d.present()
+
+    def p_packs(self, choisi=None):
+        from .logiciels_plus import PACKS
+        sc, v = page("Packs métiers", "Tout le lot d'applications d'un métier en un clic (ce qui est déjà installé est sauté)", "package")
+        for k, nom, ic, desc, L, note in PACKS:
+            c = boite(True, 8, "carte", margin_bottom=4)
+            h = boite(False, 12); h.append(ico(ic, 30, "c")); t = boite(True, 0, hexpand=True); t.append(label(nom, "gras")); t.append(label(desc, "petit", "attenue")); h.append(t)
+            X = [x for x in tous() if x[0] in L]
+            etat = label("", "petit", "attenue", wrap=True); pb = Gtk.ProgressBar(visible=False)
+            def tout(X=X, etat=etat, pb=pb):
+                def fond():
+                    manq = [x for x in X if not installe(x[3])]; err = []
+                    for n, x in enumerate(manq):
+                        GLib.idle_add(lambda n=n, x=x: (pb.set_visible(True), pb.set_fraction(n / max(1, len(manq))), etat.set_text("Installation de %s (%d / %d)…" % (x[1], n + 1, len(manq))), False)[-1])
+                        try: installer(x[3], lambda t_: None)
+                        except Exception as e_: err.append(x[1])
+                    return manq, err
+                S.en_fond(fond, lambda r: (pb.set_fraction(1), etat.set_text(("Rien à installer : tout est déjà là ✓" if not r[0] else
+                                                                            ("Installé ✓" if not r[1] else "Terminé, sauf : " + ", ".join(r[1]))) if isinstance(r, tuple) else "Erreur : %s" % r)))
+            h.append(bouton("Tout installer", "download", "pilule", rappel=tout)); c.append(h)
+            c.append(label(" · ".join(x[1] for x in X), "petit", wrap=True))
+            if note: c.append(label(note, "petit", "attenue", wrap=True))
+            c.append(pb); c.append(etat); v.append(c)
+            if k == choisi: GLib.idle_add(lambda c=c: (c.grab_focus(), False)[1])
+        self.remplacer("packs", sc)
 
     def remplacer(self, cle, w):
         v = self.volet.pile.get_child_by_name(cle)
@@ -197,11 +305,16 @@ class Centre(Gtk.Application):
         for x in CATALOGUE[cat]: g.append(self.carte(*x))
         v.append(g); self.remplacer(cle, sc)
 
-    def carte(self, k, nom, desc, src, cmd, ic):
+    def carte(self, k, nom, desc, src, cmd, ic, popularite=None):
         c = boite(True, 6, "carte", "logiciel")
-        h = boite(False, 10); h.append(ico(ic, 26, "c")); col = boite(True, 0, hexpand=True); col.append(label(nom, "gras"))
+        h = boite(False, 10); h.append(ico(ic, 26, "c")); col = boite(True, 0, hexpand=True)
+        bn = Gtk.Button(); bn.add_css_class("plat"); bn.add_css_class("lien-fiche"); bn.set_child(label(nom, "gras")); bn.set_halign(Gtk.Align.START)
+        bn.set_tooltip_text("Fiche détaillée : captures, taille, version")
+        if not src.startswith(("web:", "inclus")) and src not in ("steam", "companion", "plexserver"): bn.connect("clicked", lambda *_: self.fiche(nom, desc, src, cmd, ic))
+        col.append(bn)
         orig = {"apt": "Debian", "flatpak": "Flathub", "github": "GitHub", "web": "Site web", "deb": "Éditeur", "inclus": "OS XIII", "plexserver": "Plex", "steam": "Valve", "companion": "Bitfocus"}.get(src.split(":")[0], "OS XIII")
-        col.append(label(orig, "petit", "attenue")); h.append(col)
+        col.append(label(orig + (" · %s installations ce mois-ci" % format(popularite, ",").replace(",", " ") if isinstance(popularite, int) and src.startswith("flatpak") else
+                                 " · ★ %s" % popularite if isinstance(popularite, int) else ""), "petit", "attenue")); h.append(col)
         zone = boite(False, 6, valign=Gtk.Align.CENTER); h.append(zone); c.append(h)
         c.append(label(desc, "petit", wrap=True))
         etat = label("", "petit", "attenue", wrap=True); c.append(etat)
@@ -257,16 +370,41 @@ class Centre(Gtk.Application):
         e.connect("activate", go); self.remplacer("flathub", sc); e.grab_focus()
 
     def p_maj(self):
-        sc, v = page("Mises à jour", "Système, applications Flathub et logiciels GitHub", "refresh-cw")
-        etat = label("", "attenue", wrap=True); v.append(etat)
+        from .logiciels_plus import a_mettre_a_jour, tout_mettre_a_jour
+        from . import config
+        sc, v = page("Mises à jour", "Système (Debian), applications Flathub et logiciels GitHub, au même endroit", "refresh-cw")
+        zone = boite(True, 6); v.append(zone); zone.append(label("Recherche des mises à jour…", "attenue"))
+        etat = label("", "attenue", wrap=True); pb = Gtk.ProgressBar(visible=False)
+        def rendu(R):
+            vider(zone)
+            if isinstance(R, Exception): zone.append(label(str(R), "attenue")); return
+            n = sum(len(x) for x in R.values())
+            for k, nom, ic in (("systeme", "Système (paquets Debian)", "monitor"), ("flatpak", "Applications Flathub", "package"), ("github", "Logiciels GitHub", "github" if os.path.exists("/usr/share/xiii/lucide/github.svg") else "package")):
+                L = R.get(k) or []
+                detail = ", ".join((x if isinstance(x, str) else "%s → %s" % (x[0].split("/")[1], x[2])) for x in L[:6]) + (" et %d autres" % (len(L) - 6) if len(L) > 6 else "")
+                r = boite(False, 10, "reglage"); r.append(ico(ic, 20, "c")); t = boite(True, 0, hexpand=True); t.append(label(nom, "gras"))
+                t.append(label(("%d à mettre à jour : %s" % (len(L), detail)) if L else "À jour ✓", "petit", "attenue", wrap=True)); r.append(t); zone.append(r)
+            zone.append(label(("%d mise%s à jour disponible%s." % (n, "s" if n > 1 else "", "s" if n > 1 else "")) if n else "Tout est à jour.", "gras", margin_top=6))
+        S.en_fond(a_mettre_a_jour, rendu)
         def tout():
-            etat.set_text("Mise à jour en cours (mot de passe administrateur)…")
-            def t():
-                a = subprocess.run(["pkexec", "sh", "-c", "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get -y upgrade"], capture_output=True).returncode
-                f = subprocess.run(["flatpak", "update", "--user", "-y", "--noninteractive"], capture_output=True).returncode
-                return a, f
-            S.en_fond(t, lambda r: etat.set_text("Terminé ✓" if isinstance(r, tuple) and r == (0, 0) else "Terminé, avec des erreurs : relancez plus tard"))
-        v.append(bouton("Tout mettre à jour", "refresh-cw", "pilule", rappel=tout))
+            pb.set_visible(True); pb.pulse()
+            src = GLib.timeout_add(150, lambda: (pb.pulse(), True)[1])
+            S.en_fond(lambda: tout_mettre_a_jour(lambda t: GLib.idle_add(lambda: (etat.set_text(t), False)[1])),
+                      lambda E: (GLib.source_remove(src), pb.set_fraction(1), etat.set_text("Terminé ✓" if E == [] else "Terminé, avec des erreurs : %s" % (", ".join(E) if isinstance(E, list) else E)),
+                                 S.en_fond(a_mettre_a_jour, rendu)))
+        v.append(bouton("Tout mettre à jour maintenant", "refresh-cw", "pilule", rappel=tout)); v.append(pb); v.append(etat)
+        v.append(label("La nuit", "section"))
+        c = config.charger()
+        r = boite(False, 10, "reglage"); t = boite(True, 0, hexpand=True); t.append(label("Mettre à jour automatiquement la nuit", "gras"))
+        t.append(label("Vers 3 h si l'ordinateur est allumé (sinon au démarrage suivant) : système, Flathub et GitHub. Jamais pendant un tournage (mode Tournage).", "petit", "attenue", wrap=True)); r.append(t)
+        def nuit(on):
+            config.modifier(maj_nuit=on)
+            S.en_fond(lambda: subprocess.run(["pkexec", "sh", "-c", ("touch" if on else "rm -f") + " /etc/xiii/maj-nuit"]).returncode, lambda rc: etat.set_text(("Mises à jour de nuit activées ✓" if on else "Mises à jour de nuit désactivées") if rc == 0 else "Réglage annulé"))
+        r.append(interrupteur(c.get("maj_nuit", False), nuit)); v.append(r)
+        try:
+            d = json.load(open(os.path.expanduser("~/.local/share/xiii/maj-apps.json")))
+            v.append(label("Dernière mise à jour des applications : %s%s" % (d["date"], (" (erreurs : %s)" % ", ".join(d["erreurs"])) if d.get("erreurs") else " ✓"), "petit", "attenue"))
+        except Exception: pass
         v.append(bouton("Logiciels installés depuis GitHub", "package", "fantome", rappel=lambda: S.detacher("xiii-store-github")))
         self.remplacer("maj", sc)
 

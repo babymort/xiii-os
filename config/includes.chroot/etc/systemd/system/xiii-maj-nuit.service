@@ -1,0 +1,11 @@
+[Unit]
+Description=OS XIII — mises à jour du système la nuit (si activées dans le Centre de logiciels)
+ConditionPathExists=/etc/xiii/maj-nuit
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/xiii-maj-nuit
+Nice=15
+IOSchedulingClass=idle

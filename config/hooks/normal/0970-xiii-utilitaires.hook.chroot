@@ -2,6 +2,9 @@
 # xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
 # Saison 2 — S2d : IA XIII, Assistant de synthèse (Vosk hors ligne, français), PhoneBox, Store GitHub, Blackmagic XIII
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-pip unzip adb ffmpeg curl || true
+# Boutons XIII : Stream Deck Elgato sans Companion (bibliothèque Python + accès USB HID)
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-elgato-streamdeck libhidapi-libusb0 python3-pil || \
+  pip3 install --break-system-packages --no-cache-dir streamdeck || echo "streamdeck indisponible"
 # Reconnaissance vocale hors ligne (Vosk) + petit modèle français (~40 Mo)
 pip3 install --break-system-packages --no-cache-dir vosk || echo "vosk indisponible"
 mkdir -p /usr/share/vosk

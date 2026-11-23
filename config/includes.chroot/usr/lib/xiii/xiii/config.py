@@ -25,7 +25,7 @@ DEFAUTS = {
     "fichiers_vue": "windows",
     "ia": "claude", "ia_largeur": 480, "maj_auto": True, "maj_vue": "",      # windows | mac | arbre
     "mode_bureau": "classique",     # classique | production | fiction | multicam | backup | gaming
-    "mode_epingles": {}, "suite_theme_commun": True, "fichiers_depart_projet": True, "production_recents": [], "production_page": "accueil", "partage_nom": "", "partage_mdp": "", "envoi_nom": "", "envoi_auto": False, "envoi_actif": True, "backup_destination": "", "backup_nom": "", "backup_auto": False, "backup_algo": "xxh64",         # icone | rond | barre | pourcentage | minimal
+    "mode_epingles": {}, "suite_theme_commun": True, "fichiers_depart_projet": True, "production_recents": [], "production_page": "accueil", "partage_nom": "", "partage_mdp": "", "envoi_nom": "", "envoi_auto": False, "envoi_actif": True, "streamdeck_xiii": True, "maj_nuit": False, "backup_destination": "", "backup_nom": "", "backup_auto": False, "backup_algo": "xxh64",         # icone | rond | barre | pourcentage | minimal
     "timecode_source": "",          # entrée audio du timecode LTC
     "timecode_canal": 0,
     "decklink_entree": 0, "decklink_mode": "auto", "decklink_pont": False,
@@ -53,7 +53,7 @@ DEFAUTS = {
     "premiers_pas_fait": False, "dnd_auto": True,
     "backup_destination2": "", "backup_vers_suite": True, "backup_ejecter": False, "backup_proxies": "non",
     "prompteur_vitesse": 60, "prompteur_taille": 64, "prompteur_marge": 12, "prompteur_miroir": False, "lufs_cible": "ebu", "regie_antenne": "", "lut_reference": "",
-    "timecode_source": "horloge", "multiview_cases": 4, "multiview_sources": [],
+    "timecode_source": "horloge", "multiview_cases": 4, "multiview_tally": {}, "multiview_sources": [],
     "fichiers_verifier": True, "corbeille_jours": 30, "fichiers_col_mac": 240, "dnd_visio": True, "barre_badges_apps": True, "presse_epingles": [], "menu_taille": "normal", "gestes": True,
     "notif_apercu": True,
     "notif_bloquees": [],

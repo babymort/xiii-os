@@ -56,6 +56,8 @@ class Shell(Gtk.Application):
         if not S.DEMO: S.detacher(["xiii-lecteurs", "--monter-tout"])      # NAS et clouds reconnectés
         if self.cfg.get("envoi_actif", True) and not S.DEMO: S.detacher(["xiii-envoi", "--recevoir"])     # Envoi XIII : visible des appareils proches (LocalSend)
         self.surveiller_reseau()
+        GLib.timeout_add_seconds(15, self.surveiller_streamdeck); self.surveiller_streamdeck()
+        GLib.timeout_add_seconds(1800, self.maj_nuit)
         GLib.timeout_add_seconds(900, lambda: (self.verifier_maj_xiii(), False)[1]); GLib.timeout_add_seconds(86400, self.verifier_maj_xiii)
         if self.cfg.get("decklink_pont") and not S.DEMO:      # pont DeckLink → caméra virtuelle
             try:
@@ -737,6 +739,27 @@ class Shell(Gtk.Application):
         if a == "bureau-suivant": raccourcis.declencher("GoToDesktop", {"to": "right"}, "C-W-Right")
         elif a == "bureau-precedent": raccourcis.declencher("GoToDesktop", {"to": "left"}, "C-W-Left")
         else: self.basculer(a)
+
+    def maj_nuit(self):
+        """Applications de l'utilisateur (Flathub, GitHub) mises à jour vers 3 h, si activé ; jamais en mode Tournage."""
+        if S.DEMO or not self.cfg.get("maj_nuit") or self.cfg.get("profil") == "tournage": return True
+        h = time.localtime().tm_hour
+        try: der = os.path.getmtime(os.path.expanduser("~/.local/share/xiii/maj-apps.json"))
+        except OSError: der = 0
+        if (3 <= h < 6 and time.time() - der > 20 * 3600) or time.time() - der > 3 * 86400 and der:
+            S.detacher(["xiii-logiciels", "--maj-nuit"])
+        return True
+
+    def surveiller_streamdeck(self):
+        """Stream Deck branché → Boutons XIII (pages natives), sauf si Companion est choisi."""
+        if S.DEMO or not self.cfg.get("streamdeck_xiii", True): return True
+        p = getattr(self, "_sd", None)
+        if p and p.poll() is None: return True
+        from . import streamdeck
+        if streamdeck.present():
+            import subprocess
+            self._sd = subprocess.Popen(["xiii-streamdeck"], stdout=open(os.path.expanduser("~/.cache/xiii/streamdeck.log"), "w"), stderr=subprocess.STDOUT, start_new_session=True)
+        return True
 
     def surveiller_reseau(self):
         """Retour sur un réseau : les NAS et clouds enregistrés se remontent tout seuls, Envoi XIII se présente aux appareils proches."""

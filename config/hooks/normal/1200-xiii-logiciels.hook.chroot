@@ -5,7 +5,7 @@ ED=$(cat /etc/xiii/edition 2>/dev/null || echo complete)   # « leger » : ISO a
 export DEBIAN_FRONTEND=noninteractive
 echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections
 LISTE="chromium chromium-l10n iperf3 remmina"
-[ "$ED" = leger ] || LISTE="chromium chromium-l10n wireshark iperf3 kismet remmina input-leap"
+[ "$ED" = leger ] || LISTE="chromium chromium-l10n wireshark iperf3 kismet remmina input-leap kdeconnect"
 for p in $LISTE; do apt-get install -y --no-install-recommends "$p" || echo "absent : $p"; done
 # Tailscale (dépôt officiel)
 if curl -fsSL https://pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg -o /usr/share/keyrings/tailscale-archive-keyring.gpg; then

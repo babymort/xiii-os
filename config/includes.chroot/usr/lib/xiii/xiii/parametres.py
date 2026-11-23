@@ -909,6 +909,50 @@ class Parametres(Gtk.Application):
         for i in L:
             c.append(reglage("settings-2", "Régler %s (IP fixe, rôle Internet…)" % i["dev"], "", clic=lambda d=i["dev"]: (setattr(self, "iface_sel", d), self.aller("iface"))))
 
+    def p_telephone(self, c, cle):
+        """Téléphone connecté (KDE Connect) : notifications du téléphone sur l'ordinateur, SMS, presse-papiers partagé, fichiers, sonnerie."""
+        h = boite(False, 16, "hero"); h.append(ico("smartphone", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label("Téléphone connecté", "hero-grand"))
+        v.append(label("Android avec l'application gratuite KDE Connect (Play Store, F-Droid), sur le même réseau", "attenue")); h.append(v); c.append(h)
+        if not shutil.which("kdeconnect-cli") and not S.DEMO:
+            c.append(info("Le module téléphone n'est pas installé (édition légère). Il pèse environ 150 Mo."))
+            c.append(reglage("download", "Installer le module téléphone", "KDE Connect, depuis le Centre de logiciels",
+                             droite=bouton("Installer", None, "pilule", rappel=lambda: S.detacher(["xiii-logiciels", "--installer", "kdeconnect"]))))
+            return
+        c.append(info("Sur le téléphone : ouvrez KDE Connect, choisissez cet ordinateur et acceptez le jumelage. Ensuite les notifications du téléphone arrivent ici, "
+                      "le presse-papiers est partagé et la musique de l'ordinateur se commande depuis le téléphone."))
+        zone = boite(True, 4); c.append(zone); zone.append(Gtk.Spinner(spinning=True, halign=Gtk.Align.START))
+        def lister():
+            if S.DEMO: return [("a1b2", "Pixel 8 de Matthieu", True, True), ("c3d4", "Galaxy Tab", False, True)]
+            S.sh(["kdeconnect-cli", "--refresh"], 8); time.sleep(2)
+            L = []
+            for l in S.out(["kdeconnect-cli", "-l", "--id-name-only"], 8).splitlines():
+                p = l.split(" ", 1)
+                if len(p) == 2: L.append((p[0], p[1], None, True))
+            app = set(x.split(" ", 1)[0] for x in S.out(["kdeconnect-cli", "-l", "--paired", "--id-name-only"], 8).splitlines())
+            return [(i, n, i in app, d) for i, n, _, d in L]
+        def rendu(L):
+            vider(zone)
+            if isinstance(L, Exception) or not L:
+                zone.append(info("Aucun téléphone trouvé. Vérifiez que KDE Connect est ouvert sur le téléphone et que les deux sont sur le même Wi-Fi.")); return
+            for i, n, apparie, _ in L:
+                d = boite(False, 6)
+                if apparie:
+                    for t_, ic, args in (("Faire sonner", "bell-ring", ["--ring"]), ("Envoyer le presse-papiers", "clipboard", ["--send-clipboard"]), ("Ping", "radio", ["--ping"])):
+                        d.append(bouton(None, ic, "plat", tip=t_, rappel=lambda i=i, args=args: S.en_fond(S.sh, lambda r: self.toast("Envoyé au téléphone"), ["kdeconnect-cli", "-d", i] + args)))
+                    d.append(bouton("Envoyer un fichier…", None, "fantome", rappel=lambda i=i: self._tel_fichier(i)))
+                    d.append(bouton("SMS", None, "fantome", rappel=lambda: S.detacher("kdeconnect-sms")))
+                else:
+                    d.append(bouton("Jumeler", None, "pilule", rappel=lambda i=i: S.en_fond(S.sh, lambda r: (self.toast("Acceptez le jumelage sur le téléphone"), self.aller("telephone", False)), ["kdeconnect-cli", "-d", i, "--pair"])))
+                zone.append(reglage("smartphone", n, "Jumelé" if apparie else "Disponible, pas encore jumelé", droite=d))
+        S.en_fond(lister, rendu)
+        c.append(reglage("refresh-cw", "Rechercher à nouveau", "", clic=lambda: self.aller("telephone", False)))
+        c.append(reglage("send", "Envoyer des fichiers sans KDE Connect", "Envoi XIII marche aussi avec iPhone et Android (application LocalSend)", clic=lambda: S.detacher("xiii-envoi")))
+
+    def _tel_fichier(self, i):
+        d = Gtk.FileDialog(title="Fichier à envoyer au téléphone")
+        d.open(self.win, None, lambda dd, res: (lambda g: S.en_fond(S.sh, lambda r: self.toast("Fichier envoyé au téléphone"), ["kdeconnect-cli", "-d", i, "--share", g.get_path()], 300) if g else None)(self._fin_fichier(dd, res)))
+
     def p_vpn(self, c, cle):
         L = S.vpns()
         def importer(chemins):
