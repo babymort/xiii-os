@@ -85,8 +85,10 @@ def demonter(l):
     else: subprocess.run(["fusermount3", "-uz", p], capture_output=True)
     return not monte(l)
 
-def monter_tout():
+def monter_tout(reseau=False):
+    """reseau=True : appelé au retour sur un réseau — sans les montages NFS (ils demandent le mot de passe administrateur)."""
     for l in lecteurs():
+        if reseau and l["type"] == "nfs": continue
         if l.get("auto", True) and not monte(l):
             try: monter(l)
             except Exception: pass
@@ -100,7 +102,7 @@ class Lecteurs(Gtk.Application):
     def do_command_line(self, cl):
         a = cl.get_arguments()[1:]
         if "--monter-tout" in a:
-            threading.Thread(target=monter_tout).start(); return 0
+            threading.Thread(target=monter_tout, args=("--reseau" in a,)).start(); return 0
         self.activer()
         if "--ajouter" in a and a.index("--ajouter") + 1 < len(a):
             self.formulaire("smb", {"hote": a[a.index("--ajouter") + 1]})

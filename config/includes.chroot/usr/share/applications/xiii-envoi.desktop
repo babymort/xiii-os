@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Envoi XIII
+Comment=Envoyer des fichiers aux téléphones et ordinateurs proches (compatible LocalSend)
+Exec=xiii-envoi %F
+Icon=xiii-envoi
+Type=Application
+Categories=Network;FileTransfer;XIII;
+Keywords=airdrop;localsend;envoyer;partager;téléphone;fichiers;proche;

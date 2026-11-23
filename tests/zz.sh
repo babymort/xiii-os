@@ -132,6 +132,21 @@ done
 python3 -c "$CFG"'config.modifier(mode_bureau="classique")'; sleep 2
 journalctl --user -n 0 >/dev/null 2>&1; echo "OK        mode Production capturé (accueil, tableau, planning)" >> $R
 
+echo "== Phase G (réseau : Envoi XIII compatible LocalSend)" >> $R
+python3 -c "$CFG"'config.modifier(envoi_auto=True, envoi_actif=True, envoi_nom="Poste ZZ")'
+pkill -f "xiii-envoi --recevoir"; sleep 1
+xiii-envoi --recevoir > /out/envoi-recepteur.log 2>&1 & sleep 3
+head -c 3000000 /dev/urandom > /tmp/essai-envoi.bin; echo "bonjour" > /tmp/essai-envoi.txt
+r=$(xiii-envoi --envoyer 127.0.0.1 /tmp/essai-envoi.bin /tmp/essai-envoi.txt 2>&1 | tail -1)
+f=$(find /root -path "*Reçus*" -name "essai-envoi.bin" 2>/dev/null | head -1)
+if [ -n "$f" ] && cmp -s "$f" /tmp/essai-envoi.bin; then echo "OK        Envoi XIII : $r (fichier identique à l'arrivée)" >> $R; else echo "ÉCHEC     Envoi XIII : $r · reçu=$f" >> $R; fi
+python3 -c "$CFG"'config.modifier(envoi_actif=False)'
+r=$(xiii-envoi --envoyer 127.0.0.1 /tmp/essai-envoi.txt 2>&1 | tail -1)
+case "$r" in *Refus*) echo "OK        Envoi XIII : réception désactivée → $r" >> $R;; *) echo "ÉCHEC     Envoi XIII refus attendu : $r" >> $R;; esac
+python3 -c "$CFG"'config.modifier(envoi_actif=True)'
+curl -s http://127.0.0.1:53317/api/localsend/v2/info | python3 -c 'import sys,json; d=json.load(sys.stdin); print("OK        LocalSend /info :", d["alias"], d["version"], d["protocol"])' >> $R 2>&1
+xiii-envoi /tmp/essai-envoi.bin /tmp/essai-envoi.txt > /out/app-envoi.log 2>&1 & sleep 5; grim -s 0.5 /out/app-envoi.png; pkill -f "essai-envoi.bin"; sleep 1
+
 echo "== Phase E (régie, déchargement → BACKUPO + DOSSIER)" >> $R
 mkdir -p /root/Navette
 python3 - >> $R 2>&1 <<'PY'

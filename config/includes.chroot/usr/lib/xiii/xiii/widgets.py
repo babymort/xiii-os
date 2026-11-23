@@ -230,6 +230,20 @@ class Tableau:
             r.append(label(i["dev"], "petit", "gras")); l = label("—", "petit", hexpand=True, xalign=1); r.append(l); v.append(r)
             self._duo[i["dev"]] = l
         self._duo_avant = (R.trafic(), time.time())
+        res = label("", "petit", "attenue", wrap=True)
+        def tester(b):
+            b.set_sensitive(False); res.set_text("Mesure en cours (latence et débit de chaque connexion)…")
+            def fond():
+                if S.DEMO: return [(i, {"latence_ms": 12.4 if i == "wlan0" else 38.0, "debit_bits": 184e6 if i == "wlan0" else 42e6, "erreur": ""}) for i in ("wlan0", "usb0")]
+                return [(i["dev"], R.test_debit(i["dev"])) for i in its if i["internet"] or i["dev"] in d.get("actifs", []) or len(its) == 1]
+            def fin(L):
+                b.set_sensitive(True)
+                if isinstance(L, Exception) or not L: res.set_text("Test impossible : aucune connexion à Internet."); return
+                res.set_text("   ".join("%s : %s · %s" % (dev, ("%.0f ms" % x["latence_ms"]) if x["latence_ms"] else "—",
+                                                       ("%.0f Mbit/s" % (x["debit_bits"] / 1e6)) if x["debit_bits"] else (x["erreur"] or "—")) for dev, x in L))
+            S.en_fond(fond, fin)
+        bt = bouton("Tester le débit", "gauge", "fantome", taille=14); bt.connect("clicked", tester)
+        bx = boite(False, 6, margin_top=4); bx.append(bt); v.append(bx); v.append(res)
         return self.carte("duo", "Réseau", "network", v, lambda: S.detacher(["xiii-parametres", "--page", "duo"]))
 
     def _duo_tic(self):

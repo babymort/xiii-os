@@ -652,6 +652,7 @@ class Fichiers(Gtk.Application):
             items += [("package", "Installer ce logiciel", lambda: S.detacher(["xiii-paquets", p]))]
         items += [("tag", "Étiquette de couleur…", lambda: self.menu_etiquette(L))]
         items += [("text-cursor-input", "Renommer %d éléments… (F2)" % len(L) if len(L) > 1 else "Renommer (F2)", lambda: self.renommer_lot(L) if len(L) > 1 else self.renommer(p)), ("archive", "Compresser (.zip)", lambda: self.compresser(L)),
+                  ("smartphone", "Envoyer à un appareil proche", lambda: S.detacher(["xiii-envoi"] + L)),
                   ("send", "Envoyer (Transferts XIII)", lambda: S.detacher(["xiii-transferts"] + L)), ("folder-input", "Envoyer à DOSSIER XIII", lambda: S.detacher(["xiii-suite", "--dossier"] + L)),
                   None, ("link", "Copier le chemin", lambda: Gdk.Display.get_default().get_clipboard().set_text("\n".join(L))),
                   ("trash-2", "Mettre à la corbeille (Suppr)", lambda: self.corbeille(L)), None,

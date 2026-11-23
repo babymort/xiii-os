@@ -843,7 +843,20 @@ class Parametres(Gtk.Application):
             dr.append(bouton("QR code / mot de passe", "qr-code", "fantome", taille=14, rappel=lambda: self.qr_wifi(e["nom"])))
             dr.append(bouton("Déconnecter", None, "plat", rappel=lambda: S.en_fond(S.wifi_deconnecter, lambda _: self.aller("wifi", False))))
             c.append(reglage(icone_wifi(e["signal"]), e["nom"], "Connecté · %s · signal %d %%" % (e["ip"], e["signal"]), droite=dr))
-        c.append(groupe_titre("Réseaux disponibles"))
+        cartes = S.cartes_wifi()
+        carte = getattr(self, "_carte_wifi", None)
+        if carte not in [k["dev"] for k in cartes]: carte = None
+        if len(cartes) > 1:
+            # XIII Duo : chaque carte Wi-Fi peut être sur son propre réseau
+            c.append(groupe_titre("Cartes Wi-Fi"))
+            c.append(info("Plusieurs cartes Wi-Fi : choisissez la carte, puis le réseau. Chaque carte garde son réseau (par exemple la carte interne sur la box, la clé USB sur le partage 4G) et XIII Duo les utilise ensemble."))
+            for k in cartes:
+                c.append(reglage("usb" if k["usb"] and os.path.exists(theme.LUCIDE + "/usb.svg") else "wifi", "%s · %s" % (k["nom"], k["dev"]),
+                                 ("Connectée à « %s »" % k["connexion"]) if k["connexion"] else k["etat"].capitalize(),
+                                 droite=bouton("Choisir son réseau" if carte != k["dev"] else "Carte choisie", None, "fantome" if carte != k["dev"] else "pilule",
+                                               rappel=lambda d=k["dev"]: (setattr(self, "_carte_wifi", d), self.aller("wifi", False)))))
+            if not carte: carte = cartes[0]["dev"]; self._carte_wifi = carte
+        c.append(groupe_titre("Réseaux disponibles" + ((" pour " + next(k["nom"] for k in cartes if k["dev"] == carte) + " (" + carte + ")") if len(cartes) > 1 else "")))
         zone = boite(True, 3); c.append(zone); zone.append(Gtk.Spinner(spinning=True, halign=Gtk.Align.START))
         def rendu(L):
             vider(zone)
@@ -851,22 +864,23 @@ class Parametres(Gtk.Application):
             for n in L:
                 if n["actif"]: continue
                 b = bouton("Se connecter", None, "fantome")
-                b.connect("clicked", lambda _b, n=n: self.connecter(n))
+                b.connect("clicked", lambda _b, n=n: self.connecter(n, carte if len(cartes) > 1 else None))
                 c2 = reglage(icone_wifi(n["signal"]), n["ssid"], ("Enregistré · " if n["connu"] else "") + (n["secu"] or "Ouvert") + " · %d %%" % n["signal"], droite=b)
                 zone.append(c2)
-        S.en_fond(S.reseaux_wifi, rendu, True)
+        S.en_fond(S.reseaux_wifi, rendu, True, carte if len(cartes) > 1 else None)
         c.append(groupe_titre("Réseaux connus"))
         connus = [l.split(":")[0] for l in S.out(["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"]).splitlines() if l.endswith("802-11-wireless")] if not S.DEMO else ["Studio-XIII", "Plateau-B"]
         for n in connus:
             c.append(reglage("wifi", n, "Enregistré", droite=bouton("Oublier", None, "plat", rappel=lambda n=n: S.en_fond(S.wifi_oublier, lambda _: self.aller("wifi", False), n))))
         c.append(reglage("plus", "Ajouter un réseau masqué ou avancé", "", clic=lambda: S.detacher("nm-connection-editor")))
 
-    def connecter(self, n):
+    def connecter(self, n, carte=None):
+        fin = lambda r: (self.toast(("Connecté" + (" avec " + carte if carte else "")) if not isinstance(r, Exception) and r[0] else "Échec de la connexion"), self.aller("wifi", False))
         if n["secu"] and not n["connu"]:
             demander(self.win, "Se connecter à « %s »" % n["ssid"], "Mot de passe du réseau", "",
-                     lambda mdp: S.en_fond(S.wifi_connecter, lambda r: (self.toast("Connecté" if not isinstance(r, Exception) and r[0] else "Échec de la connexion"), self.aller("wifi", False)), n["ssid"], mdp), secret=True)
+                     lambda mdp: S.en_fond(S.wifi_connecter, fin, n["ssid"], mdp, carte), secret=True)
         else:
-            S.en_fond(S.wifi_connecter, lambda r: self.aller("wifi", False), n["ssid"])
+            S.en_fond(S.wifi_connecter, fin, n["ssid"], None, carte)
 
     def qr_wifi(self, ssid):
         mdp = "motdepasse-demo" if S.DEMO else S.out(["nmcli", "-s", "-g", "802-11-wireless-security.psk", "connection", "show", ssid])
@@ -897,20 +911,71 @@ class Parametres(Gtk.Application):
 
     def p_vpn(self, c, cle):
         L = S.vpns()
-        c.append(reglage("plus", "Ajouter une connexion VPN", "WireGuard, OpenVPN… ou importer un fichier", droite=bouton("Ajouter", None, "pilule", rappel=lambda: S.detacher("nm-connection-editor"))))
+        def importer(chemins):
+            for p in chemins:
+                S.en_fond(S.vpn_importer, lambda r, p=p: (self.toast(("VPN « %s » ajouté" % r[1]) if not isinstance(r, Exception) and r[0] else "Import impossible : " + (str(r) if isinstance(r, Exception) else r[1])), self.aller("vpn", False)), p)
+        def choisir():
+            d = Gtk.FileDialog(title="Fichier VPN (.conf WireGuard, .ovpn OpenVPN)")
+            f = Gtk.FileFilter(); f.set_name("Configurations VPN"); [f.add_pattern(x) for x in ("*.conf", "*.ovpn", "*.CONF", "*.OVPN")]
+            fl = Gio.ListStore.new(Gtk.FileFilter); fl.append(f); d.set_filters(fl)
+            d.open(self.win, None, lambda dd, res: (lambda g: importer([g.get_path()]) if g else None)(self._fin_fichier(dd, res)))
+        zone = boite(True, 6, "carte", margin_bottom=6); zone.set_size_request(-1, 110)
+        zone.append(ico("shield", 30, "c")); zone.append(label("Déposez ici un fichier .conf (WireGuard) ou .ovpn (OpenVPN)", "gras", xalign=0.5))
+        zone.append(label("fourni par votre box, votre NAS ou votre entreprise — ou", "attenue", "petit", xalign=0.5))
+        bx = boite(False, 8, halign=Gtk.Align.CENTER); bx.append(bouton("Choisir un fichier…", "folder-open", "pilule", rappel=choisir)); zone.append(bx)
+        dt = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        dt.connect("drop", lambda t, v, x, y: (importer([g.get_path() for g in v.get_files() if g.get_path()]), True)[1]); zone.add_controller(dt)
+        c.append(zone)
+        c.append(reglage("shield", "Tailscale", "Joindre le NAS du bureau ou la maison de partout, sans réglage de box", clic=lambda: self.aller("tailscale")))
+        c.append(reglage("plus", "Créer une connexion VPN à la main", "Réglages avancés", droite=bouton("Créer", None, "fantome", rappel=lambda: S.detacher("nm-connection-editor"))))
         if not L: c.append(info("Aucun VPN configuré."))
         for v in L:
             c.append(reglage("shield", v["nom"], "Connecté" if v["actif"] else "Déconnecté",
                              droite=interrupteur(v["actif"], lambda on, n=v["nom"]: S.en_fond(S.vpn_basculer, lambda _: self.aller("vpn", False), n, on))))
 
+    def _fin_fichier(self, d, res):
+        try: return d.open_finish(res)
+        except GLib.Error: return None
+
     def p_partage(self, c, cle):
-        nom = Gtk.Entry(text="XIII-" + os.uname().nodename[:12]); mdp = Gtk.PasswordEntry(show_peek_icon=True); mdp.set_text("xiii" + str(abs(hash(os.uname().nodename)) % 100000).zfill(5))
-        c.append(info("Partagez la connexion de cet ordinateur (câble, 4G USB…) en créant un point d'accès Wi-Fi."))
+        """Partage de connexion en un clic : point d'accès Wi-Fi + QR code à scanner."""
+        nom0 = self.cfg.get("partage_nom") or "XIII-" + os.uname().nodename[:12]
+        mdp0 = self.cfg.get("partage_mdp") or "xiii" + str(abs(hash(os.uname().nodename)) % 100000).zfill(5)
+        nom = Gtk.Entry(text=nom0); mdp = Gtk.PasswordEntry(show_peek_icon=True); mdp.set_text(mdp0)
+        actif = S.DEMO and getattr(self, "_partage_demo", False) or (not S.DEMO and "Hotspot" in S.out(["nmcli", "-t", "-f", "NAME", "connection", "show", "--active"]))
+        cartes = S.cartes_wifi(); e = S.etat_reseau()
+        h = boite(False, 16, "hero"); h.append(ico("radio-tower", 40, "c"))
+        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); v.append(label("Partage de connexion", "hero-grand"))
+        v.append(label(("Actif · « %s »" % nom0) if actif else "Transformez cet ordinateur en point d'accès Wi-Fi", "attenue")); h.append(v)
+        def basculer(on):
+            if len(mdp.get_text()) < 8: self.toast("Mot de passe : 8 caractères minimum"); return
+            self.regler(partage_nom=nom.get_text().strip() or nom0, partage_mdp=mdp.get_text())
+            if S.DEMO: self._partage_demo = on
+            ch = getattr(self, "_partage_carte", None) or (cartes[-1]["dev"] if len(cartes) > 1 else None)
+            S.en_fond(S.point_acces, lambda r: (self.toast(("Point d'accès actif — scannez le QR code" if on else "Point d'accès arrêté") if not isinstance(r, Exception) and r[0]
+                                                            else "Impossible : " + (str(r) if isinstance(r, Exception) else r[1])[:120]), self.aller("partage", False)),
+                      nom.get_text().strip() or nom0, mdp.get_text(), on, ch)
+        h.append(bouton("Arrêter" if actif else "Partager en un clic", "wifi" if not actif else "wifi-off", "pilule", rappel=lambda: basculer(not actif)))
+        c.append(h)
+        if actif:
+            # QR code : les téléphones se connectent en le scannant
+            chemin = os.path.join(GLib.get_user_cache_dir(), "xiii", "partage-qr.png"); os.makedirs(os.path.dirname(chemin), exist_ok=True)
+            esc = lambda x: re.sub(r'([\\;,:"])', r"\\\1", x)
+            S.sh(["qrencode", "-o", chemin, "-s", "9", "-m", "2", "WIFI:T:WPA;S:%s;P:%s;;" % (esc(nom0), esc(mdp0))])
+            q = boite(False, 18, "carte", margin_top=6)
+            if os.path.exists(chemin): q.append(vignette(chemin, 220, 220, couvrir=False))
+            t = boite(True, 6, valign=Gtk.Align.CENTER)
+            t.append(label("Scannez pour vous connecter", "gras")); t.append(label("Réseau : " + nom0, "mono")); t.append(label("Mot de passe : " + mdp0, "mono", selectable=True))
+            t.append(label("Appareil photo du téléphone → toucher la notification Wi-Fi.", "attenue", "petit", wrap=True)); q.append(t); c.append(q)
+        c.append(groupe_titre("Réglages"))
+        src = "câble" if e.get("ethernet") else ("Wi-Fi « %s »" % e["nom"] if e.get("type") == "wifi" else "aucune connexion")
+        c.append(reglage("globe", "Connexion partagée", "Internet de cet ordinateur : " + src + (". Avec une seule carte Wi-Fi, partager le Wi-Fi coupe la connexion Wi-Fi actuelle : branchez un câble, un téléphone en USB ou une clé Wi-Fi." if len(cartes) < 2 and e.get("type") == "wifi" else "")))
+        if len(cartes) > 1:
+            ch = getattr(self, "_partage_carte", None) or cartes[-1]["dev"]
+            c.append(reglage("wifi", "Carte qui diffuse", "L'autre carte garde sa connexion à Internet",
+                             droite=deroulant([(k["dev"], "%s · %s" % (k["nom"], k["dev"])) for k in cartes], ch, lambda d: setattr(self, "_partage_carte", d), 260)))
         c.append(reglage("radio-tower", "Nom du réseau", None, droite=dim(nom, 260)))
         c.append(reglage("lock", "Mot de passe (8 caractères minimum)", None, droite=dim(mdp, 260)))
-        c.append(reglage("wifi", "Point d'accès", "Le Wi-Fi de cet ordinateur sera utilisé pour le partage",
-                         droite=interrupteur(False, lambda on: S.en_fond(S.point_acces, lambda r: self.toast(("Point d'accès actif" if on else "Point d'accès arrêté") if not isinstance(r, Exception) and r[0] else "Impossible : " + (r[1] if not isinstance(r, Exception) else str(r))),
-                                                                       nom.get_text(), mdp.get_text(), on))))
 
     # ------------------------------------------------------------------ Réseau XIII (phase 10)
     def p_interfaces(self, c, cle):

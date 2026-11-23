@@ -54,6 +54,8 @@ class Shell(Gtk.Application):
         self.fenetres = Gestionnaire(self.maj_taches)
         self.ecouter_progres()
         if not S.DEMO: S.detacher(["xiii-lecteurs", "--monter-tout"])      # NAS et clouds reconnectés
+        if self.cfg.get("envoi_actif", True) and not S.DEMO: S.detacher(["xiii-envoi", "--recevoir"])     # Envoi XIII : visible des appareils proches (LocalSend)
+        self.surveiller_reseau()
         GLib.timeout_add_seconds(900, lambda: (self.verifier_maj_xiii(), False)[1]); GLib.timeout_add_seconds(86400, self.verifier_maj_xiii)
         if self.cfg.get("decklink_pont") and not S.DEMO:      # pont DeckLink → caméra virtuelle
             try:
@@ -735,6 +737,26 @@ class Shell(Gtk.Application):
         if a == "bureau-suivant": raccourcis.declencher("GoToDesktop", {"to": "right"}, "C-W-Right")
         elif a == "bureau-precedent": raccourcis.declencher("GoToDesktop", {"to": "left"}, "C-W-Left")
         else: self.basculer(a)
+
+    def surveiller_reseau(self):
+        """Retour sur un réseau : les NAS et clouds enregistrés se remontent tout seuls, Envoi XIII se présente aux appareils proches."""
+        self._reseau_src = 0; self._reseau_etat = None
+        mon = Gio.NetworkMonitor.get_default()
+        def agir():
+            self._reseau_src = 0
+            if S.DEMO: return False
+            S.detacher(["xiii-lecteurs", "--monter-tout", "--reseau"])
+            if self.cfg.get("envoi_actif", True): S.detacher(["xiii-envoi", "--recevoir"])     # sans effet s'il tourne déjà (port pris)
+            return False
+        def change(m, dispo):
+            sig = (dispo, S.out(["ip", "-4", "-o", "route", "show", "default"])[:200] if not S.DEMO else "")
+            if sig == self._reseau_etat: return
+            self._reseau_etat = sig
+            if dispo:
+                if self._reseau_src: GLib.source_remove(self._reseau_src)
+                self._reseau_src = GLib.timeout_add_seconds(6, agir)      # laisser l'adresse IP et le DNS s'installer
+        mon.connect("network-changed", change)
+        self._reseau_etat = (mon.get_network_available(), "")
 
     def surveiller_dnd(self):
         """Ne pas déranger automatique (Paramètres › Notifications) : une fenêtre en plein écran (film, jeu, présentation),

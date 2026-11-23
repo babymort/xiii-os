@@ -21,6 +21,8 @@ imv
 mousepad
 pavucontrol
 network-manager-gnome
+network-manager-openvpn
+wireguard-tools
 blueman
 # Droits administrateur graphiques
 polkitd

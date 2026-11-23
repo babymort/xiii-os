@@ -278,3 +278,24 @@ def surveiller():
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == "--surveiller": surveiller()
+
+
+def test_debit(dev=None, octets=10_000_000):
+    """Latence (ping) et débit descendant (téléchargement de test Cloudflare) par interface. → {latence_ms, debit_bits, erreur}"""
+    import subprocess, re as _re
+    r = {"latence_ms": None, "debit_bits": None, "erreur": ""}
+    try:
+        p = subprocess.run(["ping", "-c", "3", "-W", "2", "-q"] + (["-I", dev] if dev else []) + ["1.1.1.1"], capture_output=True, text=True, timeout=12).stdout
+        m = _re.search(r"= [\d.]+/([\d.]+)/", p)
+        if m: r["latence_ms"] = float(m.group(1))
+    except Exception as e:
+        r["erreur"] = str(e)
+    try:
+        o = subprocess.run(["curl", "-s", "-o", "/dev/null", "-m", "15", "-w", "%{speed_download}"] + (["--interface", dev] if dev else []) +
+                           ["https://speed.cloudflare.com/__down?bytes=%d" % octets], capture_output=True, text=True, timeout=20).stdout
+        v = float(o.strip() or 0)
+        if v > 0: r["debit_bits"] = v * 8
+        elif not r["erreur"]: r["erreur"] = "pas de réponse"
+    except Exception as e:
+        r["erreur"] = r["erreur"] or str(e)
+    return r

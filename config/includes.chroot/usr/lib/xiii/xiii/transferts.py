@@ -300,6 +300,7 @@ class Transferts(Gtk.Application):
         rr = boite(False, 8); rr.append(e); rr.append(bouton("Recevoir", "download", "pilule", rappel=recevoir)); v.append(rr)
         v.append(groupe_titre_l("Dans le navigateur"))
         v.append(bouton("PairDrop (comme AirDrop, entre appareils du réseau)", "smartphone", "fantome", rappel=lambda: S.detacher(["xdg-open", "https://pairdrop.net/"])))
+        v.append(bouton("Envoi XIII (appareils proches)", "send", "pilule", rappel=lambda: S.detacher(["xiii-envoi"])))
         if shutil.which("localsend") or shutil.which("localsend_app"):
             v.append(bouton("LocalSend", "smartphone", "fantome", rappel=lambda: S.detacher([shutil.which("localsend") or "localsend_app"])))
         self.remplacer("p2p", sc)

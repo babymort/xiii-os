@@ -125,7 +125,21 @@ def wifi_activer(on):
     if DEMO: _demo["wifi"] = on; return
     sh(["nmcli", "radio", "wifi", "on" if on else "off"])
 
-def reseaux_wifi(rescan=False):
+def cartes_wifi():
+    """[{dev, etat, connexion, usb}] — une entrée par carte Wi-Fi (interne, clé USB…)."""
+    if DEMO:
+        return [dict(dev="wlan0", etat="connecté", connexion=_demo["connecte"], usb=False, nom="Carte interne"),
+                dict(dev="wlx00c0ca9e1a2b", etat="connecté", connexion="Plateau-B", usb=True, nom="Clé USB Wi-Fi")]
+    L = []
+    for l in out(["nmcli", "-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device"]).splitlines():
+        f = _champs(l)
+        if len(f) < 4 or f[1] != "wifi" or f[0].startswith("p2p"): continue
+        usb = "/usb" in os.path.realpath("/sys/class/net/%s/device" % f[0])
+        L.append(dict(dev=f[0], etat="connecté" if f[2].startswith("connected") else ("indisponible" if "unavailable" in f[2] else "déconnecté"),
+                      connexion=f[3] if f[3] not in ("", "--") else "", usb=usb, nom="Clé USB Wi-Fi" if usb else "Carte interne"))
+    return L
+
+def reseaux_wifi(rescan=False, carte=None):
     if DEMO:
         if not _demo["wifi"]: return []
         return [dict(ssid="Studio-XIII", signal=92, secu="WPA2", actif=_demo["connecte"] == "Studio-XIII", connu=True),
@@ -135,7 +149,7 @@ def reseaux_wifi(rescan=False):
                 dict(ssid="Invités", signal=25, secu="", actif=False, connu=False)]
     connus = set(l.split(":")[0] for l in out(["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"]).splitlines()
                  if l.endswith("802-11-wireless"))
-    o = out(["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "yes" if rescan else "auto"], 25)
+    o = out(["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "yes" if rescan else "auto"] + (["ifname", carte] if carte else []), 25)
     vus = {}
     for l in o.splitlines():
         f = _champs(l)
@@ -145,15 +159,23 @@ def reseaux_wifi(rescan=False):
             vus[f[1]] = r
     return sorted(vus.values(), key=lambda r: (not r["actif"], -r["signal"]))
 
-def wifi_connecter(ssid, mdp=None):
+def wifi_connecter(ssid, mdp=None, carte=None):
+    """carte : interface choisie (XIII Duo : chaque carte sur son réseau). Le réseau reste alors lié à cette carte."""
     if DEMO: _demo["connecte"] = ssid; return True, ""
     connus = [l.split(":")[0] for l in out(["nmcli", "-t", "-f", "NAME", "connection", "show"]).splitlines()]
     if ssid in connus and not mdp:
-        rc, o, e = sh(["nmcli", "connection", "up", "id", ssid], 40)
+        if carte: sh(["nmcli", "connection", "modify", "id", ssid, "connection.interface-name", carte])
+        rc, o, e = sh(["nmcli", "connection", "up", "id", ssid] + (["ifname", carte] if carte else []), 40)
     else:
-        cmd = ["nmcli", "device", "wifi", "connect", ssid] + (["password", mdp] if mdp else [])
+        cmd = ["nmcli", "device", "wifi", "connect", ssid] + (["password", mdp] if mdp else []) + (["ifname", carte] if carte else [])
         rc, o, e = sh(cmd, 40)
+        if rc == 0 and carte: sh(["nmcli", "connection", "modify", "id", ssid, "connection.interface-name", carte])
     return rc == 0, (e or o)
+
+def wifi_detacher(ssid):
+    """Le réseau peut de nouveau se connecter sur n'importe quelle carte."""
+    if DEMO: return
+    sh(["nmcli", "connection", "modify", "id", ssid, "connection.interface-name", ""])
 
 def wifi_oublier(ssid):
     if DEMO: return
@@ -223,15 +245,24 @@ def vpns():
             L.append(dict(nom=f[0], actif=f[0] in act))
     return L
 
+def vpn_importer(chemin):
+    """Fichier .conf (WireGuard) ou .ovpn (OpenVPN) → connexion NetworkManager. → (ok, message)"""
+    if DEMO: return True, "Bureau"
+    ext = os.path.splitext(chemin)[1].lower()
+    typ = "openvpn" if ext in (".ovpn",) or (ext == ".conf" and "client" in open(chemin, errors="ignore").read(4000) and "[Interface]" not in open(chemin, errors="ignore").read(4000)) else "wireguard"
+    rc, o, e = sh(["nmcli", "connection", "import", "type", typ, "file", chemin], 30)
+    m = re.search(r"'([^']+)'", o or "")
+    return rc == 0, (m.group(1) if m and rc == 0 else (e or o or "").strip()[-200:])
+
 def vpn_basculer(nom, on):
     if DEMO: return True
     return sh(["nmcli", "connection", "up" if on else "down", "id", nom], 30)[0] == 0
 
-def point_acces(ssid, mdp, on=True):
+def point_acces(ssid, mdp, on=True, carte=None):
     if DEMO: return True, ""
     if not on:
         return sh(["nmcli", "connection", "down", "Hotspot"])[0] == 0, ""
-    rc, o, e = sh(["nmcli", "device", "wifi", "hotspot", "ssid", ssid, "password", mdp], 30)
+    rc, o, e = sh(["nmcli", "device", "wifi", "hotspot", "ssid", ssid, "password", mdp] + (["ifname", carte] if carte else []), 30)
     return rc == 0, e or o
 
 # ================================================================ BLUETOOTH
