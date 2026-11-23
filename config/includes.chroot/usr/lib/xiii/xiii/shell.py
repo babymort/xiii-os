@@ -227,6 +227,12 @@ class Shell(Gtk.Application):
         self.panneaux[nom] = (w, obj)
         return w, obj
 
+    def liberer_bientot(self, delai=3):
+        """Libération de la mémoire 3 s après la fermeture d'un panneau (une seule fois si on en ouvre plusieurs)."""
+        if getattr(self, "_lib_src", 0): GLib.source_remove(self._lib_src)
+        def go(): self._lib_src = 0; self.liberer_memoire(); return False
+        self._lib_src = GLib.timeout_add_seconds(delai, go)
+
     def liberer_memoire(self):
         """Rend au système la mémoire libérée par Python et GTK (malloc_trim) : plusieurs Mo après le démarrage."""
         try:
@@ -267,7 +273,7 @@ class Shell(Gtk.Application):
             for b in self.boutons_panneaux.get(self.ouvert, []): b.remove_css_class("ouvert")
             if self.ouvert == "demarrer": self.menu.reinitialiser()
         self.ouvert = None
-        if not garder_voile: self.voile.set_visible(False)
+        if not garder_voile: self.voile.set_visible(False); self.liberer_bientot()
 
     def parametres(self, page="accueil"):
         self.fermer()
@@ -1008,6 +1014,7 @@ class Shell(Gtk.Application):
             GLib.timeout_add_seconds(1, lambda: (self.antivol(), False)[1])
         self.css.load_from_string(theme.css_shell(cfg))
         theme._cache.clear()
+        self.liberer_bientot(5)
         if ancien["barre_alignement"] != cfg["barre_alignement"] or ancien["barre_meteo"] != cfg["barre_meteo"] or ancien["barre_recherche"] != cfg["barre_recherche"]:
             self.placer_barre(); self.aligner_menu()
         if (ancien["meteo_lat"], ancien["meteo_lon"]) != (cfg["meteo_lat"], cfg["meteo_lon"]): self.maj_meteo()
