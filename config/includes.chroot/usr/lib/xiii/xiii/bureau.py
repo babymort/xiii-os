@@ -64,7 +64,7 @@ class Bureau:
         l = label(nom, "app-nom", xalign=0.5, wrap=True, ellipsize=True, largeur=12); l.set_lines(2); b.append(l)
         b.set_tooltip_text(nom)
         g = Gtk.GestureClick(); g.connect("pressed", lambda gg, n, x, y: self.ouvrir(p) if n == 2 else None); b.add_controller(g)
-        g3 = Gtk.GestureClick(button=3); g3.connect("pressed", lambda *_: self.menu_icone(b, p)); b.add_controller(g3)
+        g3 = Gtk.GestureClick(button=3); g3.connect("pressed", lambda gg, *_: self.menu_icone(gg.get_widget(), p)); b.add_controller(g3)
         ds = Gtk.DragSource(actions=Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
         ds.connect("prepare", lambda *_: Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_list([Gio.File.new_for_path(p)])))
         b.add_controller(ds)

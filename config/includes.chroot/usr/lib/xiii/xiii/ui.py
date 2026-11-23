@@ -81,6 +81,23 @@ def clic_droit(widget, rappel):
     widget.add_controller(g)
     return g
 
+def clic_droit_w(widget, rappel):
+    """Clic droit dont le rappel reçoit le widget (rappel(w)) : à préférer à une fonction qui cite le widget lui-même,
+    car un widget retenu par son propre gestionnaire n'est jamais libéré (fuite de mémoire à chaque reconstruction)."""
+    g = Gtk.GestureClick(button=3)
+    g.connect("pressed", lambda g, n, x, y: rappel(g.get_widget()))
+    widget.add_controller(g)
+    return g
+
+def survol_revele(widget, rv):
+    """Révèle rv au survol de widget, sans que le gestionnaire retienne le widget (pas de fuite)."""
+    widget._rv = rv
+    m = Gtk.EventControllerMotion()
+    m.connect("enter", lambda c, *_: c.get_widget()._rv.set_reveal_child(True))
+    m.connect("leave", lambda c, *_: c.get_widget()._rv.set_reveal_child(False))
+    widget.add_controller(m)
+    return m
+
 def clic_milieu(widget, rappel):
     g = Gtk.GestureClick(button=2)
     g.connect("pressed", lambda g, n, x, y: rappel())

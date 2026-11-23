@@ -223,7 +223,7 @@ class Bluetooth(Panneau):
             t.append(label(sous, "attenue", "petit")); bx.append(t)
             b.set_child(bx)
             b.connect("clicked", lambda _b, d=d: (_b.set_sensitive(False), S.en_fond(S.bt_connecter, lambda _: (self.rafraichir(), self.shell.icones_bientot()), d["mac"], not d["connecte"])))
-            clic_droit(b, lambda d=d, b=b: popover_menu(b, [("link" if not d["connecte"] else "unlink", "Déconnecter" if d["connecte"] else "Connecter",
+            clic_droit_w(b, lambda b, d=d: popover_menu(b, [("link" if not d["connecte"] else "unlink", "Déconnecter" if d["connecte"] else "Connecter",
                                                               lambda: S.en_fond(S.bt_connecter, lambda _: self.rafraichir(), d["mac"], not d["connecte"])),
                                                              ("trash-2", "Oublier l'appareil", lambda: S.en_fond(S.bt_oublier, lambda _: self.rafraichir(), d["mac"]))]))
             self.liste.append(b)

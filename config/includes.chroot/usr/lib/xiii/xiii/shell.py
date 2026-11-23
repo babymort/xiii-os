@@ -562,7 +562,7 @@ class Shell(Gtk.Application):
         u = pwd.getpwuid(os.getuid()); nomu = (u.pw_gecos.split(",")[0] or u.pw_name).strip()
         pn = Gtk.Button(); pn.add_css_class("hb"); pn.set_tooltip_text("Votre compte")
         pb = boite(False, 0); pb.add_css_class("pastille-nom"); pb.append(label(nomu.split()[0][:14] if nomu else "Moi")); pn.set_child(pb)
-        pn.connect("clicked", lambda *_: popover_menu(pn, [("user", "Votre compte", lambda: self.parametres("compte")), ("palette", "Thème et couleurs", lambda: self.parametres("theme")),
+        pn.connect("clicked", lambda pn: popover_menu(pn, [("user", "Votre compte", lambda: self.parametres("compte")), ("palette", "Thème et couleurs", lambda: self.parametres("theme")),
                                                           ("clapperboard", "Profil de travail", lambda: self.menu_profils(pn)), None, ("lock", "Verrouiller", lambda: S.detacher("swaylock -f"))]))
         clic_droit(pn, lambda: self.parametres("compte"))
         fin.append(pn)
@@ -597,7 +597,7 @@ class Shell(Gtk.Application):
                 if k == cur: r.append(ico("check", 16, "c"))
                 it.set_child(r); it.connect("clicked", lambda _x, k=k: (pop.popdown(), config.modifier(mode_bureau=k))); v.append(it)
             pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
-        b.connect("clicked", ouvrir); clic_droit(b, lambda: ouvrir(b)); sel.append(b)
+        b.connect("clicked", ouvrir); clic_droit_w(b, ouvrir); sel.append(b)
 
     def appliquer_mode(self, k, premier=False):
         from .modes import PAR_CLE
@@ -675,9 +675,8 @@ class Shell(Gtk.Application):
         rv = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_RIGHT, transition_duration=160)
         rv.set_child(label(PAR_CLE[k][1], "haut-survol")); bx.append(rv); self.b_ia.set_child(bx)
         self.b_ia.set_tooltip_text("%s — clic : volet IA (Super + J) · clic droit : changer d'IA" % PAR_CLE[k][1])
-        mv = Gtk.EventControllerMotion(); mv.connect("enter", lambda *_: rv.set_reveal_child(True)); mv.connect("leave", lambda *_: rv.set_reveal_child(False))
         if getattr(self, "_mv_ia", None) and self._mv_ia.get_widget() is self.b_ia: self.b_ia.remove_controller(self._mv_ia)
-        self._mv_ia = mv; self.b_ia.add_controller(mv)
+        self._mv_ia = survol_revele(self.b_ia, rv)
 
     def menu_ia(self, ancre):
         from .ia_base import IAS
@@ -687,11 +686,11 @@ class Shell(Gtk.Application):
     def bouton_survol(self, icone, texte, rappel, droit=None):
         """Bouton icône dont le libellé glisse au survol (barre du haut de la suite). droit : [(icône, texte, action)] du clic droit."""
         b = Gtk.Button(); b.add_css_class("hb"); b.set_tooltip_text(texte + (" — clic droit : plus d'options" if droit else ""))
-        if droit: clic_droit(b, lambda: popover_menu(b, droit() if callable(droit) else droit))
+        if droit: clic_droit_w(b, lambda w: popover_menu(w, droit() if callable(droit) else droit))
         bx = boite(False, 0); bx.append(ico(icone, 16))
         rv = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_RIGHT, transition_duration=160 if self.cfg.get("animations", True) else 0)
         rv.set_child(label(texte, "haut-survol")); bx.append(rv); b.set_child(bx)
-        mv = Gtk.EventControllerMotion(); mv.connect("enter", lambda *_: rv.set_reveal_child(True)); mv.connect("leave", lambda *_: rv.set_reveal_child(False)); b.add_controller(mv)
+        survol_revele(b, rv)
         b.connect("clicked", lambda *_: rappel())
         return b
 
@@ -1314,7 +1313,7 @@ class MenuDemarrer:
         n = label(a.get_display_name(), "app-nom", xalign=0.5, ellipsize=True); n.set_max_width_chars(11); v.append(n)
         b.set_child(v); b.set_tooltip_text(a.get_description() or a.get_display_name())
         b.connect("clicked", lambda *_: self.lancer(a))
-        clic_droit(b, lambda: self.menu_app(b, a))
+        clic_droit_w(b, lambda w, a=a: self.menu_app(w, a))
         return b
 
     def menu_app(self, b, a):
@@ -1379,7 +1378,7 @@ class MenuDemarrer:
                 lettre = l; self.liste_az.append(label(l, "accent", "gras", margin_top=6, margin_start=10))
             b = Gtk.Button(); b.add_css_class("ligne"); b.add_css_class("plat")
             bx = boite(False, 12); bx.append(gicon_image(a.get_icon(), 26)); bx.append(label(a.get_display_name(), ellipsize=True))
-            b.set_child(bx); b.connect("clicked", lambda _b, a=a: self.lancer(a)); clic_droit(b, lambda b=b, a=a: self.menu_app(b, a))
+            b.set_child(bx); b.connect("clicked", lambda _b, a=a: self.lancer(a)); clic_droit_w(b, lambda w, a=a: self.menu_app(w, a))
             self.liste_az.append(b)
         (self.seg_cat if self.shell.cfg["menu_vue"] != "az" else self.seg_az).set_active(True)
         self.sous.set_visible_child_name("cats" if self.shell.cfg["menu_vue"] != "az" else "az")
