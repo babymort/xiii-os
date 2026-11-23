@@ -83,7 +83,7 @@ class VM(Gtk.Application):
                     from .store_github import installer
                     installer("quickemu-project/quickemu", lambda f, t: None)
                 S.en_fond(fond, lambda r: (e.set_text(("Erreur : %s" % r) if isinstance(r, Exception) else "Installés ✓ — fermez la session et rouvrez-la si Windows refuse de démarrer."), self.rendu()))
-            c1.append(bouton("Installer les composants", "download", "pilule", rappel=comp))
+            b1 = bouton("Installer les composants", "download", "pilule", rappel=comp); b1.set_halign(Gtk.Align.START); c1.append(b1)
         c2 = boite(True, 6, "carte", margin_top=8); self.v.append(c2)
         c2.append(label("2 · Créer Windows 11", "gras"))
         c2.append(label("Téléchargement de l'image officielle chez Microsoft (environ 6 Go), en français, puis préparation de la machine (4 Go de mémoire, 64 Go de disque). "
@@ -101,7 +101,7 @@ class VM(Gtk.Application):
                     t = open(f).read()
                     if "public_dir" not in t: open(f, "a").write('public_dir="%s"\nram="4G"\n' % os.path.expanduser("~/XIII"))
             S.en_fond(fond, lambda r: (e.set_text(("Erreur : %s" % r) if isinstance(r, Exception) else "Windows 11 est prêt : cliquez sur « Démarrer »."), self.rendu()))
-        b = bouton("Créer Windows 11", "plus", "pilule", rappel=creer); b.set_sensitive(d["quickemu"] and d["virt"]); c2.append(b)
+        b = bouton("Créer Windows 11", "plus", "pilule", rappel=creer); b.set_halign(Gtk.Align.START); b.set_sensitive(d["quickemu"] and d["virt"]); c2.append(b)
         self.v.append(pb); self.v.append(e)
         self.v.append(label("Conseil : essayez d'abord le double-clic sur le .exe (Wine, plus léger). La machine virtuelle sert pour ce qui refuse de fonctionner autrement. "
                             "Les cartes d'acquisition et les périphériques USB spéciaux peuvent être transmis à Windows depuis le menu de la fenêtre.", "petit", "attenue", wrap=True, margin_top=8))

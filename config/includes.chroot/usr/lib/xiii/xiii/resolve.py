@@ -93,7 +93,7 @@ class Assistant(Gtk.Application):
 
     def etape(self, n, titre, sous=None):
         c = boite(True, 8, "carte", margin_top=6)
-        h = boite(False, 10); h.append(label(str(n), "titre-astoria")); t = boite(True, 0, hexpand=True); t.append(label(titre, "gras"))
+        h = boite(False, 12); h.append(label(str(n), "titre-astoria", "grand-titre")); t = boite(True, 0, hexpand=True); t.append(label(titre, "gras"))
         if sous: t.append(label(sous, "petit", "attenue", wrap=True))
         h.append(t); c.append(h); self.v.append(c); return c
 
