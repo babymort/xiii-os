@@ -1,0 +1,8 @@
+#!/bin/sh
+# OS XIII — relance la barre, les panneaux et les modes du bureau (xiii-shell) avec le code à jour.
+# Les fenêtres ouvertes ne sont pas fermées. Utilisé après une mise à jour d'OS XIII.
+pkill -f "xiii.shell import" 2>/dev/null
+i=0; while pgrep -f "xiii.shell import" >/dev/null && [ $i -lt 30 ]; do sleep 0.1; i=$((i+1)); done
+pkill -9 -f "xiii.shell import" 2>/dev/null
+mkdir -p "$HOME/.cache/xiii"
+setsid xiii-shell >"$HOME/.cache/xiii/shell.log" 2>&1 < /dev/null &

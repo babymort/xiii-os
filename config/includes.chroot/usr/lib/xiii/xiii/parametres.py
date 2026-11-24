@@ -2596,75 +2596,92 @@ class Parametres(Gtk.Application):
 
     # ================================================================== MISES À JOUR
     def p_maj(self, c, cle):
-        i = S.infos_systeme()
-        h = boite(False, 16, "hero"); h.append(ico("refresh-cw", 40, "c"))
-        v = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER); self.maj_titre = label("Vérifiez les mises à jour", "hero-grand"); v.append(self.maj_titre)
-        v.append(label(i["nom"] + " · " + i["base"], "attenue")); h.append(v)
-        self.b_maj = bouton("Rechercher des mises à jour", None, "pilule", rappel=lambda: self.verifier_maj(zone)); h.append(self.b_maj); c.append(h)
-        zone = boite(True, 3); c.append(zone)
-        c.append(info("Paquets Debian (système, pilotes, applications). Un mot de passe administrateur est demandé."))
-        self.bloc_maj_xiii(c)
-
-    def bloc_maj_xiii(self, c):
-        """Mise à jour d'OS XIII lui-même, depuis GitHub, sans perte de données."""
+        """Une seule page, un seul bouton : OS XIII (depuis GitHub) et logiciels Debian, vérifiés dès l'ouverture."""
         from . import maj
-        v = maj.version()
-        c.append(groupe_titre("OS XIII"))
-        c.append(reglage("tag", "Version installée", "%s · canal %s" % (v.get("version", "?"), "Stable" if v.get("branche") == "main" else "Beta")))
-        if os.path.exists("/usr/share/xiii/NOUVEAUTES.md"):
-            c.append(reglage("sparkles", "Nouveautés de cette version", "Ce qu'apporte OS XIII %s" % v.get("version", "").split("-")[0],
-                             droite=bouton("Lire", None, "fantome", rappel=lambda: S.detacher(["xdg-open", "/usr/share/xiii/NOUVEAUTES.md"]))))
-        canal = {"v": "stable" if v.get("branche") == "main" else "beta"}
-        c.append(reglage("git-branch", "Canal de mise à jour", "Stable : versions publiées · Beta : nouveautés en avant-première",
-                         droite=deroulant([("stable", "Stable"), ("beta", "Beta")], canal["v"], lambda x: canal.__setitem__("v", x))))
-        c.append(reglage("bell", "Vérifier automatiquement", "Une fois par jour, notification quand une nouvelle version est disponible",
-                         droite=interrupteur(self.cfg.get("maj_auto", True), lambda on: self.regler(maj_auto=on))))
+        v = maj.version(); i = S.infos_systeme()
+        etat = {"canal": "stable" if v.get("branche") in ("main", "stable") else "beta", "xiii": None, "deb": None}
+        h = boite(False, 16, "hero"); h.append(ico("refresh-cw", 40, "c"))
+        col = boite(True, 2, hexpand=True, valign=Gtk.Align.CENTER)
+        self.maj_titre = label("Recherche des mises à jour…", "hero-grand"); col.append(self.maj_titre)
+        col.append(label("OS XIII %s · canal %s · %s" % (v.get("version", "?"), "Stable" if etat["canal"] == "stable" else "Beta", i["base"]), "attenue", wrap=True))
+        h.append(col)
+        b_tout = bouton("Tout mettre à jour", "download", "pilule", rappel=lambda: tout()); b_tout.set_visible(False); h.append(b_tout); c.append(h)
         zone = boite(True, 6); c.append(zone)
+        suivi = boite(True, 6); c.append(suivi)
+
         def verifier():
-            vider(zone); zone.append(label("Recherche sur GitHub…", "attenue"))
-            def fin(r):
-                vider(zone)
-                if isinstance(r, Exception): zone.append(label("Vérification impossible : %s" % r, "attenue", wrap=True)); return
-                if not r["dispo"]: zone.append(reglage("check", "OS XIII est à jour", "Dernière version du canal : %s (%s)" % (r["distant"], r["date"]))); return
-                zone.append(reglage("sparkles", "Nouvelle version disponible : %s" % r["distant"], "%d nouveauté(s) depuis votre version" % len(r["nouveautes"]),
-                                    droite=bouton("Mettre à jour OS XIII", None, "pilule", rappel=lambda: appliquer(r))))
-                for d, m in r["nouveautes"][:25]: zone.append(label("• %s — %s" % (d, m), "petit", wrap=True))
-            S.en_fond(lambda: maj.verifier(canal["v"]), fin)
-        def appliquer(r):
-            vider(zone)
-            zone.append(info("Un instantané du système est créé d'abord (Timeshift) : en cas de souci, revenez en arrière depuis Paramètres › Sauvegardes. "
-                             "Vos fichiers, projets, jeux et réglages ne sont pas touchés."))
-            pb = Gtk.ProgressBar(pulse_step=.04); zone.append(pb); journal = label("", "petit", "attenue", wrap=True); zone.append(journal)
+            vider(zone); vider(suivi); b_tout.set_visible(False); self.maj_titre.set_text("Recherche des mises à jour…")
+            etat["xiii"] = etat["deb"] = None
+            S.en_fond(lambda: maj.verifier(etat["canal"]), lambda r: (etat.__setitem__("xiii", r), rendu()))
+            S.en_fond(lambda: S.maj_disponibles(False), lambda r: (etat.__setitem__("deb", r), rendu()))
+
+        def rendu():
+            if etat["xiii"] is None or etat["deb"] is None: return
+            vider(zone); x, d = etat["xiii"], etat["deb"]
+            xi = isinstance(x, dict) and x.get("dispo"); di = isinstance(d, list) and len(d) > 0
+            if isinstance(x, Exception):
+                zone.append(reglage("cloud-off" if os.path.exists(theme.LUCIDE + "/cloud-off.svg") else "cloud", "OS XIII : vérification impossible", "Pas de connexion à GitHub ? (%s)" % str(x)[:80]))
+            elif xi:
+                zone.append(reglage("sparkles", "OS XIII : nouvelle version disponible", "%d nouveauté(s) — interface, applis XIII, corrections" % len(x["nouveautes"])))
+                ex = Gtk.Expander(label="Voir les nouveautés"); lb = boite(True, 2, margin_start=12)
+                for dt, m in x["nouveautes"][:40]: lb.append(label("• %s — %s" % (dt, m), "petit", wrap=True))
+                ex.set_child(lb); zone.append(ex)
+            elif x.get("plus_ancien"):
+                zone.append(reglage("check", "OS XIII : rien de plus récent sur le canal Stable", "Votre version Beta est plus récente que la version Stable actuelle"))
+            else:
+                zone.append(reglage("check", "OS XIII est à jour", "Dernière version du canal : %s (%s)" % (x["distant"], x["date"])))
+            if di:
+                zone.append(reglage("package", "Logiciels et système Debian : %d mise(s) à jour" % len(d), ", ".join(p for p, _ in d[:6]) + ("…" if len(d) > 6 else "")))
+            elif isinstance(d, list):
+                zone.append(reglage("check", "Logiciels et système Debian à jour", "Selon la dernière recherche du système"))
+            if xi or di:
+                self.maj_titre.set_text("Mises à jour disponibles"); b_tout.set_visible(True)
+            else:
+                self.maj_titre.set_text("Tout est à jour")
+
+        def tout():
+            x = etat["xiii"]; xi = isinstance(x, dict) and x.get("dispo")
+            b_tout.set_visible(False); vider(suivi)
+            if xi: suivi.append(info("Un instantané du système est créé d'abord : en cas de souci, revenez en arrière depuis le menu de démarrage ou Paramètres › Sauvegardes. "
+                                     "Vos fichiers, projets, jeux et réglages ne sont pas touchés."))
+            pb = Gtk.ProgressBar(pulse_step=.04); suivi.append(pb); journal = label("", "petit", "attenue", wrap=True); suivi.append(journal)
             src = GLib.timeout_add(120, lambda: (pb.pulse(), True)[1])
-            p_ = subprocess.Popen(["pkexec", "xiii-maj-systeme", "appliquer", r["canal"], r["distant"]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            cmd = ["pkexec", "xiii-maj-systeme", "appliquer", x["canal"] if xi else etat["canal"], x["distant"] if xi else "-"] + (["--avec-debian"] if xi else [])
+            self.maj_titre.set_text("Mise à jour en cours…")
+            p_ = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             def lire(src_, cond):
                 l = p_.stdout.readline()
                 if l: journal.set_text(l.strip()[20:] or l.strip()); return True
-                GLib.source_remove(src); pb.set_fraction(1)
-                ok = p_.wait() == 0
-                journal.set_text("OS XIII est à jour ✓ — redémarrez la session pour tout profiter" if ok else "Mise à jour interrompue (voir /var/log/xiii-maj.log)")
-                if ok: zone.append(bouton("Redémarrer la session", None, "pilule", rappel=lambda: S.detacher(["labwc", "--exit"])))
+                GLib.source_remove(src); pb.set_fraction(1); ok = p_.wait() == 0
+                if not ok:
+                    self.maj_titre.set_text("Mise à jour interrompue"); journal.set_text("Rien n'a été perdu. Détails : journal des mises à jour (bouton ci-dessous)."); return False
+                self.maj_titre.set_text("Tout est à jour ✓")
+                if xi:
+                    S.detacher(["xiii-relancer-bureau"])        # barre, panneaux et modes relancés avec le nouveau code, fenêtres gardées
+                    journal.set_text("OS XIII est à jour : la barre, les panneaux et les modes du bureau viennent d'être relancés avec la nouvelle version "
+                                     "(vos fenêtres restent ouvertes). Les applis XIII déjà ouvertes, dont ces Paramètres, se mettent à jour en les rouvrant.")
+                    r = boite(False, 8)
+                    r.append(bouton("Rouvrir les Paramètres", None, "pilule", rappel=lambda: (S.detacher(["xiii-parametres", "--page", "maj"]), self.win.close())))
+                    r.append(bouton("Redémarrer la session", None, "fantome", rappel=lambda: S.detacher(["labwc", "--exit"])))
+                    suivi.append(r)
+                else:
+                    journal.set_text("Logiciels et système Debian à jour.")
                 return False
             GLib.io_add_watch(p_.stdout, GLib.IO_IN | GLib.IO_HUP, lire)
-        c.append(bouton("Rechercher une nouvelle version d'OS XIII", "refresh-cw", "fantome", rappel=verifier))
 
-    def verifier_maj(self, zone):
-        self.b_maj.set_sensitive(False); self.b_maj.set_label("Recherche…"); vider(zone)
-        def rendu(L):
-            self.b_maj.set_sensitive(True)
-            if isinstance(L, Exception): self.maj_titre.set_text("Échec de la vérification"); return
-            if not L:
-                self.maj_titre.set_text("Vous êtes à jour"); self.b_maj.set_label("Rechercher à nouveau"); return
-            self.maj_titre.set_text("%d mise(s) à jour disponible(s)" % len(L)); self.b_maj.set_label("Tout installer")
-            for p, ver in L: zone.append(reglage("package", p, ver))
-            def installer(*_):
-                self.b_maj.set_sensitive(False); self.b_maj.set_label("Installation…")
-                pb = Gtk.ProgressBar(pulse_step=0.05); zone.prepend(pb)
-                src = GLib.timeout_add(120, lambda: (pb.pulse(), True)[1])
-                S.en_fond(S.admin, lambda r: (GLib.source_remove(src), pb.set_fraction(1), self.maj_titre.set_text("Mises à jour installées" if not isinstance(r, Exception) and r[0] else "Échec de l'installation"),
-                                              self.b_maj.set_label("Terminé")), "DEBIAN_FRONTEND=noninteractive apt-get -y full-upgrade")
-            nb = bouton("Tout installer", None, "pilule", rappel=installer); self.b_maj.get_parent().append(nb); self.b_maj.set_visible(False); self.b_maj = nb
-        S.en_fond(S.maj_disponibles, rendu)
+        c.append(groupe_titre("Réglages"))
+        def chg_canal(x): etat["canal"] = x; verifier()
+        c.append(reglage("git-branch", "Canal d'OS XIII", "Stable : versions publiées · Beta : nouveautés en avant-première",
+                         droite=deroulant([("stable", "Stable"), ("beta", "Beta")], etat["canal"], chg_canal)))
+        c.append(reglage("bell", "Vérifier automatiquement", "Une fois par jour, notification quand une nouvelle version d'OS XIII est disponible",
+                         droite=interrupteur(self.cfg.get("maj_auto", True), lambda on: self.regler(maj_auto=on))))
+        r = boite(False, 8)
+        r.append(bouton("Rechercher à nouveau", "refresh-cw", "fantome", rappel=verifier))
+        if os.path.exists("/usr/share/xiii/NOUVEAUTES.md"): r.append(bouton("Nouveautés de la version", "sparkles", "fantome", rappel=lambda: S.detacher(["xdg-open", "/usr/share/xiii/NOUVEAUTES.md"])))
+        r.append(bouton("Journal des mises à jour", "scroll-text" if os.path.exists(theme.LUCIDE + "/scroll-text.svg") else "file-text", "fantome",
+                        rappel=lambda: S.detacher(["xdg-open", "/var/log/xiii-maj.log"])))
+        c.append(r)
+        verifier()
 
     # ================================================================== SUITE XIII
     def p_xiii(self, c, cle):

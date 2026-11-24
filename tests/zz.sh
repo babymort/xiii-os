@@ -168,6 +168,18 @@ curl -s -u zz:x -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null -w
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
+echo "== Mise à jour d'OS XIII (depuis GitHub, comme Paramètres › Mises à jour)" >> $R
+echo "# ancienne version" >> /usr/lib/xiii/xiii/modes.py; printf '{"version": "ancienne", "branche": "beta", "commit": "4087913"}' > /usr/share/xiii/VERSION.json
+v=$(python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import maj; r=maj.verifier("beta"); print(r["dispo"], r["distant"], len(r["nouveautes"]))' 2>&1)
+echo "INFO      vérification : $v" >> $R
+sha=${GITHUB_SHA:-beta}; XIII_MAJ_TEST=1 timeout 300 xiii-maj-systeme appliquer beta "${sha:0:7}" --sans-instantane > /tmp/maj.log 2>&1
+if ! grep -q "ancienne version" /usr/lib/xiii/xiii/modes.py && grep -q '"branche": "beta"' /usr/share/xiii/VERSION.json; then echo "OK        mise à jour appliquée : $(grep -o "Fichiers d'OS XIII mis à jour : [0-9]*" /tmp/maj.log), version $(python3 -c 'import json; print(json.load(open("/usr/share/xiii/VERSION.json"))["version"])')" >> $R
+else echo "ÉCHEC     mise à jour d'OS XIII : $(tail -4 /tmp/maj.log | tr '\n' ' ')" >> $R; fi
+p1=$(pgrep -f "xiii.shell import" | head -1); xiii-relancer-bureau; sleep 5; p2=$(pgrep -f "xiii.shell import" | head -1)
+[ -n "$p2" ] && [ "$p1" != "$p2" ] && echo "OK        bureau relancé après la mise à jour (fenêtres gardées)" >> $R || echo "ÉCHEC     relance du bureau ($p1 → $p2)" >> $R
+grim -s 0.5 /out/apres-maj.png
+xiii-parametres --page maj > /out/p.log 2>&1 & sleep 6; grim -s 0.5 /out/page-maj-verif.png; pkill -f xiii.parametres; sleep 1
+
 echo "== Version Stable (mémoire, démarrage)" >> $R
 mkdir -p /etc/xiii; rm -f /etc/xiii/parefeu.json; command -v ufw > /tmp/pf.log 2>&1; XIII_PAREFEU_HORS_LIGNE=1 XIII_PAREFEU_BAVARD=1 /usr/local/sbin/xiii-parefeu init >> /tmp/pf.log 2>&1
 n=$(cat /etc/ufw/user.rules /etc/ufw/user6.rules 2>/dev/null | grep -c "^### tuple"); grep -q "^ENABLED=yes" /etc/ufw/ufw.conf 2>/dev/null && [ "${n:-0}" -gt 0 ] && echo "OK        pare-feu écrit à la construction de l'ISO : $n lignes d'exceptions, actif au 1er démarrage" >> $R || echo "ÉCHEC     pare-feu hors ligne : $(tail -3 /tmp/pf.log | tr '\n' ' ')" >> $R

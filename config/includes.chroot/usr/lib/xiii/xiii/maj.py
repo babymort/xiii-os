@@ -31,10 +31,12 @@ def verifier(canal=None):
     v = version(); canal = canal or v.get("branche") or "beta"
     br = "main" if canal in ("stable", "main") else "beta"
     tete = api("/commits/" + br)
-    sha = tete["sha"]; L = []
+    sha = tete["sha"]; L = []; plus_ancien = False
     if v.get("commit") and not sha.startswith(v["commit"]):
         try:
             cmp_ = api("/compare/%s...%s" % (v["commit"], sha))
+            # canal Stable encore en retard sur la Beta installée : jamais de retour en arrière
+            plus_ancien = cmp_.get("status") == "behind" or (cmp_.get("status") == "diverged" and cmp_.get("behind_by", 0) > cmp_.get("ahead_by", 0))
             for c in cmp_.get("commits", [])[-60:]:
                 m = c["commit"]["message"].split("\n")[0]
                 if not m.lower().startswith(("merge", "firmware")): L.append((c["commit"]["author"]["date"][:10], m))
@@ -42,7 +44,7 @@ def verifier(canal=None):
             L = [(tete["commit"]["author"]["date"][:10], tete["commit"]["message"].split("\n")[0])]
     elif not v.get("commit"):
         L = [(tete["commit"]["author"]["date"][:10], tete["commit"]["message"].split("\n")[0])]
-    return {"dispo": not (v.get("commit") and sha.startswith(v["commit"])), "local": v, "distant": sha[:7], "date": tete["commit"]["author"]["date"][:10],
+    return {"dispo": not (v.get("commit") and sha.startswith(v["commit"])) and not plus_ancien, "plus_ancien": plus_ancien, "local": v, "distant": sha[:7], "date": tete["commit"]["author"]["date"][:10],
             "nouveautes": list(reversed(L)), "canal": br}
 
 # ------------------------------------------------------------------------------ application (root)
@@ -107,6 +109,8 @@ def paquets(src):
         for l in open(os.path.join(src, "config", "package-lists", f)):
             l = l.split("#")[0].strip()
             if l and not l.startswith("!"): L += l.split()
+    if not os.path.isdir("/run/live/medium"):        # PC installé : les paquets de la clé live (installateur…) ne reviennent pas
+        L = [p for p in L if not (p.startswith(("live-", "calamares")) or p in ("xorriso", "squashfs-tools"))]
     manquants = [p for p in dict.fromkeys(L) if not subprocess.run(["dpkg-query", "-W", "-f=${Status}", p], capture_output=True, text=True).stdout.endswith("installed")]
     env = dict(os.environ, DEBIAN_FRONTEND="noninteractive")
     subprocess.run(["apt-get", "update", "-qq"], env=env)
@@ -186,17 +190,21 @@ def fusion_xml(nouveau, actuel, balise, cle, texte=False):
         shutil.copy2(actuel, actuel + ".avant-maj"); a.write(actuel, encoding="UTF-8", xml_declaration=True)
     return ajout
 
-def finaliser(sha, canal):
+def finaliser(sha, canal, src=None):
+    canal = "main" if canal in ("stable", "main") else "beta"
     for c in (["update-desktop-database", "-q", "/usr/share/applications"], ["gtk-update-icon-cache", "-qf", "/usr/share/icons/hicolor"],
               ["gtk-update-icon-cache", "-qf", "/usr/share/icons/XIII"], ["update-mime-database", "/usr/share/mime"], ["fc-cache", "-f"], ["systemctl", "daemon-reload"]):
         try: subprocess.run(c, capture_output=True, timeout=300)
         except Exception: pass
-    v = {"version": datetime.date.today().strftime("%Y%m%d") + "-" + canal + "-" + sha[:7], "branche": canal, "commit": sha[:7], "date": datetime.date.today().isoformat(), "mise_a_jour": True,
+    try: base = open(os.path.join(src, "VERSION")).read().strip()
+    except Exception: base = "1.0"
+    num = base if canal == "main" else "%s-beta.%s.%s" % (base, datetime.date.today().strftime("%Y%m%d"), sha[:7])
+    v = {"version": num, "branche": canal, "commit": sha[:7], "date": datetime.date.today().isoformat(), "mise_a_jour": True,
          "edition": version().get("edition", "complete")}
     try:      # numéro affiché par le système
-        n = datetime.date.today().strftime("%Y.%m.%d")
+        n = num
         t = open("/etc/os-release").read()
-        t = re.sub(r'(?m)^VERSION_ID=.*$', 'VERSION_ID="%s"' % n, t); t = re.sub(r'(?m)^VERSION=.*$', 'VERSION="%s (%s)"' % (n, canal), t)
+        t = re.sub(r'(?m)^VERSION_ID=.*$', 'VERSION_ID="%s"' % n, t); t = re.sub(r'(?m)^VERSION=.*$', 'VERSION="%s (%s)"' % (n, "Stable" if canal == "main" else "Beta"), t)
         open("/etc/os-release", "w").write(t)
     except OSError:
         pass
@@ -204,18 +212,33 @@ def finaliser(sha, canal):
     log("OS XIII est à jour : %s" % v["version"])
     evenement("maj", "OS XIII mis à jour (%s, %s)" % (canal, sha[:7]))
 
-def appliquer(canal, sha, avec_instantane=True):
+def debian():
+    """Mises à jour des paquets Debian (système, pilotes, logiciels), dans la même opération."""
+    env = dict(os.environ, DEBIAN_FRONTEND="noninteractive")
+    log("Mises à jour Debian : recherche…")
+    subprocess.run(["apt-get", "update", "-qq"], env=env, capture_output=True)
+    n = len([l for l in subprocess.run(["apt", "list", "--upgradable"], capture_output=True, text=True, env=env).stdout.splitlines() if "/" in l])
+    if not n: log("Mises à jour Debian : rien à installer"); return
+    log("Mises à jour Debian : %d paquet(s)…" % n)
+    r = subprocess.run(["apt-get", "-y", "-o", "Dpkg::Options::=--force-confdef", "-o", "Dpkg::Options::=--force-confold", "full-upgrade"], env=env, capture_output=True, text=True)
+    log("Mises à jour Debian : %s" % ("installées" if r.returncode == 0 else "erreur (%s)" % r.stderr.strip()[-200:]))
+
+def appliquer(canal, sha, avec_instantane=True, avec_debian=False):
     if os.geteuid() != 0: raise SystemExit("à lancer en administrateur (pkexec)")
     log("=== Mise à jour vers %s (%s) ===" % (sha[:7], canal))
     if avec_instantane: instantane()
     log("Téléchargement…"); src = telecharger(sha)
-    copier_overlay(src); paquets(src); scripts(src); completer_comptes(src); finaliser(sha, canal)
+    copier_overlay(src)
+    if not os.environ.get("XIII_MAJ_TEST"): paquets(src); scripts(src)      # test ZZ : fichiers seulement
+    completer_comptes(src); finaliser(sha, canal, src)
+    if avec_debian: debian()
     shutil.rmtree(os.path.join(CACHE, "src"), ignore_errors=True)
 
 def main():
     a = sys.argv[1:]
     if a and a[0] == "appliquer":       # xiii-maj-systeme appliquer <canal> <sha> [--sans-instantane]
-        appliquer(a[1], a[2], "--sans-instantane" not in a)
+        if a[2] == "-": debian(); return             # Debian seulement (OS XIII déjà à jour)
+        appliquer(a[1], a[2], "--sans-instantane" not in a, "--avec-debian" in a)
     elif a and a[0] == "verifier":
         print(json.dumps(verifier(a[1] if len(a) > 1 else None), ensure_ascii=False, indent=1))
     else:

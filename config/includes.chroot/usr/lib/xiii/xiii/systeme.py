@@ -476,10 +476,12 @@ def ntp():
     return out(["timedatectl", "show", "-p", "NTP", "--value"]) == "yes"
 
 # ================================================================ MISES À JOUR
-def maj_disponibles():
+def maj_disponibles(rafraichir=True):
+    """Paquets Debian à mettre à jour. rafraichir=False : listes du dernier « apt update » (aucun mot de passe demandé)."""
     if DEMO:
         return [("firefox-esr", "128.5.0esr-1"), ("linux-image-amd64", "6.12.119-1"), ("mesa-vulkan-drivers", "25.0.7-2")]
-    ok, o = admin("apt-get update -qq >/dev/null 2>&1; apt list --upgradable 2>/dev/null", timeout=300)
+    if rafraichir: ok, o = admin("apt-get update -qq >/dev/null 2>&1; apt list --upgradable 2>/dev/null", timeout=300)
+    else: o = out(["apt", "list", "--upgradable"], 60) or ""
     L = []
     for l in o.splitlines():
         m = re.match(r"([^/\s]+)/\S+\s+(\S+)", l)
