@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Diffuser XIII
+Comment=Diffuser l'écran sur une TV, un téléphone ou un autre PC du réseau
+Exec=xiii-diffuser %F
+Icon=xiii-diffuser
+Type=Application
+Categories=Network;AudioVideo;XIII;
+Keywords=diffuser;caster;cast;chromecast;miracast;tv;projeter;partage ecran;dlna;

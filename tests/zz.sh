@@ -291,6 +291,16 @@ pgrep -f "xiii.fonds" >/dev/null && { echo "ÉCHEC     anneau : Échap ne ferme 
 grep -q Traceback /out/fonds.log && { echo "PLANTAGE  Fonds d'écran"; grep -A6 Traceback /out/fonds.log | tail -7; } >> $R
 python3 -c "$CFG"'config.modifier(fond="'"$F0"'")'; sleep 1
 
+echo "== Diffuser l'écran (navigateur du réseau)" >> $R
+xiii-diffuser --serveur --duree 12 > /out/diffusion.log 2>&1 & sleep 5
+curl -s -m 3 http://127.0.0.1:8791/ | grep -q "flux.mjpg" && echo "OK        diffusion : page servie" >> $R || echo "ÉCHEC     diffusion : page absente" >> $R
+curl -s -m 4 http://127.0.0.1:8791/flux.mjpg -o /tmp/flux.bin; n=$(grep -c "Content-Type: image/jpeg" /tmp/flux.bin 2>/dev/null)
+[ "${n:-0}" -gt 2 ] && echo "OK        diffusion : $n images reçues en 4 s par un navigateur" >> $R || echo "ÉCHEC     diffusion : ${n:-0} image reçue" >> $R
+curl -s -m 3 http://127.0.0.1:8791/image.jpg -o /out/diffusion-image.jpg
+sleep 8; cat /out/diffusion.log | grep -E "moteur|Traceback" | sed 's/^/INFO      /' >> $R
+xiii-diffuser > /out/diffuser.log 2>&1 & sleep 3; grim -s 0.5 /out/app-diffuser.png; pkill -f "xiii.diffusion"
+grep -q Traceback /out/diffuser.log && { echo "PLANTAGE  Diffuser XIII"; grep -A6 Traceback /out/diffuser.log | tail -7; } >> $R
+
 echo "== Modes sans barre des tâches (applis ouvertes en tuiles)" >> $R
 mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2
 python3 -c "$CFG"'config.modifier(mode_bureau="fiction", haut_applis=True)'; sleep 4; grim -s 0.5 /out/mode-fiction-applis.png

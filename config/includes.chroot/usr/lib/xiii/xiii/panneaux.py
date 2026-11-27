@@ -363,6 +363,7 @@ class Centre(Panneau):
             self.tuile(profils.courant(c)[2], "Profil", profils.courant(c)[1], profils.courant(c)[0] != "normal",
                        lambda: self.shell.menu_profils(self._t_profil), "profils"),
             self.tuile("scan-line", "Capture", "Zone, écran, vidéo", False, lambda: (sh.fermer(), S.detacher("sleep 0.4; xiii-outil-capture"))),
+            self.tuile("cast", "Diffuser", "TV, téléphone, PC", False, lambda: (sh.fermer(), S.detacher("xiii-diffuser"))),
         ]
         self._t_profil = T[7]
         for t in T: self.grille.append(t)

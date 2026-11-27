@@ -11,6 +11,7 @@ xdg-desktop-portal-wlr
 xdg-user-dirs
 # Applications de base
 thunar
+gnome-network-displays
 thunar-volman
 gvfs
 gvfs-backends

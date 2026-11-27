@@ -17,6 +17,7 @@ EXCEPTIONS = {
     "kdeconnect": ("Téléphone connecté (KDE Connect)", "Notifications, SMS et fichiers du téléphone", [("1714:1764", "tcp"), ("1714:1764", "udp")], True),
     "ndi": ("NDI", "Sources NDI et retours plateau sur le réseau", [("5959:5990", "tcp"), ("5959:5990", "udp"), ("6960:6990", "tcp"), ("7960:7990", "tcp")], True),
     "tally": ("Tally XIII", "Téléphones et boîtiers de tally (page web, port 8790)", [("8790", "tcp")], True),
+    "diffusion": ("Diffusion de l'écran (Diffuser XIII)", "Montrer l'écran dans le navigateur d'une TV ou d'un téléphone (port 8791)", [("8791", "tcp")], True),
     "partage": ("Partage d'un dossier (Transferts XIII)", "Dossier partagé par lien sur le réseau local", [("8800:8819", "tcp")], True),
     "sunshine": ("Sunshine (jeu à distance)", "Diffuser ce PC vers Moonlight", [("47984:47990", "tcp"), ("48010", "tcp"), ("47998:48000", "udp")], False),
     "ssh": ("Connexion à distance (SSH)", "Prendre la main sur ce PC en ligne de commande", [("22", "tcp")], False),
@@ -53,7 +54,12 @@ def main():
     a = sys.argv[1:]; e = lire()
     if not a: print(json.dumps(e, ensure_ascii=False, indent=1)); return
     if a[0] == "init":
-        if e.get("init"): return
+        if e.get("init"):
+            # mise à jour d'OS XIII : les nouvelles exceptions ouvertes par défaut le sont aussi (une seule fois chacune)
+            nv = [k for k, v in EXCEPTIONS.items() if v[3] and k not in e.get("ouvert", {})]
+            for k in nv: regle(k, True); e.setdefault("ouvert", {})[k] = True
+            if nv: ecrire(e)
+            return
         ufw("default", "deny", "incoming"); ufw("default", "allow", "outgoing")
         for k, v in EXCEPTIONS.items():
             if v[3]: regle(k, True); e.setdefault("ouvert", {})[k] = True
