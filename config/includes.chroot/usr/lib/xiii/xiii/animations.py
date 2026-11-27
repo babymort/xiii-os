@@ -94,6 +94,12 @@ def nom_lisible(theme):
             for nom, titre, _d in VARIANTES:
                 if "xiii-ascii-" + nom == theme: return "Logo XIII en ASCII — " + titre
         except Exception: pass
+    if theme.startswith("xiii-lancement-"):
+        try:
+            from .lancement_boot import VARIANTES as V2
+            for nom, titre, _d in V2:
+                if "xiii-lancement-" + nom == theme: return "Lancement XIII — " + titre
+        except Exception: pass
     try:
         for t in catalogue():
             if t.get("dossier") == theme: return t["nom"] + " (store)"

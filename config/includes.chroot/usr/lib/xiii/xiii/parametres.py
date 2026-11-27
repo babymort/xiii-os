@@ -2103,6 +2103,21 @@ class Parametres(Gtk.Application):
         rb = boite(False, 6); rb.append(bouton("Aperçu", "play", "pilule", rappel=lambda: A.fenetre_apercu(self.win, A.nom_lisible(cur), theme=cur)))
         rb.append(bouton("Importer une vidéo ou un GIF…", "upload", "fantome", rappel=lambda: S.detacher("xiii-demarrage"))); col.append(rb); h.append(col)
         c.append(h)
+        from .lancement_boot import VARIANTES as LANCEMENTS
+        c.append(groupe_titre("Lancement XIII"))
+        g0 = Gtk.FlowBox(max_children_per_line=3, min_children_per_line=2, selection_mode=Gtk.SelectionMode.NONE, column_spacing=10, row_spacing=10, homogeneous=True)
+        for nom, titre, desc in LANCEMENTS:
+            th = "xiii-lancement-" + nom; d = "/usr/share/plymouth/themes/" + th
+            imgs = sorted(glob.glob(d + "/f-*.png"))
+            if not imgs: continue
+            carte = boite(True, 6, "carte")
+            pic = Gtk.Picture.new_for_filename(imgs[len(imgs) * 3 // 4]); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(220, 124); pic.add_css_class("miniature"); carte.append(pic)
+            carte.append(label(titre + ("  ✓" if cur == th else ""), "gras")); carte.append(label(desc, "petit", "attenue", wrap=True))
+            rb = boite(False, 6)
+            rb.append(bouton("Aperçu", "play", "fantome", rappel=lambda th=th, t=titre: A.fenetre_apercu(self.win, t, theme=th)))
+            rb.append(bouton("Actuelle" if cur == th else "Utiliser", None, "pilule" if cur == th else "fantome", rappel=lambda th=th: self.appliquer_animation(th)))
+            carte.append(rb); g0.append(carte)
+        c.append(g0)
         from .ascii_boot import VARIANTES
         c.append(groupe_titre("Logo XIII en ASCII"))
         g = Gtk.FlowBox(max_children_per_line=3, min_children_per_line=2, selection_mode=Gtk.SelectionMode.NONE, column_spacing=10, row_spacing=10, homogeneous=True)

@@ -1,0 +1,7 @@
+#!/bin/sh
+# xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
+# Animations de lancement XIII (éclat de lumière, grille bleue, mosaïque, présentation) pour Paramètres › Animation de démarrage.
+# L'animation choisie n'est pas modifiée.
+set -e
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-pil >/dev/null
+python3 /usr/lib/xiii/xiii/lancement_boot.py /usr/share/plymouth/themes
