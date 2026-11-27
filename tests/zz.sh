@@ -218,7 +218,20 @@ xiii-ctl dock; sleep 1; grim -s 0.5 /out/dock-montre.png
 mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2
 python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="ile")'; sleep 3; grim -s 0.5 /out/ile-repliee.png
 xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-ouverte.png; xiii-ctl ile; sleep 0.5
+xiii-ctl minuteur-5; sleep 2.5; grim -s 0.5 /out/ile-minuteur.png
+xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-minuteur-ouverte.png; xiii-ctl ile; xiii-ctl minuteur-zero; sleep 0.5
+# faux Tally XIII sur le port 8790 : caméra 2 au programme, 3 en preview
+python3 -c 'import http.server,json
+class H(http.server.BaseHTTPRequestHandler):
+    def do_GET(s):
+        b=json.dumps({"cameras":{"2":{"etat":"programme","nom":"Cam 2"},"3":{"etat":"preview","nom":"Grue"}}}).encode(); s.send_response(200); s.end_headers(); s.wfile.write(b)
+    def log_message(s,*a): pass
+http.server.HTTPServer(("127.0.0.1",8790),H).serve_forever()' & TPID=$!; sleep 4.5; grim -s 0.5 /out/ile-tally.png
+xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-tally-ouverte.png; xiii-ctl ile; kill $TPID; sleep 0.5
 python3 -c "$CFG"'config.modifier(barre_position="haut")'; sleep 2.5; xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-haut-ouverte.png; xiii-ctl ile; pkill mousepad
+python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="dock", barre_taille="grande")'; sleep 2.5; xiii-ctl dock; sleep 1; grim -s 0.5 /out/dock-grand.png
+python3 -c "$CFG"'config.modifier(barre_forme="classique", barre_taille="petite")'; sleep 2.5; grim -s 0.5 /out/barre-petite.png
+python3 -c "$CFG"'config.modifier(barre_taille="normale")'; sleep 1
 python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="classique")'; sleep 2
 pgrep -f "xiii.shell import" >/dev/null || { echo "FERMÉE    xiii-shell pendant les essais de la barre"; grep -E "Error" /out/shell.log | tail -3; } >> $R
 pgrep -f "xiii.shell import" >/dev/null || { xiii-shell >> /out/shell.log 2>&1 & sleep 6; }

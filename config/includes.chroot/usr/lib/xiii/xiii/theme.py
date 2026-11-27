@@ -351,6 +351,14 @@ window.xiii-surface {{ background: transparent; }}
 {('.barre-dock button.tb:hover { transform: scale(1.32) translateY(-7px); } .barre-dock.barre-verticale button.tb:hover { transform: scale(1.32); } .barre-dock button.tb:active { transform: scale(1.18) translateY(-3px); }' if cfg.get('dock_grossissement', True) else '')}
 .barre-verticale .barre {{ padding: 8px 0; }}
 window.barre-flottante, window.barre-dock {{ background: transparent; }}
+.barre-petite button.tb {{ min-height: 32px; min-width: 32px; padding: 1px 4px; }} .barre-grande button.tb {{ min-height: 50px; min-width: 50px; padding: 3px 8px; }}
+@keyframes xiii-rebond {{ 0% {{ transform: translateY(0); }} 30% {{ transform: translateY(-10px); }} 50% {{ transform: translateY(0); }} 65% {{ transform: translateY(-4px); }} 80%, 100% {{ transform: translateY(0); }} }}
+@keyframes xiii-rebond-cote {{ 0% {{ transform: translateX(0); }} 30% {{ transform: translateX(8px); }} 50% {{ transform: translateX(0); }} 65% {{ transform: translateX(3px); }} 80%, 100% {{ transform: translateX(0); }} }}
+button.tb.rebond {{ animation: xiii-rebond 900ms ease-in-out infinite; }} .barre-verticale button.tb.rebond {{ animation-name: xiii-rebond-cote; }}
+.ile.ile-minuteur {{ border-color: alpha({p['accent']},0.8); }} .ile.ile-fini {{ border-color: alpha({p['accent']},1); background: alpha({p['accent']},0.35); }}
+.ile.ile-programme {{ border-color: #e5534b; box-shadow: 0 0 0 2px alpha(#e5534b,0.55), 0 8px 28px alpha(black,0.45); }} .ile.ile-preview {{ border-color: #3fb950; }}
+.ile-pastille {{ min-width: 8px; min-height: 8px; border-radius: 4px; background: #e5534b; }} .ile-pastille.preview {{ background: #3fb950; }}
+.ile-chrono {{ font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 600; }}
 .ile {{ background: alpha(#0c0b0a,0.94); border-radius: 22px; padding: 6px 16px; border: 1px solid alpha({p['texte']},0.10); box-shadow: 0 8px 28px alpha(black,0.45);
         transition: padding 220ms ease, border-radius 220ms ease; }}
 .ile.ile-ouverte {{ border-radius: 26px; padding: 12px 18px; }}
@@ -366,6 +374,7 @@ button.tb:hover {{ background: {p['survol']}; }}
 button.tb.actif {{ background: alpha({p['texte']},0.09); }}
 button.tb.ouvert {{ background: alpha({p['accent']},0.14); }}
 button.hb {{ background: transparent; border: none; box-shadow: none; border-radius: 6px; padding: 0 8px; min-height: 26px; }}
+{('button.hb { padding: 0 5px; } button.tb.tb-notif { min-height: 28px; min-width: 26px; padding: 1px 3px; }' if cfg.get('notif_petites', True) else 'button.tb.tb-notif { min-height: 34px; min-width: 32px; padding: 2px 4px; }')}
 button.hb:hover {{ background: {p['survol']}; }}
 button.hb.ouvert {{ background: alpha({p['accent']},0.16); }}
 button.hb label {{ font-size: 12.5px; }}

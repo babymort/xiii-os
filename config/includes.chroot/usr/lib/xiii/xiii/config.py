@@ -11,7 +11,7 @@ DEFAUTS = {
     "theme": "sombre",              # thèmes de la Suite XIII : sombre | clair | auto | sobre | sobrec | w2k | xp | mac9 | cyber | term | gb | regie | soleil | rainbow | sepia | perso
     "theme_perso": {"name": "Minuit bleu", "bg": "#0d1320", "panel": "#16203a", "text": "#e6ecf7", "accent": "#4fc3f7", "radius": "m", "shadow": "m", "glass": 0},
     "contraste": False,
-    "sorties_multiples": [], "coin_bureau": True, "barre_masquee": False, "barre_position": "bas", "barre_forme": "classique", "dock_masquage": True, "dock_grossissement": True, "barre_modes_masquee": True, "haut_applis": False,
+    "sorties_multiples": [], "coin_bureau": True, "barre_masquee": False, "barre_position": "bas", "barre_forme": "classique", "dock_masquage": True, "dock_grossissement": True, "dock_rebond": True, "barre_taille": "normale", "notif_petites": True, "ile_survol": True, "ile_minuteur": True, "ile_tally": True, "ile_media": True, "ile_meteo": True, "barre_modes_masquee": True, "haut_applis": False,
     "lecteur_ecran": False, "clavier_visuel": False, "soustitres_source": "pc", "soustitres_taille": 28,
     "densite": "normal",
     "accent": "#f0b378",

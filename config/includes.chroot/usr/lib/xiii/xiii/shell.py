@@ -12,7 +12,8 @@ from .bureau import Bureau
 from .fenetres import Gestionnaire
 from .ui import *
 
-HB, HH = 48, 32   # hauteurs barre des tâches / barre du haut
+HB, HH = 48, 32   # hauteurs barre des tâches / barre du haut (HB suit le réglage « Taille de la barre »)
+TAILLES_BARRE = {"petite": (40, 22), "normale": (48, 26), "grande": (58, 32)}     # hauteur de la barre, taille des icônes d'applis
 MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
 
 def couche(win, niveau, ancres, marges=None, clavier=LS.KeyboardMode.NONE, ns="xiii", exclusif=None):
@@ -188,6 +189,8 @@ class Shell(Gtk.Application):
         """Barre des tâches en bas, en haut, à gauche ou à droite ; style classique (bord à bord), flottante (détachée, arrondie)
         ou dock (centrée, juste la taille des icônes). Les panneaux (Démarrer, widgets, notifications) s'ouvrent du bon côté."""
         if not hasattr(self, "barre"): return
+        global HB
+        HB = TAILLES_BARRE.get(self.cfg.get("barre_taille"), TAILLES_BARRE["normale"])[0]
         T, B, L, R = LS.Edge.TOP, LS.Edge.BOTTOM, LS.Edge.LEFT, LS.Edge.RIGHT
         pos = self.position_barre(); style = self.cfg.get("barre_forme", "classique")
         vert = pos in ("gauche", "droite")
@@ -206,7 +209,8 @@ class Shell(Gtk.Application):
         self.cb.set_margin_end(ex if pos == "gauche" else 0); self.cb.set_margin_start(ex if pos == "droite" else 0)
         if style == "dock" and self.cfg.get("dock_masquage", True): LS.set_exclusive_zone(w, 0)      # se cache : ne réserve pas de place
         else: LS.auto_exclusive_zone_enable(w)
-        for x in ("barre-flottante", "barre-dock", "barre-verticale"): w.remove_css_class(x)
+        for x in ("barre-flottante", "barre-dock", "barre-verticale", "barre-petite", "barre-grande"): w.remove_css_class(x)
+        if self.cfg.get("barre_taille") in ("petite", "grande"): w.add_css_class("barre-" + self.cfg["barre_taille"])
         if style == "flottante": w.add_css_class("barre-flottante")
         if style == "dock": w.add_css_class("barre-dock")
         if vert: w.add_css_class("barre-verticale")
@@ -266,6 +270,13 @@ class Shell(Gtk.Application):
         if nom in ("alttab", "alttab-prec"):
             if not hasattr(self, "alttab"): self.alttab = vues.AltTab(self)
             self.fermer(); self.alttab.ouvrir(1 if nom == "alttab" else -1); return
+        if nom.startswith("minuteur"):      # xiii-ctl minuteur-5 (ajoute 5 min), minuteur-pause, minuteur-zero — minuteur de l'Île
+            if hasattr(self, "ile"):
+                x = nom.split("-", 1)[1] if "-" in nom else "5"
+                if x == "pause": self.ile.minuteur_pause()
+                elif x == "zero": self.ile.minuteur_zero()
+                elif x.isdigit(): self.ile.minuteur_ajouter(60 * int(x))
+            return
         if nom == "bureau":
             self.fermer(); self.afficher_bureau(); return
         if nom == "visite":
@@ -491,13 +502,26 @@ class Shell(Gtk.Application):
             if (x.app or "").lower() in noms or de in noms or (de and any(de.endswith("." + k) or k.endswith("." + de) for k in noms)): n += 1
         return n
 
+    def lancer_depuis_barre(self, cle, a, b=None):
+        """Lance l'appli ; son icône rebondit (Dock, Île) jusqu'à l'ouverture de sa fenêtre, 8 s au plus."""
+        apps.lancer(a)
+        if not self.cfg.get("dock_rebond", True): return
+        self._lancements = getattr(self, "_lancements", {}); self._lancements[cle] = time.time() + 8
+        if b is not None: b.add_css_class("rebond")
+        def fin():
+            if self._lancements.pop(cle, None): self.maj_taches()
+            return False
+        GLib.timeout_add_seconds(8, fin)
+
     def bouton_tache(self, cle, a, fs):
         b = Gtk.Button(); b.add_css_class("tb")
         actif = any(f.active for f in fs)
         if actif: b.add_css_class("actif")
         v = boite(True, 2, valign=Gtk.Align.CENTER)
-        if a: im = gicon_image(a.get_icon(), 26)
-        else: im = Gtk.Image.new_from_icon_name((fs[0].app_id if fs else "") or "application-x-executable"); im.set_pixel_size(26)
+        ti = TAILLES_BARRE.get(self.cfg.get("barre_taille"), TAILLES_BARRE["normale"])[1]
+        if a: im = gicon_image(a.get_icon(), ti)
+        else: im = Gtk.Image.new_from_icon_name((fs[0].app_id if fs else "") or "application-x-executable"); im.set_pixel_size(ti)
+        if not fs and time.time() < getattr(self, "_lancements", {}).get(cle, 0): b.add_css_class("rebond")     # appli en cours d'ouverture
         nom = a.get_display_name() if a else (fs[0].titre if fs else "")
         if self.cfg.get("barre_style") == "onglets" and fs:     # style « onglets » : icône + titre
             b.add_css_class("tb-onglet")
@@ -524,7 +548,7 @@ class Shell(Gtk.Application):
         b.set_tooltip_text((fs[0].titre if len(fs) == 1 and fs[0].titre else nom + (" — %d fenêtres" % len(fs) if len(fs) > 1 else "")) + (" · %d notification%s" % (nb, "s" if nb > 1 else "") if nb else ""))
         def clic(*_):
             if not fs:
-                if a: apps.lancer(a)
+                if a: self.lancer_depuis_barre(cle, a, b)
             elif len(fs) == 1:
                 self.fenetres.clic(fs[0])
             else:
@@ -534,7 +558,7 @@ class Shell(Gtk.Application):
                 self.apercus_fenetres(b, a, nom, fs, autohide=True)
         etat_ap = {}
         b.connect("clicked", clic)
-        if a: clic_milieu(b, lambda: apps.lancer(a))
+        if a: clic_milieu(b, lambda: self.lancer_depuis_barre(cle, a, b))
         def menu():
             items = [("app-window", nom[:40], lambda: apps.lancer(a) if a else None)] if a else []
             if a:
@@ -582,7 +606,7 @@ class Shell(Gtk.Application):
     def maj_zone(self):
         vider(self.zone_notif)
         for cle, it in list(self.zone.items.items()):
-            if it.get("statut") != "Passive": self.zone_notif.append(self.zone.bouton(cle))
+            if it.get("statut") != "Passive": self.zone_notif.append(self.zone.bouton(cle, 14 if self.cfg.get("notif_petites", True) else 18))
 
     def epingler(self, cle, on, liste="epingles"):
         L = list(self.cfg[liste])
@@ -891,7 +915,7 @@ class Shell(Gtk.Application):
         et, wifi, btp, bt, btd, (vol, muet), bat = r
         style = self.cfg.get("indic_style", "icone")
         # vieux PC : rien n'est redessiné si rien n'a changé depuis le dernier passage
-        cle = repr((r, style, self.cfg["haut_pourcentage"], self.cfg["ne_pas_deranger"], getattr(self, "dnd_auto", None), profils.courant(self.cfg)[0]))
+        cle = repr((r, style, self.cfg.get("notif_petites", True), self.cfg["haut_pourcentage"], self.cfg["ne_pas_deranger"], getattr(self, "dnd_auto", None), profils.courant(self.cfg)[0]))
         if cle == getattr(self, "_icones_cle", None): return
         self._icones_cle = cle
         def met(b, icone, texte=None, role="t", valeur=None):
@@ -902,7 +926,7 @@ class Shell(Gtk.Application):
             elif valeur is not None and style == "minimal":
                 bx.append(label("%d%%" % round(valeur * 100), "petit", "gras"))
             else:
-                bx.append(ico(icone, 16, role))
+                bx.append(ico(icone, 14 if self.cfg.get("notif_petites", True) else 16, role))
                 if valeur is not None and style == "barre":
                     pb = Gtk.ProgressBar(fraction=valeur, valign=Gtk.Align.CENTER); pb.add_css_class("indic-barre"); pb.set_size_request(24, -1); bx.append(pb)
                 elif valeur is not None and style == "pourcentage" and not texte:
@@ -1186,7 +1210,10 @@ class Shell(Gtk.Application):
         self.css.load_from_string(theme.css_shell(cfg))
         theme._cache.clear()
         if (ancien.get("barre_masquee"), ancien.get("barre_modes_masquee")) != (cfg.get("barre_masquee"), cfg.get("barre_modes_masquee")): self.visibilite_barre()
-        if (ancien.get("barre_position"), ancien.get("barre_forme"), ancien.get("barre_alignement"), ancien.get("dock_masquage")) != (cfg.get("barre_position"), cfg.get("barre_forme"), cfg.get("barre_alignement"), cfg.get("dock_masquage")): self.positionner_barre()
+        if (ancien.get("barre_position"), ancien.get("barre_forme"), ancien.get("barre_alignement"), ancien.get("dock_masquage"), ancien.get("barre_taille")) != (cfg.get("barre_position"), cfg.get("barre_forme"), cfg.get("barre_alignement"), cfg.get("dock_masquage"), cfg.get("barre_taille")):
+            self.positionner_barre()
+            if ancien.get("barre_taille") != cfg.get("barre_taille"): self.maj_taches()
+        if hasattr(self, "ile") and any(ancien.get(k) != cfg.get(k) for k in ("ile_survol", "ile_minuteur", "ile_tally", "ile_media", "ile_meteo")): self.ile.maj()
         self.liberer_bientot(22)
         if ancien["barre_alignement"] != cfg["barre_alignement"] or ancien["barre_meteo"] != cfg["barre_meteo"] or ancien["barre_recherche"] != cfg["barre_recherche"]:
             self.placer_barre(); self.aligner_menu()
@@ -1195,7 +1222,7 @@ class Shell(Gtk.Application):
         if hasattr(self, "coins"): self.coins.maj()
         if hasattr(self, "bureau"): self.bureau.maj()
         if ancien.get("barre_style") != cfg.get("barre_style"): self.maj_taches()
-        if ancien.get("indic_style") != cfg.get("indic_style"): self.maj_icones()
+        if ancien.get("indic_style") != cfg.get("indic_style") or ancien.get("notif_petites") != cfg.get("notif_petites"): self.maj_icones(); self.maj_zone()
         if ancien.get("ia") != cfg.get("ia") and hasattr(self, "b_ia"): self.maj_bouton_ia()
         if ancien.get("mode_bureau") != cfg.get("mode_bureau") and hasattr(self, "vue_mode"):
             self.appliquer_mode(cfg.get("mode_bureau", "classique"))

@@ -122,9 +122,9 @@ class Zone:
         self.conn.call(it["bus"], it["menu"], "com.canonical.dbusmenu", "GetLayout", GLib.Variant("(iias)", (0, -1, [])),
                        GLib.VariantType.new("(u(ia{sv}av))"), Gio.DBusCallFlags.NONE, 3000, None, fini)
 
-    def bouton(self, cle):
+    def bouton(self, cle, taille=18):
         it = self.items[cle]
-        b = Gtk.Button(); b.add_css_class("tb"); b.set_tooltip_text(it.get("titre") or "")
+        b = Gtk.Button(); b.add_css_class("tb"); b.add_css_class("tb-notif"); b.set_tooltip_text(it.get("titre") or "")
         if it.get("pixbuf"):
             im = Gtk.Image.new_from_paintable(Gdk.Texture.new_for_pixbuf(it["pixbuf"]))
         elif it.get("icone"):
@@ -133,7 +133,7 @@ class Zone:
             im = Gtk.Image.new_from_icon_name(it["icone"])
         else:
             im = Gtk.Image.new_from_icon_name("application-x-executable")
-        im.set_pixel_size(18); b.set_child(im)
+        im.set_pixel_size(taille); b.set_child(im)
         b.connect("clicked", lambda *_: self.activer(cle))
         clic_droit(b, lambda: self.menu(cle, b))
         return b

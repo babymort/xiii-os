@@ -1433,6 +1433,18 @@ class Parametres(Gtk.Application):
             c.append(reglage("eye", "Dock : se cacher tout seul", "Il apparaît quand la souris touche le bord de l'écran",
                              droite=interrupteur(cfg.get("dock_masquage", True), lambda on: self.regler(dock_masquage=on))))
             c.append(reglage("zoom-in", "Dock : grossir les icônes au survol", "", droite=interrupteur(cfg.get("dock_grossissement", True), lambda on: self.regler(dock_grossissement=on))))
+            c.append(reglage("arrow-up-from-line", "Dock : rebond au lancement", "L'icône sautille jusqu'à l'ouverture de la fenêtre",
+                             droite=interrupteur(cfg.get("dock_rebond", True), lambda on: self.regler(dock_rebond=on))))
+        if cfg.get("barre_forme") == "ile" and not cfg.get("barre_masquee"):
+            c.append(reglage("mouse-pointer", "Île : s'ouvrir au survol", "Sinon, elle s'ouvre d'un clic (ou Super + Maj + I)",
+                             droite=interrupteur(cfg.get("ile_survol", True), lambda on: self.regler(ile_survol=on))))
+            for k, ic, t, d in (("ile_minuteur", "timer", "Île : minuteur", "+1 / +5 / +15 min, compte à rebours dans la pilule, sonnerie à la fin"),
+                                ("ile_tally", "radio-tower", "Île : tally", "Caméra au programme (rouge) et en preview (vert) quand Tally XIII tourne"),
+                                ("ile_media", "music", "Île : lecture en cours", "Morceau ou vidéo en cours, avec ses boutons"),
+                                ("ile_meteo", "cloud-sun", "Île : météo", "")):
+                c.append(reglage(ic, t, d, droite=interrupteur(cfg.get(k, True), lambda on, k=k: self.regler(**{k: on}))))
+        c.append(reglage("maximize-2", "Taille", "Hauteur de la barre et taille des icônes d'applications (toutes les formes, Dock compris)",
+                         droite=deroulant([("petite", "Petite"), ("normale", "Normale"), ("grande", "Grande")], cfg.get("barre_taille", "normale"), lambda v: self.regler(barre_taille=v), 180)))
         c.append(groupe_titre("Afficher la barre des tâches"))
         c.append(reglage("eye-off", "Cacher complètement la barre des tâches", "Applis par Super + Espace, Alt + Tab, ou leurs icônes dans la barre du haut (option ci-dessous)",
                          droite=interrupteur(cfg.get("barre_masquee", False), lambda on: self.regler(barre_masquee=on, **({"haut_applis": True} if on else {})))))
@@ -1988,6 +2000,8 @@ class Parametres(Gtk.Application):
         c.append(reglage("wifi", "Style des indicateurs", "Wi-Fi, son et batterie : icône, rond (jauge), barre, pourcentage ou minimal",
                          droite=deroulant([("icone", "Icône"), ("rond", "Rond"), ("barre", "Barre"), ("pourcentage", "Pourcentage"), ("minimal", "Minimal")],
                                           cfg.get("indic_style", "icone"), lambda v: self.regler(indic_style=v))))
+        c.append(reglage("minimize-2", "Petites icônes de notification", "Wi-Fi, son, batterie et icônes des applis en fond (Discord, Steam…) plus discrètes",
+                         droite=interrupteur(cfg.get("notif_petites", True), lambda on: self.regler(notif_petites=on))))
         c.append(reglage("film", "Horloge timecode", "HH:MM:SS:II au centre de la barre", droite=interrupteur(cfg.get("timecode", False), lambda on: self.regler(timecode=on))))
         c.append(info("Clic gauche sur une icône de la barre du haut : réglage rapide. Clic droit : la page complète des paramètres."))
 
