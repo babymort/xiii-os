@@ -298,6 +298,7 @@ curl -s -m 4 http://127.0.0.1:8791/flux.mjpg -o /tmp/flux.bin; n=$(grep -c "Cont
 [ "${n:-0}" -gt 2 ] && echo "OK        diffusion : $n images reçues en 4 s par un navigateur" >> $R || echo "ÉCHEC     diffusion : ${n:-0} image reçue" >> $R
 curl -s -m 3 http://127.0.0.1:8791/image.jpg -o /out/diffusion-image.jpg
 sleep 8; cat /out/diffusion.log | grep -E "moteur|Traceback" | sed 's/^/INFO      /' >> $R
+tail -2 /tmp/xiii-diffusion-wf-recorder.log 2>/dev/null | tr -d '\r' | cut -c1-160 | sed 's/^/INFO      wf-recorder : /' >> $R
 xiii-diffuser > /out/diffuser.log 2>&1 & sleep 3; grim -s 0.5 /out/app-diffuser.png; pkill -f "xiii.diffusion"
 grep -q Traceback /out/diffuser.log && { echo "PLANTAGE  Diffuser XIII"; grep -A6 Traceback /out/diffuser.log | tail -7; } >> $R
 

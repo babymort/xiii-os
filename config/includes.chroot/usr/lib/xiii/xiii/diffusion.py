@@ -4,7 +4,7 @@
 # Moteur : wf-recorder (capture Wayland) en MJPEG, sinon grim image par image ; serveur HTTP en flux « multipart » (aucune
 # appli à installer côté spectateur, quelques dixièmes de seconde de retard).
 # Application développée par Matthieu Lamotte.
-import os, sys, time, socket, shutil, subprocess, threading, http.server, socketserver
+import os, sys, time, socket, shutil, subprocess, threading, http.server, socketserver, select, tempfile
 
 PORT = 8791
 
@@ -15,7 +15,7 @@ html,body{margin:0;height:100%;background:#0b0a09;color:#eee9e3;font-family:syst
 #b{position:fixed;top:12px;right:12px;display:flex;gap:8px;opacity:.85}
 button{background:#f0b378;color:#1a1a1a;border:0;border-radius:999px;padding:8px 16px;font-weight:700;cursor:pointer}
 #t{position:fixed;top:14px;left:16px;font-weight:700;letter-spacing:1px;color:#f0b378;opacity:.8}
-</style></head><body><div id="t">XIII · %s</div>
+</style></head><body><div id="t">XIII · {NOM}</div>
 <img id="e" src="/flux.mjpg" alt="Écran diffusé">
 <div id="b"><button onclick="document.documentElement.requestFullscreen()">Plein écran</button></div>
 <script>var e=document.getElementById('e');e.onerror=function(){setTimeout(function(){e.src='/flux.mjpg?'+Date.now()},1500)};</script>
@@ -52,7 +52,7 @@ class Diffusion:
                     img = d.image or b""
                     self.send_response(200 if img else 503); self.send_header("Content-Type", "image/jpeg"); self.send_header("Content-Length", str(len(img)))
                     self.send_header("Cache-Control", "no-store"); self.end_headers(); self.wfile.write(img); return
-                b = (PAGE % d.nom).encode()
+                b = PAGE.replace("{NOM}", d.nom).encode()
                 self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.send_header("Content-Length", str(len(b)))
                 self.end_headers(); self.wfile.write(b)
 
@@ -111,13 +111,18 @@ class Diffusion:
         if self.sortie: cmd += ["-o", self.sortie]
         if self.geometrie: cmd += ["-g", self.geometrie]
         try:
-            self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
+            self.journal = os.path.join(tempfile.gettempdir(), "xiii-diffusion-wf-recorder.log")
+            self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=open(self.journal, "w"), stdin=subprocess.DEVNULL)
         except OSError:
             return False
         self.moteur = "wf-recorder"; t0 = time.time(); buf = b""; recu = False
-        fd = self.proc.stdout
+        fd = self.proc.stdout.fileno()
         while self.actif:
-            ch = fd.read1(65536) if hasattr(fd, "read1") else fd.read(65536)
+            if not recu and time.time() - t0 > 4: break
+            if not select.select([fd], [], [], 1)[0]:
+                if self.proc.poll() is not None: break
+                continue
+            ch = os.read(fd, 65536)
             if not ch:
                 break
             buf += ch
@@ -129,7 +134,6 @@ class Diffusion:
                     break
                 self.publier(buf[s:e + 2]); buf = buf[e + 2:]; recu = True
             if len(buf) > 8 << 20: buf = b""
-            if not recu and time.time() - t0 > 4: break
         if self.proc.poll() is None and not self.actif: self.proc.terminate()
         if not recu:
             try: self.proc.kill()
