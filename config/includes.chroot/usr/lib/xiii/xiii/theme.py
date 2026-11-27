@@ -321,6 +321,11 @@ window.xiii-surface {{ background: transparent; }}
 .pastille-nom {{ background: alpha({p['accent']},0.18); border-radius: 999px; padding: 0 8px; }}
 .pastille-nom label {{ color: {p['accent_texte']}; font-weight: 700; font-size: 11.5px; }}
 .haut-titre {{ font-weight: 600; font-size: 12.5px; }}
+.alttab {{ padding: 18px; border-radius: 20px; }}
+.alttab-carte {{ padding: 14px 10px; border-radius: 14px; border: 2px solid transparent; }}
+.alttab-carte.alttab-sel {{ background: alpha({p['accent']},0.18); border-color: {p['accent']}; }}
+.coin-bureau {{ min-width: 8px; padding: 0; margin: 4px 0 4px 6px; border-radius: 3px; background: transparent; border-left: 1px solid alpha({p['texte']},0.18); box-shadow: none; }}
+.coin-bureau:hover {{ background: alpha({p['accent']},0.35); }}
 .haut-logo {{ font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 1px; color: {p['accent_texte']}; padding: 0 6px; }}
 button.tb {{ background: transparent; border: none; box-shadow: none; border-radius: {p['rayon_petit']}; padding: 2px 6px; min-height: 40px; min-width: 40px; }}
 button.tb:hover {{ background: {p['survol']}; }}
@@ -662,6 +667,7 @@ gtk-xft-dpi={dpi}
 gtk-enable-animations={anim}
 gtk-sound-theme-name=XIII
 gtk-enable-event-sounds={"true" if cfg.get("sons_systeme", True) else "false"}
+gtk-decoration-layout=menu:minimize,maximize,close
 """)
     _ecrire(f"{conf}/gtk-3.0/gtk.css", "/* OS XIII : couleurs dans ~/.local/share/themes/XIII-perso */\n")
     # GTK 4 : couleurs nommées d'Adwaita + réglages de base
@@ -770,6 +776,8 @@ show-failed-attempts
     try:
         subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-light" if clair else "prefer-dark"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", "XIII-perso"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # réduire / agrandir / fermer dans toutes les applis qui dessinent leur propre barre de titre (GTK 4, Firefox, Thunderbird…)
+        subprocess.Popen(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", "appmenu:minimize,maximize,close"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except OSError:
         pass
     reconfigurer_labwc()

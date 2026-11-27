@@ -88,6 +88,8 @@
     <keybind key="C-W-l"><action name="Execute" command="xiii-acces --soustitres" /></keybind>
     <keybind key="W-A-h"><action name="Execute" command="xiii-acces --dicter" /></keybind>
     <keybind key="W-A-t"><action name="Execute" command="xiii-acces --traduire" /></keybind>
+    <keybind key="A-Tab"><action name="Execute" command="xiii-ctl alttab" /></keybind>
+    <keybind key="A-S-Tab"><action name="Execute" command="xiii-ctl alttab-prec" /></keybind>
     <keybind key="W-h"><action name="Execute" command="xiii-voix" /></keybind>
     <keybind key="C-A-t"><action name="Execute" command="foot --app-id=fr.xiii.terminal" /></keybind>
     <keybind key="C-S-Escape"><action name="Execute" command="xiii-taches" /></keybind>

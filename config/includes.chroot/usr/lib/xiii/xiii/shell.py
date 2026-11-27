@@ -89,8 +89,8 @@ class Shell(Gtk.Application):
             S.allegement_auto()                                          # vieux PC : effets coupés une fois, au premier démarrage
             from . import reseau
             import threading; threading.Thread(target=reseau.surveiller, daemon=True).start()   # profils réseau (plus de processus à part)
-        theme.appliquer_systeme(self.cfg) if not os.path.exists(os.path.join(config.DOSSIER, ".applique")) else None
-        try: open(os.path.join(config.DOSSIER, ".applique"), "w").close()
+        theme.appliquer_systeme(self.cfg) if not os.path.exists(os.path.join(config.DOSSIER, ".applique-2")) else None
+        try: open(os.path.join(config.DOSSIER, ".applique-2"), "w").close()
         except OSError: pass
         GLib.timeout_add_seconds(1, self.tic)
         GLib.timeout_add_seconds(6, self.maj_icones_periodique)
@@ -195,6 +195,9 @@ class Shell(Gtk.Application):
             self.fermer(); self.vue_taches.ouvrir(); return
         if nom == "dispositions":
             self.fermer(); self.dispositions.ouvrir(); return
+        if nom in ("alttab", "alttab-prec"):
+            if not hasattr(self, "alttab"): self.alttab = vues.AltTab(self)
+            self.fermer(); self.alttab.ouvrir(1 if nom == "alttab" else -1); return
         if nom == "bureau":
             self.fermer(); self.afficher_bureau(); return
         if nom == "visite":
@@ -329,6 +332,10 @@ class Shell(Gtk.Application):
         self.boutons_panneaux["volet"] = [self.b_heure, self.b_cloche]
         self.zone_notif = boite(False, 0); droite.append(self.zone_notif)
         droite.append(self.b_heure); droite.append(self.b_cloche)
+        # tout au bout à droite : fine bande « Afficher le bureau » (comme Windows) ; 2e clic = les fenêtres reviennent
+        if self.cfg.get("coin_bureau", True):
+            cbu = Gtk.Button(); cbu.add_css_class("coin-bureau"); cbu.set_size_request(8, -1); cbu.set_tooltip_text("Afficher le bureau (Super + D)")
+            cbu.connect("clicked", lambda *_: (self.fermer(), self.afficher_bureau())); droite.append(cbu)
         self.cb = cb; self.droite = droite
         self.placer_barre()
         self.barre.set_child(cb)
@@ -351,6 +358,8 @@ class Shell(Gtk.Application):
         vider(self.taches)
         fen = self.fenetres.liste() if self.fenetres and self.fenetres.ok else []
         if hasattr(self, "miniatures"): self.miniatures.changement(fen)
+        if not hasattr(self, "alttab"): self.alttab = vues.AltTab(self)
+        self.alttab.noter_active(fen)
         groupes = {}   # id d'appli -> [fenetres]
         info = {}
         for f in fen:
@@ -448,7 +457,11 @@ class Shell(Gtk.Application):
             elif len(fs) == 1:
                 self.fenetres.clic(fs[0])
             else:
-                popover_menu(b, [("app-window", (f.titre or nom)[:48], (lambda f=f: self.fenetres.activer(f))) for f in fs])
+                # plusieurs fenêtres de la même appli : on choisit laquelle, avec l'aperçu de chacune (comme Windows)
+                if etat_ap.get("pop"):
+                    p = etat_ap["pop"]; etat_ap["pop"] = None; p.popdown()
+                self.apercus_fenetres(b, a, nom, fs, autohide=True)
+        etat_ap = {}
         b.connect("clicked", clic)
         if a: clic_milieu(b, lambda: apps.lancer(a))
         def menu():
@@ -467,18 +480,7 @@ class Shell(Gtk.Application):
                 def montre():
                     etat["src"] = 0
                     if etat["pop"] or self.ouvert: return False
-                    pop = Gtk.Popover(has_arrow=False, autohide=False); pop.set_parent(b); pop.set_position(Gtk.PositionType.TOP)
-                    v = boite(True, 6, margin_top=6, margin_bottom=6, margin_start=6, margin_end=6)
-                    for f in fs:
-                        c = boite(True, 6, "carte"); c.set_size_request(220, -1)
-                        h = boite(False, 8); h.append(gicon_image(a.get_icon(), 16) if a else ico("app-window", 16)); h.append(label(f.titre or nom, "petit", "gras", hexpand=True, ellipsize=True, largeur=28))
-                        h.append(bouton(None, "x", "plat", taille=12, role="d", tip="Fermer la fenêtre", rappel=lambda f=f: (self.fenetres.fermer(f), pop.popdown()))); c.append(h)
-                        mp = self.miniatures.chemin(f) if hasattr(self, "miniatures") else None
-                        if mp:
-                            pic = Gtk.Picture.new_for_filename(mp); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(220, 124); pic.add_css_class("miniature"); c.append(pic)
-                        g = Gtk.GestureClick(); g.connect("released", lambda *_x, f=f: (pop.popdown(), self.fenetres.activer(f))); c.add_controller(g)
-                        v.append(c)
-                    pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); etat["pop"] = pop; pop.popup()
+                    etat["pop"] = self.apercus_fenetres(b, a, nom, fs, autohide=False); etat_ap["pop"] = etat["pop"]
                     return False
                 etat["src"] = GLib.timeout_add(650, montre)
             def sort(*_):
@@ -488,6 +490,23 @@ class Shell(Gtk.Application):
                     GLib.timeout_add(350, lambda: (p.popdown(), False)[1])
             m.connect("enter", entre); m.connect("leave", sort); b.add_controller(m)
         return b
+
+    def apercus_fenetres(self, b, a, nom, fs, autohide=False):
+        """Aperçus des fenêtres d'une appli au-dessus de son bouton : clic = afficher, croix = fermer.
+        Côte à côte quand elles sont peu nombreuses (comme Windows), en colonne au-delà de 4."""
+        pop = Gtk.Popover(has_arrow=False, autohide=autohide); pop.set_parent(b); pop.set_position(Gtk.PositionType.TOP)
+        v = boite(len(fs) > 4, 6, margin_top=6, margin_bottom=6, margin_start=6, margin_end=6)
+        for f in fs:
+            c = boite(True, 6, "carte"); c.set_size_request(220, -1)
+            h = boite(False, 8); h.append(gicon_image(a.get_icon(), 16) if a else ico("app-window", 16)); h.append(label(f.titre or nom, "petit", "gras", hexpand=True, ellipsize=True, largeur=28))
+            h.append(bouton(None, "x", "plat", taille=12, role="d", tip="Fermer la fenêtre", rappel=lambda f=f, pop=pop: (self.fenetres.fermer(f), pop.popdown()))); c.append(h)
+            mp = self.miniatures.chemin(f) if hasattr(self, "miniatures") else None
+            if mp:
+                pic = Gtk.Picture.new_for_filename(mp); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(220, 124); pic.add_css_class("miniature"); c.append(pic)
+            g = Gtk.GestureClick(); g.connect("released", lambda gg, *_x, f=f: (gg.get_widget().get_ancestor(Gtk.Popover).popdown(), self.fenetres.activer(f))); c.add_controller(g)
+            v.append(c)
+        pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
+        return pop
 
     def maj_zone(self):
         vider(self.zone_notif)
@@ -1230,6 +1249,16 @@ class Shell(Gtk.Application):
         for n in list(self.procs): self.arreter(n)
         Gtk.Application.do_shutdown(self)
 
+def vue_menu(v=None):
+    """Vue de « Toutes les applications » retenue (catégories / az), hors réglages pour ne pas reconstruire le bureau."""
+    f = os.path.expanduser("~/.cache/xiii/menu-vue")
+    if v:
+        try: os.makedirs(os.path.dirname(f), exist_ok=True); open(f, "w").write(v)
+        except OSError: pass
+        return v
+    try: return open(f).read().strip()
+    except OSError: return "categories"
+
 # ======================================================================================================== MENU DÉMARRER
 class MenuDemarrer:
     COLS = 6
@@ -1271,8 +1300,9 @@ class MenuDemarrer:
         h.append(label("Toutes les applications", "gras", hexpand=True, xalign=0.5))
         self.seg_cat = Gtk.ToggleButton(label="Catégories"); self.seg_az = Gtk.ToggleButton(label="A – Z", group=self.seg_cat)
         for s in (self.seg_cat, self.seg_az): s.add_css_class("fantome")
-        self.seg_cat.connect("toggled", lambda b: b.get_active() and self.sous.set_visible_child_name("cats"))
-        self.seg_az.connect("toggled", lambda b: b.get_active() and self.sous.set_visible_child_name("az"))
+        # la vue choisie (catégories ou liste A – Z) est retenue d'une ouverture à l'autre
+        self.seg_cat.connect("toggled", lambda b: b.get_active() and (self.sous.set_visible_child_name("cats"), vue_menu("categories")))
+        self.seg_az.connect("toggled", lambda b: b.get_active() and (self.sous.set_visible_child_name("az"), vue_menu("az")))
         sg = boite(False, 4); sg.append(self.seg_cat); sg.append(self.seg_az); h.append(sg); tt.append(h)
         self.sous = Gtk.Stack(vexpand=True, transition_type=Gtk.StackTransitionType.CROSSFADE)
         self.grille_cat = Gtk.FlowBox(max_children_per_line=3, min_children_per_line=3, selection_mode=Gtk.SelectionMode.NONE, column_spacing=10, row_spacing=10, homogeneous=True, valign=Gtk.Align.START)
@@ -1387,8 +1417,9 @@ class MenuDemarrer:
             bx = boite(False, 12); bx.append(gicon_image(a.get_icon(), 26)); bx.append(label(a.get_display_name(), ellipsize=True))
             b.set_child(bx); b.connect("clicked", lambda _b, a=a: self.lancer(a)); clic_droit_w(b, lambda w, a=a: self.menu_app(w, a))
             self.liste_az.append(b)
-        (self.seg_cat if self.shell.cfg["menu_vue"] != "az" else self.seg_az).set_active(True)
-        self.sous.set_visible_child_name("cats" if self.shell.cfg["menu_vue"] != "az" else "az")
+        az = vue_menu() == "az"
+        (self.seg_az if az else self.seg_cat).set_active(True)
+        self.sous.set_visible_child_name("az" if az else "cats")
 
     def ouvrir_cat(self, nom, L):
         self.titre_cat.set_text(nom); vider(self.grille_une)
@@ -1456,7 +1487,7 @@ class MenuDemarrer:
                 b = Gtk.Button(); b.add_css_class("ligne"); b.add_css_class("plat")
                 bx = boite(False, 12); bx.append(gicon_image(a.get_icon(), 28))
                 v = boite(True, 0); v.append(label(a.get_display_name(), "gras")); v.append(label(a.get_description() or "Application", "attenue", "petit", ellipsize=True, largeur=60))
-                bx.append(v); b.set_child(bx); b.connect("clicked", lambda _b, a=a: self.lancer(a)); self.res.append(b)
+                bx.append(v); b.set_child(bx); b.connect("clicked", lambda _b, a=a: self.lancer(a)); clic_droit_w(b, lambda w, a=a: self.menu_app(w, a)); self.res.append(b)
                 if not self._premier: self._premier = lambda a=a: self.lancer(a)
         from .pages_index import INDEX
         pg = [(cle, t, ic, chemin) for cle, t, ic, chemin, mots in INDEX if q in sans_accents(t + " " + mots)] if mode in ("tout", "apps") else []

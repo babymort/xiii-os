@@ -301,3 +301,83 @@ class Emojis:
         Gdk.Display.get_default().get_clipboard().set_text(c)
         self.shell.fermer()
         GLib.timeout_add(200, lambda: (S.detacher(["wtype", c]), False)[1])
+
+
+# ================================================================================ ALT + TAB (vignettes, logo en haut)
+class AltTab:
+    """Alt + Tab : même fonctionnement (Alt maintenu, Tab pour avancer, relâcher Alt pour choisir), mais en grandes cartes :
+    logo de l'appli en haut, nom, aperçu de la fenêtre. Maj + Tab ou ← pour reculer, Échap pour annuler, clic pour choisir."""
+    def __init__(self, shell):
+        self.shell = shell; self.w = None; self.fen = []; self.i = 0; self.cartes = []; self.mru = []
+
+    def noter_active(self, fen):
+        """Ordre « dernière utilisée d'abord » (comme Windows)."""
+        a = next((f for f in fen if f.active), None)
+        if a:
+            self.mru = [a.id] + [x for x in self.mru if x != a.id]
+        ids = {f.id for f in fen}; self.mru = [x for x in self.mru if x in ids]
+
+    def ouvrir(self, sens=1):
+        if self.w and self.w.get_visible():
+            self.deplacer(sens); return
+        fen = self.shell.fenetres.liste() if self.shell.fenetres and self.shell.fenetres.ok else []
+        if not fen: return
+        rang = {x: n for n, x in enumerate(self.mru)}
+        self.fen = sorted(fen, key=lambda f: (0 if f.active else 1, rang.get(f.id, 999)))
+        self.i = (1 if len(self.fen) > 1 else 0) if sens > 0 else len(self.fen) - 1
+        if not self.w:
+            self.w = surface(self.shell, "xiii-alttab", ancres="", exclusif=None)
+            k = Gtk.EventControllerKey(); k.connect("key-pressed", self._touche); k.connect("key-released", self._relache); self.w.add_controller(k)
+            self.w.connect("notify::is-active", self._focus)
+        self.construire(); self.w.present()
+
+    def construire(self):
+        bx = boite(False, 14, "panneau", "alttab"); self.cartes = []
+        for n, f in enumerate(self.fen):
+            a = apps.pour_fenetre(f.app_id)
+            c = boite(True, 8, "alttab-carte"); c.set_size_request(200, -1)
+            c.append(gicon_image(a.get_icon(), 48) if a else ico("app-window", 48, "c"))     # logo en haut
+            c.append(label(a.get_display_name() if a else (f.app_id or "Application"), "gras", xalign=0.5, ellipsize=True, largeur=20))
+            mp = self.shell.miniatures.chemin(f) if getattr(self.shell, "miniatures", None) else None
+            if mp:
+                pic = Gtk.Picture.new_for_filename(mp); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(184, 104); pic.add_css_class("miniature"); c.append(pic)
+            c.append(label(f.titre or "", "petit", "attenue", xalign=0.5, ellipsize=True, largeur=24))
+            g = Gtk.GestureClick(); g.connect("released", lambda *_a, n=n: (setattr(self, "i", n), self.choisir())); c.add_controller(g)
+            self.cartes.append(c); bx.append(c)
+        sc = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC, vscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_width=True, propagate_natural_height=True)
+        sc.set_max_content_width(1500); sc.set_child(bx); self.w.set_child(sc); self.marquer()
+
+    def marquer(self):
+        for n, c in enumerate(self.cartes): (c.add_css_class if n == self.i else c.remove_css_class)("alttab-sel")
+
+    def deplacer(self, sens):
+        if self.fen: self.i = (self.i + sens) % len(self.fen); self.marquer()
+
+    def choisir(self):
+        f = self.fen[self.i] if 0 <= self.i < len(self.fen) else None
+        self.fermer()
+        if f: self.shell.fenetres.activer(f)
+
+    def fermer(self):
+        if self.w: self.w.set_visible(False)
+
+    def _alt_tenu(self):
+        try:
+            kb = self.w.get_display().get_default_seat().get_keyboard()
+            return bool(kb.get_modifier_state() & Gdk.ModifierType.ALT_MASK)
+        except Exception:
+            return True
+
+    def _focus(self, w, _p):
+        # Alt déjà relâché avant l'apparition (Alt + Tab tapé très vite) : on passe directement à la fenêtre précédente
+        if w.is_active(): GLib.timeout_add(40, lambda: (None if self._alt_tenu() or not w.get_visible() else self.choisir(), False)[1])
+
+    def _touche(self, c, kv, code, st):
+        if kv == Gdk.KEY_Escape: self.fermer(); return True
+        if kv in (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_space): self.choisir(); return True
+        if kv in (Gdk.KEY_ISO_Left_Tab, Gdk.KEY_Left) or (kv == Gdk.KEY_Tab and st & Gdk.ModifierType.SHIFT_MASK): self.deplacer(-1); return True
+        if kv in (Gdk.KEY_Tab, Gdk.KEY_Right): self.deplacer(1); return True
+        return False
+
+    def _relache(self, c, kv, code, st):
+        if kv in (Gdk.KEY_Alt_L, Gdk.KEY_Alt_R, Gdk.KEY_Meta_L, Gdk.KEY_ISO_Level3_Shift): self.choisir()

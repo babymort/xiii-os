@@ -168,6 +168,13 @@ curl -s -u zz:x -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null -w
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
+echo "== Étape 4 (bureau)" >> $R
+mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2; mousepad --new-window >/dev/null 2>&1 & sleep 2
+xiii-ctl alttab; sleep 0.3; grim -s 0.5 /out/alttab.png; sleep 1
+xiii-ctl bureau; sleep 1; grim -s 0.5 /out/bureau-affiche.png; xiii-ctl bureau; sleep 1
+grep -q Traceback /out/shell.log && { echo "PLANTAGE  bureau (étape 4)"; grep -A6 Traceback /out/shell.log | tail -8; } >> $R || echo "OK        Alt+Tab, Afficher le bureau : sans erreur" >> $R
+pkill mousepad; sleep 1
+
 echo "== Étape 3 (capture, heure, son, webcam)" >> $R
 xiii-outil-capture > /out/xiii-outil-capture.log 2>&1 & sleep 3; grim -s 0.5 /out/app-outil-capture.png
 pgrep -f "capture import main" >/dev/null && echo "OK        Outil Capture ouvert" >> $R || { echo "FERMÉE    Outil Capture"; tail -4 /out/xiii-outil-capture.log; } >> $R
