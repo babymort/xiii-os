@@ -147,7 +147,7 @@ class Shell(Gtk.Application):
         self.voile.set_child(Gtk.Box())
         # barre des tâches
         self.barre = Gtk.Window(application=self); couche(self.barre, LS.Layer.TOP, (B, Lf, R), ns="xiii-barre", exclusif="auto")
-        self.barre.set_default_size(-1, HB); self.construire_barre(); self.barre.present()
+        self.barre.set_default_size(1, HB); self.construire_barre(); self.barre.present()
         # barre du haut
         self.haut = Gtk.Window(application=self); couche(self.haut, LS.Layer.TOP, (T, Lf, R), ns="xiii-haut", exclusif="auto")
         self.haut.set_default_size(-1, HH); self.construire_haut(); self.haut.present()
@@ -214,7 +214,8 @@ class Shell(Gtk.Application):
         for bx in (self.cb, self.groupe, self.taches, self.droite, getattr(self, "zone_notif", None)):
             if bx is not None: bx.set_orientation(o)
         self.cb.set_size_request(HB + 6 if vert else -1, -1 if vert else HB)
-        w.set_default_size(HB + 6 if vert else -1, -1 if vert else HB)
+        # jamais -1 ici : à la réapparition, gtk4-layer-shell enverrait une taille de 4294967295 (erreur de protocole, bureau fermé)
+        w.set_default_size(HB + 6 if vert else 1, 1 if vert else HB)
         if hasattr(self, "l_date"): self.l_date.set_visible(not vert)
         self._meteo_compacte = vert
         if getattr(self, "_meteo", None): self._rendu_meteo(self._meteo)
@@ -763,7 +764,7 @@ class Shell(Gtk.Application):
                 m2 = Gtk.EventControllerMotion(); m2.connect("leave", lambda *_: self.cacher_dock_bientot()); m2.connect("enter", lambda *_: self._annuler_cache_dock()); self.barre.add_controller(m2); self._m_dock = m2
         vert = bord in (L, R)
         for e in (T, B, L, R): LS.set_anchor(d, e, e == bord or (e in ((T, B) if vert else (L, R))))
-        d.set_default_size(3 if vert else -1, -1 if vert else 3); d.get_child().set_size_request(3 if vert else -1, -1 if vert else 3)
+        d.set_default_size(3 if vert else 1, 1 if vert else 3); d.get_child().set_size_request(3 if vert else -1, -1 if vert else 3)
         LS.set_exclusive_zone(self.barre, 0); d.present()
 
     def montrer_dock(self):

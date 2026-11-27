@@ -11,6 +11,7 @@ ACCENTS = [("Cuivre XIII", "#f0b378"), ("Ambre", "#f5a623"), ("Corail", "#ff7a59
            ("Ardoise", "#b0bec5"), ("Blanc", "#f2f2f2")]
 # Thèmes de la Suite XIII (mêmes noms et couleurs que ⚙️ › Affichage › Thème de la suite)
 THEMES = [("sombre", "Sombre", "Verre sombre, lueur cuivre — le thème signature de la suite"),
+          ("verre", "Verre XIII", "Verre liquide : panneaux translucides, reflets irisés, mouvements doux — ambre et brun XIII"),
           ("clair", "Clair", "Papier chaud, verre beige, lueur ambre"),
           ("auto", "Auto", "Clair le jour, sombre la nuit (lever et coucher du soleil)"),
           ("sobre", "Sobre", "Noir mat, lignes fines, sans verre ni lueur"),
@@ -31,6 +32,7 @@ NOMS_THEMES = {k: n for k, n, _ in THEMES}
 # fond, panneau, carte, carte2, texte, atténué, bord, accent imposé (None = couleur d'accent choisie), arrondi, police, verre, effet
 SKINS = {
     "sombre": dict(fond="#1e1e1e", panneau="#1c1b1a", carte="#2a2928", carte2="#232221", texte="#eee9e3", attenue="#9b938a", bord="rgba(255,255,255,0.08)", acc=None, r=14, verre=True),
+    "verre": dict(fond="#17120e", panneau="#1d1712", carte="#2a221b", carte2="#221b15", texte="#f3ece4", attenue="#a89a8b", bord="rgba(255,236,214,0.14)", acc=None, r=16, verre=True, liquide=True),
     "clair": dict(fond="#eef0f2", panneau="#faf9f7", carte="#ffffff", carte2="#f3f1ee", texte="#1d1b19", attenue="#6d675f", bord="rgba(0,0,0,0.09)", acc=None, r=14, verre=True, clair=True),
     "sobre": dict(fond="#0e0f12", panneau="#121317", carte="#16171b", carte2="#121317", texte="#ececee", attenue="#a3a6ad", bord="#2a2c32", acc=None, r=8, plat=True),
     "sobrec": dict(fond="#f6f5f2", panneau="#ffffff", carte="#ffffff", carte2="#f1efeb", texte="#1b1c1f", attenue="#555960", bord="#d5d1c9", acc=None, r=8, plat=True, clair=True),
@@ -172,7 +174,7 @@ def palette(cfg):
     clair = s.get("clair", False)
     verre = cfg.get("transparence", True) and s.get("verre", False)
     contraste = cfg.get("contraste", False)
-    al = ".93" if verre else "1"
+    al = (".78" if s.get("liquide") else ".93") if verre else "1"
     p = dict(theme=t, fond=s["fond"], panneau=rgba(s["panneau"], al) if not s["panneau"].startswith("rgba") else s["panneau"], panneau_plein=s["panneau"],
              carte=s["carte"], carte2=s["carte2"], texte=s["texte"], attenue=s["attenue"] if not contraste else s["texte"], bord=s["bord"] if not contraste else rgba(s["texte"] if s["texte"].startswith("#") else "#888888", .55),
              survol=rgba("#000000" if clair else "#ffffff", .06), ombre="rgba(60,40,20,0.18)" if clair else "rgba(0,0,0,0.50)",
@@ -188,7 +190,7 @@ def palette(cfg):
              anim="none" if not cfg.get("animations", True) else "all 160ms ease",
              densite={"compact": .7, "aere": 1.35}.get(cfg.get("densite", "normal"), 1.0),
              fort=s.get("fort", False) or contraste, phosphore=s.get("phosphore", False), neon=s.get("neon", False), pixel=s.get("pixel", False),
-             arcenciel=s.get("arcenciel", False), acc2=s.get("acc2") or melange(A, "#ff7a30", .45))
+             arcenciel=s.get("arcenciel", False), acc2=s.get("acc2") or melange(A, "#ff7a30", .45), liquide=bool(s.get("liquide")) and cfg.get("animations", True) is not None)
     # glassglow (Sombre, Clair, Cyberpunk, Rainbow, perso vitré) : barres et panneaux en verre teinté de l'accent, lueur ambre
     g1, g2 = melange(A, "#f0b429", .45), melange(A, "#ff8a3d", .45)
     p["pilule"] = "linear-gradient(135deg, %s, %s)" % (g1, g2) if verre else A
@@ -212,6 +214,21 @@ def effets(p):
     if p["fort"]: e += "label { font-weight: 600; }\n"
     if p["neon"]: e += "button.pilule, .panneau, .hero {{ box-shadow: 0 0 14px alpha({0},0.35), 0 0 2px {1}; }}\n".format(p["accent"], p["acc2"]).replace("{{", "{").replace("}}", "}")
     if p["pixel"]: e += "* { -gtk-icon-shadow: none; } label { letter-spacing: 1px; }\n"
+    if p.get("liquide"):      # Verre XIII : reflet en haut des surfaces, bord lumineux, ombre douce, boutons qui « respirent »
+        e += ("""
+.panneau, .carte, .reglage, .hero, .studio-bloc, .tuile-mode, popover > contents, .barre, .haut {{
+  border: 1px solid alpha(#ffecd6, .14); box-shadow: inset 0 1px 0 alpha(#ffffff, .10), 0 12px 32px alpha(#000000, .38); }}
+.barre, .haut, .panneau, popover > contents {{
+  background-image: linear-gradient(118deg, alpha({0}, .12), alpha(#c79bff, .05) 38%, alpha(#7fd3ff, .04) 64%, transparent 85%); }}
+button.pilule {{ box-shadow: inset 0 1px 0 alpha(#ffffff, .35), 0 6px 18px alpha({0}, .30); }}
+""".format(p["accent"]))
+        if p["anim"] != "none":
+            e += """
+button { transition: transform 220ms cubic-bezier(.2,.8,.2,1), background 220ms ease, box-shadow 220ms ease; }
+button:hover { transform: scale(1.03); }
+button:active { transform: translateY(1px) scale(.99); }
+.tb:hover, .hb:hover, button.plat:hover, button.onglet:hover { transform: none; }
+"""
     if p["rayon"] == "0px": e += "button, entry, .reglage, .carte, .panneau, popover > contents { border-radius: 0; }\n"
     return e
 

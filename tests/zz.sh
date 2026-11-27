@@ -40,7 +40,7 @@ for pg in $(python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xii
   pkill -f xiii.parametres; sleep 0.4
 done
 echo "== Thèmes (bureau + Paramètres + menu Démarrer)" >> $R
-for t in sombre clair sobre sobrec w2k xp mac9 cyber term gb regie soleil rainbow sepia; do
+for t in verre sombre clair sobre sobrec w2k xp mac9 cyber term gb regie soleil rainbow sepia; do
   python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, theme='$t')"
   sleep 2
   xiii-parametres --page theme > /out/t.log 2>&1 & sleep 3; grim -s 0.5 /out/theme-$t.png
@@ -207,7 +207,7 @@ python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC
 pkill -f radicale
 
 echo "== Barre des tâches : position et forme" >> $R
-pkill -f "xiii.shell import"; sleep 1; WAYLAND_DEBUG=client xiii-shell > /tmp/wl.log 2>&1 & sleep 7
+
 for c in ; do LD_PRELOAD=$(ls /usr/lib/*/libgtk4-layer-shell.so.0 | head -1) timeout 10 python3 "${GITHUB_WORKSPACE:-.}/tests/repro_layer.py" $c > /out/repro-$c.log 2>&1; echo "INFO      repro $c : $(grep -E "OK|Error|error" /out/repro-$c.log | tail -2 | tr '\n' ' ')" >> $R; done
 for pf in "gauche classique" "haut flottante" "droite dock" "bas flottante"; do set -- $pf
   python3 -c "$CFG"'config.modifier(barre_position="'$1'", barre_forme="'$2'")'; sleep 2.5; grim -s 0.5 /out/barre-$1-$2.png
@@ -220,9 +220,8 @@ python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="ile")'; sle
 xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-ouverte.png; xiii-ctl ile; sleep 0.5
 python3 -c "$CFG"'config.modifier(barre_position="haut")'; sleep 2.5; xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-haut-ouverte.png; xiii-ctl ile; pkill mousepad
 python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="classique")'; sleep 2
-pgrep -f "xiii.shell import" >/dev/null || { echo "FERMÉE    xiii-shell pendant les essais de la barre"; grep -E "Error 71|error" /tmp/wl.log | tail -3; } >> $R
-grep -v "wl_buffer\|wl_callback\|\.frame\|damage\|wl_pointer\|wl_surface@[0-9]*\.commit\|wl_shm" /tmp/wl.log | tail -n 300 > /out/wl-erreur.log; ls -la /tmp/wl.log >> /out/wl-erreur.log
-pkill -f "xiii.shell import"; sleep 1; xiii-shell >> /out/shell.log 2>&1 & sleep 6
+pgrep -f "xiii.shell import" >/dev/null || { echo "FERMÉE    xiii-shell pendant les essais de la barre"; grep -E "Error" /out/shell.log | tail -3; } >> $R
+pgrep -f "xiii.shell import" >/dev/null || { xiii-shell >> /out/shell.log 2>&1 & sleep 6; }
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  barre (position / forme)"; grep -A6 Traceback /out/shell.log | tail -8; } >> $R || echo "OK        barre en bas / haut / gauche / droite, classique / flottante / dock : sans erreur" >> $R
 
 echo "== Modes sans barre des tâches (applis ouvertes en tuiles)" >> $R
