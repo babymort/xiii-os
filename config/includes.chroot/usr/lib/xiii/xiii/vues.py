@@ -330,6 +330,8 @@ class AltTab:
             k = Gtk.EventControllerKey(); k.connect("key-pressed", self._touche); k.connect("key-released", self._relache); self.w.add_controller(k)
             self.w.connect("notify::is-active", self._focus)
         self.construire(); self.w.present()
+        # sans le clavier au bout de 0,7 s (aucune touche reçue), la liste ne reste pas affichée
+        GLib.timeout_add(700, lambda: (self.fermer() if self.w.get_visible() and not self.w.is_active() and not getattr(self, "_src", 0) else None, False)[1])
 
     def construire(self):
         bx = boite(False, 14, "panneau", "alttab"); self.cartes = []
@@ -359,6 +361,7 @@ class AltTab:
         if f: self.shell.fenetres.activer(f)
 
     def fermer(self):
+        if getattr(self, "_src", 0): GLib.source_remove(self._src); self._src = 0
         if self.w: self.w.set_visible(False)
 
     def _alt_tenu(self):
@@ -366,11 +369,19 @@ class AltTab:
             kb = self.w.get_display().get_default_seat().get_keyboard()
             return bool(kb.get_modifier_state() & Gdk.ModifierType.ALT_MASK)
         except Exception:
-            return True
+            return None
 
     def _focus(self, w, _p):
-        # Alt déjà relâché avant l'apparition (Alt + Tab tapé très vite) : on passe directement à la fenêtre précédente
-        if w.is_active(): GLib.timeout_add(40, lambda: (None if self._alt_tenu() or not w.get_visible() else self.choisir(), False)[1])
+        # surveillance de la touche Alt tant que la liste est affichée : relâchée (même très vite, ou avant l'apparition) = on choisit
+        if not w.is_active() or getattr(self, "_src", 0): return
+        self._t0 = GLib.get_monotonic_time()
+        def veille():
+            if not self.w.get_visible(): self._src = 0; return False
+            tenu = self._alt_tenu()
+            if tenu is False: self._src = 0; self.choisir(); return False
+            if tenu is None and GLib.get_monotonic_time() - self._t0 > 4_000_000: self._src = 0; self.fermer(); return False   # état du clavier inconnu : on ne reste pas bloqué
+            return True
+        self._src = GLib.timeout_add(80, veille)
 
     def _touche(self, c, kv, code, st):
         if kv == Gdk.KEY_Escape: self.fermer(); return True

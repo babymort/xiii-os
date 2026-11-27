@@ -90,7 +90,9 @@ def pour_fenetre(app_id):
         for a in Gio.AppInfo.get_all():
             try:
                 wm = a.get_startup_wm_class() if hasattr(a, "get_startup_wm_class") else None
-                if wm: _index_wm[wm.lower()] = a
+                # une même classe de fenêtre peut être déclarée par l'appli et par sa page de réglages : l'appli l'emporte
+                rang = lambda x: (not x.should_show(), "setting" in (x.get_id() or "").lower())
+                if wm and (wm.lower() not in _index_wm or rang(a) < rang(_index_wm[wm.lower()])): _index_wm[wm.lower()] = a
                 exe = os.path.basename((a.get_executable() or "")).lower()
                 if exe: _index_wm.setdefault(exe, a)
             except Exception:
