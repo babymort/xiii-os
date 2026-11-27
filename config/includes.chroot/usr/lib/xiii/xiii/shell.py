@@ -176,9 +176,58 @@ class Shell(Gtk.Application):
         self.vue_mode = VueMode(self); self.appliquer_mode(self.cfg.get("mode_bureau", "classique"), premier=True)
 
     def aligner_menu(self):
-        w = self.panneaux["demarrer"][0]
+        self.positionner_barre()
+
+    def position_barre(self):
+        return self.cfg.get("barre_position", "bas") if self.cfg.get("barre_position") in ("bas", "haut", "gauche", "droite") else "bas"
+
+    def cote_popover(self):
+        return {"bas": Gtk.PositionType.TOP, "haut": Gtk.PositionType.BOTTOM, "gauche": Gtk.PositionType.RIGHT, "droite": Gtk.PositionType.LEFT}[self.position_barre()]
+
+    def positionner_barre(self):
+        """Barre des tâches en bas, en haut, à gauche ou à droite ; style classique (bord à bord), flottante (détachée, arrondie)
+        ou dock (centrée, juste la taille des icônes). Les panneaux (Démarrer, widgets, notifications) s'ouvrent du bon côté."""
+        if not hasattr(self, "barre"): return
+        T, B, L, R = LS.Edge.TOP, LS.Edge.BOTTOM, LS.Edge.LEFT, LS.Edge.RIGHT
+        pos = self.position_barre(); style = self.cfg.get("barre_forme", "classique")
+        vert = pos in ("gauche", "droite")
+        bord = {"bas": B, "haut": T, "gauche": L, "droite": R}[pos]
+        cotes = (L, R) if not vert else (T, B)
+        w = self.barre
+        for e in (T, B, L, R): LS.set_anchor(w, e, e == bord or (style == "classique" and e in cotes)); LS.set_margin(w, e, 0)
+        if style != "classique": LS.set_margin(w, bord, 8)
+        for x in ("barre-flottante", "barre-dock", "barre-verticale"): w.remove_css_class(x)
+        if style == "flottante": w.add_css_class("barre-flottante")
+        if style == "dock": w.add_css_class("barre-dock")
+        if vert: w.add_css_class("barre-verticale")
+        o = Gtk.Orientation.VERTICAL if vert else Gtk.Orientation.HORIZONTAL
+        for bx in (self.cb, self.groupe, self.taches, self.droite, getattr(self, "zone_notif", None)):
+            if bx is not None: bx.set_orientation(o)
+        self.cb.set_size_request(HB + 6 if vert else -1, -1 if vert else HB)
+        w.set_default_size(HB + 6 if vert else -1, -1 if vert else HB)
+        if hasattr(self, "l_date"): self.l_date.set_visible(not vert)
+        # panneaux : Démarrer / presse-papiers / émojis près de la barre ; widgets à gauche, notifications à droite
+        ecart = HB + 10 + (8 if style != "classique" else 0)
         gauche = self.cfg["barre_alignement"] == "gauche"
-        LS.set_anchor(w, LS.Edge.LEFT, gauche); LS.set_margin(w, LS.Edge.LEFT, 8 if gauche else 0)
+        for nom in ("demarrer", "presse", "emoji"):
+            if nom in getattr(self, "_defs", {}):
+                cls, _m, _a = self._defs[nom]
+                if pos == "bas": anc, mg = (B,) + ((L,) if gauche else ()), {B: ecart, L: 8}
+                elif pos == "haut": anc, mg = (T,) + ((L,) if gauche else ()), {T: HH + ecart, L: 8}
+                elif pos == "gauche": anc, mg = (L, T), {L: ecart, T: HH + 8}
+                else: anc, mg = (R, T), {R: ecart, T: HH + 8}
+                self._defs[nom] = (cls, mg, anc)
+                if nom in self.panneaux:
+                    pw = self.panneaux[nom][0]
+                    for e in (T, B, L, R): LS.set_anchor(pw, e, e in anc); LS.set_margin(pw, e, mg.get(e, 0))
+        for nom, cote in (("widgets", L), ("volet", R)):
+            if nom in getattr(self, "_defs", {}):
+                cls, _m, _a = self._defs[nom]
+                mg = {T: HH + 8 + (ecart if pos == "haut" else 0), B: ecart if pos == "bas" else 10, cote: (ecart if (pos == "gauche" and cote == L) or (pos == "droite" and cote == R) else 8)}
+                self._defs[nom] = (cls, mg, (T, B, cote))
+                if nom in self.panneaux:
+                    pw = self.panneaux[nom][0]
+                    for e, v_ in mg.items(): LS.set_margin(pw, e, v_)
 
     def _touche(self, ctrl, keyval, code, etat):
         if keyval == Gdk.KEY_Escape:
@@ -496,7 +545,7 @@ class Shell(Gtk.Application):
     def apercus_fenetres(self, b, a, nom, fs, autohide=False):
         """Aperçus des fenêtres d'une appli au-dessus de son bouton : clic = afficher, croix = fermer.
         Côte à côte quand elles sont peu nombreuses (comme Windows), en colonne au-delà de 4."""
-        pop = Gtk.Popover(has_arrow=False, autohide=autohide); pop.set_parent(b); pop.set_position(Gtk.PositionType.TOP)
+        pop = Gtk.Popover(has_arrow=False, autohide=autohide); pop.set_parent(b); pop.set_position(self.cote_popover())
         v = boite(len(fs) > 4, 6, margin_top=6, margin_bottom=6, margin_start=6, margin_end=6)
         for f in fs:
             c = boite(True, 6, "carte"); c.set_size_request(220, -1)
@@ -1064,6 +1113,7 @@ class Shell(Gtk.Application):
         self.css.load_from_string(theme.css_shell(cfg))
         theme._cache.clear()
         if (ancien.get("barre_masquee"), ancien.get("barre_modes_masquee")) != (cfg.get("barre_masquee"), cfg.get("barre_modes_masquee")): self.visibilite_barre()
+        if (ancien.get("barre_position"), ancien.get("barre_forme"), ancien.get("barre_alignement")) != (cfg.get("barre_position"), cfg.get("barre_forme"), cfg.get("barre_alignement")): self.positionner_barre()
         self.liberer_bientot(22)
         if ancien["barre_alignement"] != cfg["barre_alignement"] or ancien["barre_meteo"] != cfg["barre_meteo"] or ancien["barre_recherche"] != cfg["barre_recherche"]:
             self.placer_barre(); self.aligner_menu()

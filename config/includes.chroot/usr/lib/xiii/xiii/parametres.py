@@ -1420,6 +1420,15 @@ class Parametres(Gtk.Application):
 
     def p_barre(self, c, cle):
         cfg = self.cfg
+        c.append(groupe_titre("Position et forme"))
+        c.append(reglage("move", "Position", "Bord de l'écran où se trouve la barre des tâches",
+                         droite=deroulant([("bas", "En bas"), ("haut", "En haut"), ("gauche", "À gauche"), ("droite", "À droite")], cfg.get("barre_position", "bas"), lambda v: self.regler(barre_position=v), 180)))
+        forme = "sans" if cfg.get("barre_masquee") else cfg.get("barre_forme", "classique")
+        def chg_forme(v):
+            if v == "sans": self.regler(barre_masquee=True, haut_applis=True)
+            else: self.regler(barre_forme=v, barre_masquee=False)
+        c.append(reglage("panel-bottom", "Forme", "Classique : d'un bord à l'autre · Flottante : détachée et arrondie · Dock : juste la taille des icônes · Sans barre : menu Démarrer par Super, applis en haut",
+                         droite=deroulant([("classique", "Classique"), ("flottante", "Flottante"), ("dock", "Dock"), ("sans", "Sans barre")], forme, chg_forme, 180)))
         c.append(groupe_titre("Afficher la barre des tâches"))
         c.append(reglage("eye-off", "Cacher complètement la barre des tâches", "Applis par Super + Espace, Alt + Tab, ou leurs icônes dans la barre du haut (option ci-dessous)",
                          droite=interrupteur(cfg.get("barre_masquee", False), lambda on: self.regler(barre_masquee=on, **({"haut_applis": True} if on else {})))))

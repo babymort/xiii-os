@@ -206,6 +206,14 @@ curl -s -u zz:x -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null -w
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
+echo "== Barre des tâches : position et forme" >> $R
+for pf in "gauche classique" "haut flottante" "droite dock" "bas flottante"; do set -- $pf
+  python3 -c "$CFG"'config.modifier(barre_position="'$1'", barre_forme="'$2'")'; sleep 2.5; grim -s 0.5 /out/barre-$1-$2.png
+  python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii')" ; gapplication action fr.xiii.Shell basculer "'demarrer'" 2>/dev/null; sleep 1; grim -s 0.5 /out/barre-$1-$2-menu.png; gapplication action fr.xiii.Shell fermer 2>/dev/null; sleep 0.5
+done
+python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="classique")'; sleep 2
+grep -q Traceback /out/shell.log && { echo "PLANTAGE  barre (position / forme)"; grep -A6 Traceback /out/shell.log | tail -8; } >> $R || echo "OK        barre en bas / haut / gauche / droite, classique / flottante / dock : sans erreur" >> $R
+
 echo "== Modes sans barre des tâches (applis ouvertes en tuiles)" >> $R
 mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2
 python3 -c "$CFG"'config.modifier(mode_bureau="fiction", haut_applis=True)'; sleep 4; grim -s 0.5 /out/mode-fiction-applis.png

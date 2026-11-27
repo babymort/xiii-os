@@ -328,6 +328,10 @@ window.xiii-surface {{ background: transparent; }}
 .tuile-fenetre.actif {{ border-color: {p['accent']}; }}
 .haut-appli.reduite {{ opacity: .5; }}
 .haut-appli.actif {{ background: alpha({p['accent']},0.18); }}
+.barre-flottante .barre, .barre-dock .barre {{ border-radius: 16px; border: 1px solid alpha({p['texte']},0.10); }}
+.barre-dock .barre {{ padding: 0 10px; }}
+.barre-verticale .barre {{ padding: 8px 0; }}
+window.barre-flottante, window.barre-dock {{ background: transparent; }}
 .coin-bureau {{ min-width: 8px; padding: 0; margin: 4px 0 4px 6px; border-radius: 3px; background: transparent; border-left: 1px solid alpha({p['texte']},0.18); box-shadow: none; }}
 .coin-bureau:hover {{ background: alpha({p['accent']},0.35); }}
 .haut-logo {{ font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 1px; color: {p['accent_texte']}; padding: 0 6px; }}
