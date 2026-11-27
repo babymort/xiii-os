@@ -64,8 +64,10 @@ class Diffusion:
                 vu = -1
                 try:
                     while d.actif:
+                        # nouvelle image dès qu'elle arrive ; écran immobile : la même image chaque seconde
+                        # (certains navigateurs n'affichent une image qu'à l'arrivée de la suivante)
                         with d.cond:
-                            if d.n == vu: d.cond.wait(2)
+                            if d.n == vu: d.cond.wait(1)
                             img, vu = d.image, d.n
                         if not img: continue
                         self.wfile.write(b"--xiii\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n" % len(img) + img + b"\r\n")
