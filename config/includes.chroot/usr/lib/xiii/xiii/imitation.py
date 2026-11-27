@@ -52,8 +52,23 @@ def icones(t, sombre):
     noms += ["Papirus-Dark" if sombre else "Papirus", "Papirus"]
     for n in noms:
         for d in ("/usr/share/icons", os.path.expanduser("~/.local/share/icons"), os.path.expanduser("~/.icons")):
-            if os.path.exists(os.path.join(d, n, "index.theme")): return n
+            if os.path.exists(os.path.join(d, n, "index.theme")): return enveloppe(n)
     return None
+
+
+def enveloppe(base):
+    """Thème d'icônes « XIII-<base> » : les icônes du système imité d'abord, puis celles des applis XIII (sinon les applis
+    XIII, la Suite et les outils de tournage n'ont pas d'icône dans Fluent / WhiteSur)."""
+    nom = "XIII-" + base
+    d = os.path.join(os.path.expanduser("~/.local/share/icons"), nom)
+    f = os.path.join(d, "index.theme")
+    txt = "[Icon Theme]\nName=%s\nComment=%s puis XIII (OS XIII)\nInherits=%s,XIII,Papirus,Adwaita,hicolor\nDirectories=\n" % (nom, base, base)
+    try:
+        if not os.path.exists(f) or open(f).read() != txt:
+            os.makedirs(d, exist_ok=True); open(f, "w").write(txt)
+        return nom
+    except OSError:
+        return base
 
 
 def curseur(t):
@@ -241,6 +256,7 @@ button.nav-item:hover {{ background: transparent; }}
 button.nav-item.sel {{ background: {A}; }}
 button.nav-item.sel label {{ color: #ffffff; font-weight: 500; }}
 .nav-barre, .nav-barre.sel {{ background: transparent; min-width: 0; }}
+.mac-pastille {{ border-radius: 6px; min-width: 22px; min-height: 22px; }}
 .page-titre {{ font-size: 15px; font-weight: 700; color: {tx}; }}
 button.fil-lien label {{ font-size: 15px; font-weight: 700; color: {att}; }}
 .reglage {{ background: {'#ffffff' if clair else '#2c2c2c'}; border: none; border-radius: 0; border-bottom: 1px solid {'rgba(0,0,0,0.06)' if clair else 'rgba(255,255,255,0.06)'}; padding: 9px 12px; min-height: 30px; }}
@@ -410,7 +426,7 @@ def ecrire_theme_labwc(imit, p, ecrire):
     return nom
 
 
-def rc_labwc(imit, p):
+def rc_labwc(imit):
     """Réglages de rc.xml : nom du thème, disposition des boutons, police du titre, arrondis."""
     if imit == "onze":
         return dict(nom="XIII-Onze", layout="icon:iconify,max,close", police=("Selawik", "10", "normal"), rayon="8")

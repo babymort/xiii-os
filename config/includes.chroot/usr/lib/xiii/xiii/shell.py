@@ -1283,7 +1283,9 @@ class Shell(Gtk.Application):
             pj = boite(False, 6); pj.append(ico("folder-kanban", 14, "c"))
             pj.append(label(cfg.get("projet_actif") or "Choisir un projet", "accent" if cfg.get("projet_actif") else "attenue", "petit", "gras")); self.b_projet.set_child(pj)
         # icônes teintées : reconstruire
-        self.construire_haut(); self.demarrer_timecode(); self.b_cherche.set_child(ico("search", 20)); self.b_vue.set_child(ico("layout-dashboard", 19))
+        self.construire_haut(); self.demarrer_timecode()
+        if not self.imit(): self.b_cherche.set_child(ico("search", 20)); self.b_vue.set_child(ico("layout-dashboard", 19))
+        elif self.imit() == "onze": IB.barre_onze_icones(self)
         ov = self.b_cloche.get_child(); ov.set_child(ico("bell", 19))
         self.maj_taches(); self.maj_icones(); self.maj_badge(); self.tic()
         if self._meteo: self._rendu_meteo(self._meteo)

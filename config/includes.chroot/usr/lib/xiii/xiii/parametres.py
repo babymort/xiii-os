@@ -14,6 +14,7 @@ from .panneaux import METEO
 
 FONDS_PERSO = os.path.join(GLib.get_user_data_dir(), "xiii", "fonds")
 RC = os.path.join(GLib.get_user_config_dir(), "labwc", "rc.xml")
+PASTILLES_MAC = ["#8e8e93", "#007aff", "#0a84ff", "#34c759", "#ff9500", "#af52de", "#5856d6", "#ff3b30", "#ff2d55", "#30b0c7", "#ffcc00", "#64d2ff", "#a2845e", "#5ac8fa", "#ff9f0a"]
 CLES_THEME = {"theme", "imitation_apparence", "accent", "icones_tierces", "transparence", "animations", "taille_texte", "curseur_taille", "police", "verrou_fond", "theme_perso", "contraste", "densite"}
 
 # ------------------------------------------------------------------------------------------------ rc.xml de labwc
@@ -145,7 +146,12 @@ class Parametres(Gtk.Application):
         for cle, titre, ic, _, _, _ in CATEGORIES:
             b = Gtk.Button(); b.add_css_class("nav-item")
             bx = boite(False, 12); barre = Gtk.Box(); barre.add_css_class("nav-barre"); bx.append(barre)
-            bx.append(ico(ic, 18, "c")); bx.append(label(titre)); b.set_child(bx); b._barre = barre
+            if theme.imitation(self.cfg) == "macos":     # Réglages Système de macOS : pictogramme blanc sur pastille de couleur
+                pa = Gtk.Box(valign=Gtk.Align.CENTER); pa.add_css_class("mac-pastille"); pa.append(ico(ic, 13, "#ffffff"))
+                pr = Gtk.CssProvider(); pr.load_from_string(".mac-pastille { background: %s; }" % PASTILLES_MAC[len(self.boutons_nav) % len(PASTILLES_MAC)])
+                pa.get_style_context().add_provider(pr, 900); bx.append(pa)
+            else: bx.append(ico(ic, 18, "c"))
+            bx.append(label(titre)); b.set_child(bx); b._barre = barre
             b.connect("clicked", lambda _b, c=cle: self.aller(c))
             self.nav_liste.append(b); self.boutons_nav[cle] = b
         self.surligner()

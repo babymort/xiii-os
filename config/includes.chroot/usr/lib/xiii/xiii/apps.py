@@ -94,7 +94,7 @@ def pour_fenetre(app_id):
                 rang = lambda x: (not x.should_show(), "setting" in (x.get_id() or "").lower())
                 if wm and (wm.lower() not in _index_wm or rang(a) < rang(_index_wm[wm.lower()])): _index_wm[wm.lower()] = a
                 exe = os.path.basename((a.get_executable() or "")).lower()
-                if exe: _index_wm.setdefault(exe, a)
+                if exe and (exe not in _index_wm or rang(a) < rang(_index_wm[exe])): _index_wm[exe] = a
             except Exception:
                 pass
     return _index_wm.get(app_id.lower()) or _index_wm.get(app_id.split(".")[-1].lower())

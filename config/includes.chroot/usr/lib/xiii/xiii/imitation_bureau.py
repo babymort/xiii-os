@@ -44,9 +44,7 @@ def barre_onze(sh):
     A = sh.p["accent"]
     f = IMIT.icone_demarrer_onze(A, os.path.join(IMAGES, "demarrer-%s.svg" % A.lstrip("#")))
     im = Gtk.Image.new_from_file(f); im.set_pixel_size(22); sh.b_start.set_child(im)
-    r = boite(False, 8, "onze-recherche", valign=Gtk.Align.CENTER); r.append(ico("search", 16, "t")); r.append(label("Rechercher"))
-    sh.b_cherche.set_child(r); sh.b_cherche.add_css_class("b-recherche")
-    sh.b_vue.set_child(ico("copy", 19, "t")); sh.b_vue.set_tooltip_text("Vue des tâches (Super + Tab)")
+    barre_onze_icones(sh); sh.b_cherche.add_css_class("b-recherche"); sh.b_vue.set_tooltip_text("Vue des tâches (Super + Tab)")
     # chevron « ^ » : les icônes des applis en arrière-plan, rangées dans une bulle
     ch = Gtk.Button(); ch.add_css_class("tb"); ch.set_child(ico("chevron-up", 16, "t")); ch.set_tooltip_text("Afficher les icônes cachées")
     def bulle(_b):
@@ -61,6 +59,11 @@ def barre_onze(sh):
     sh.zone_notif.set_visible(False)
     sh.droite.insert_child_after(ch, sh.zone_notif); sh.b_chevron = ch
     sh.l_heure.set_xalign(1); sh.l_date.set_xalign(1)
+
+
+def barre_onze_icones(sh):
+    r = boite(False, 8, "onze-recherche", valign=Gtk.Align.CENTER); r.append(ico("search", 16, "t")); r.append(label("Rechercher"))
+    sh.b_cherche.set_child(r); sh.b_vue.set_child(ico("copy", 19, "t"))
 
 
 def haut_onze(sh):
