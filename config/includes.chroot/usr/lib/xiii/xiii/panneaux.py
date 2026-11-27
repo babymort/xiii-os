@@ -311,7 +311,7 @@ class Centre(Panneau):
     largeur = 380
     def construire(self):
         w = self.widget
-        w.append(entete("sliders-horizontal", "Centre de contrôle", self.shell, None))
+        if not theme.imitation(self.shell.cfg): w.append(entete("sliders-horizontal", "Centre de contrôle", self.shell, None))      # Windows 11 / macOS : sans titre
         self.grille = Gtk.FlowBox(max_children_per_line=3, min_children_per_line=3, selection_mode=Gtk.SelectionMode.NONE,
                                   column_spacing=8, row_spacing=8, homogeneous=True)
         w.append(self.grille)
@@ -356,8 +356,10 @@ class Centre(Panneau):
                        lambda: config.modifier(lumiere_nocturne=not c["lumiere_nocturne"]), "ecran"),
             self.tuile("leaf", "Économie", None, prof == "power-saver",
                        lambda: S.en_fond(S.regler_profil, maj, "balanced" if prof == "power-saver" else "power-saver"), "alimentation"),
-            self.tuile("sun-moon", "Thème clair" if not theme.palette(c)["clair"] else "Thème sombre", "Clic : basculer", theme.palette(c)["clair"],
-                       lambda: config.modifier(theme={"sobre": "sobrec", "sobrec": "sobre"}.get(c["theme"], "sombre" if theme.palette(c)["clair"] else "clair")), "theme"),
+            (self.tuile("moon", "Mode sombre", None, not theme.palette(c)["clair"],       # Façon Windows 11 / macOS : clair ↔ sombre du même thème
+                        lambda: config.modifier(imitation_apparence="clair" if not theme.palette(c)["clair"] else "sombre"), "theme") if theme.imitation(c) else
+             self.tuile("sun-moon", "Thème clair" if not theme.palette(c)["clair"] else "Thème sombre", "Clic : basculer", theme.palette(c)["clair"],
+                       lambda: config.modifier(theme={"sobre": "sobrec", "sobrec": "sobre"}.get(c["theme"], "sombre" if theme.palette(c)["clair"] else "clair")), "theme")),
             self.tuile(profils.courant(c)[2], "Profil", profils.courant(c)[1], profils.courant(c)[0] != "normal",
                        lambda: self.shell.menu_profils(self._t_profil), "profils"),
             self.tuile("scan-line", "Capture", "Zone, écran, vidéo", False, lambda: (sh.fermer(), S.detacher("sleep 0.4; xiii-outil-capture"))),

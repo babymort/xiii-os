@@ -616,9 +616,11 @@ def nom_icones(cfg):
     """Thème d'icônes : XIII (cuivre) ou copie teintée à la couleur d'accent du thème ;
     sans les icônes XIII des logiciels tiers si l'utilisateur préfère leurs logos d'origine."""
     p_ = palette(cfg)
-    if p_.get("imitation"):
-        n = IMIT.icones(p_["imitation"], not p_["clair"])
-        if n: return n
+    if p_.get("imitation"):         # Fluent / WhiteSur d'abord, puis les icônes XIII teintées de l'accent du système imité
+        base = IMIT.icones(p_["imitation"], not p_["clair"])
+        if base:
+            c2 = dict(cfg); c2["theme"] = "sombre"; c2["accent"] = p_["accent"]
+            return IMIT.enveloppe(base, nom_icones(c2))
     A = p_["accent"].lower()
     tierces = cfg.get("icones_tierces", True)
     if A == "#f0b378" and tierces: return "XIII"

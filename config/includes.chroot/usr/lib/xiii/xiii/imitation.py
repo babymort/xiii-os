@@ -52,17 +52,17 @@ def icones(t, sombre):
     noms += ["Papirus-Dark" if sombre else "Papirus", "Papirus"]
     for n in noms:
         for d in ("/usr/share/icons", os.path.expanduser("~/.local/share/icons"), os.path.expanduser("~/.icons")):
-            if os.path.exists(os.path.join(d, n, "index.theme")): return enveloppe(n)
+            if os.path.exists(os.path.join(d, n, "index.theme")): return n
     return None
 
 
-def enveloppe(base):
+def enveloppe(base, xiii="XIII"):
     """Thème d'icônes « XIII-<base> » : les icônes du système imité d'abord, puis celles des applis XIII (sinon les applis
     XIII, la Suite et les outils de tournage n'ont pas d'icône dans Fluent / WhiteSur)."""
     nom = "XIII-" + base
     d = os.path.join(os.path.expanduser("~/.local/share/icons"), nom)
     f = os.path.join(d, "index.theme")
-    txt = "[Icon Theme]\nName=%s\nComment=%s puis XIII (OS XIII)\nInherits=%s,XIII,Papirus,Adwaita,hicolor\nDirectories=\n" % (nom, base, base)
+    txt = "[Icon Theme]\nName=%s\nComment=%s puis XIII (OS XIII)\nInherits=%s,%s,XIII,Papirus,Adwaita,hicolor\nDirectories=\n" % (nom, base, base, xiii)
     try:
         if not os.path.exists(f) or open(f).read() != txt:
             os.makedirs(d, exist_ok=True); open(f, "w").write(txt)
