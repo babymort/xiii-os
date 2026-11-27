@@ -211,6 +211,8 @@ for pf in "gauche classique" "haut flottante" "droite dock" "bas flottante"; do 
   python3 -c "$CFG"'config.modifier(barre_position="'$1'", barre_forme="'$2'")'; sleep 2.5; grim -s 0.5 /out/barre-$1-$2.png
   python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii')" ; gapplication action fr.xiii.Shell basculer "'demarrer'" 2>/dev/null; sleep 1; grim -s 0.5 /out/barre-$1-$2-menu.png; gapplication action fr.xiii.Shell fermer 2>/dev/null; sleep 0.5
 done
+python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="dock")'; sleep 2.5; grim -s 0.5 /out/dock-cache.png
+xiii-ctl dock; sleep 1; grim -s 0.5 /out/dock-montre.png
 python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="classique")'; sleep 2
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  barre (position / forme)"; grep -A6 Traceback /out/shell.log | tail -8; } >> $R || echo "OK        barre en bas / haut / gauche / droite, classique / flottante / dock : sans erreur" >> $R
 

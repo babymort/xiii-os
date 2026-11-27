@@ -330,6 +330,8 @@ window.xiii-surface {{ background: transparent; }}
 .haut-appli.actif {{ background: alpha({p['accent']},0.18); }}
 .barre-flottante .barre, .barre-dock .barre {{ border-radius: 16px; border: 1px solid alpha({p['texte']},0.10); }}
 .barre-dock .barre {{ padding: 0 10px; }}
+.barre-dock button.tb {{ transition: transform 160ms ease-out, background 160ms; }}
+{('.barre-dock button.tb:hover { transform: scale(1.32) translateY(-7px); } .barre-dock.barre-verticale button.tb:hover { transform: scale(1.32); } .barre-dock button.tb:active { transform: scale(1.18) translateY(-3px); }' if cfg.get('dock_grossissement', True) else '')}
 .barre-verticale .barre {{ padding: 8px 0; }}
 window.barre-flottante, window.barre-dock {{ background: transparent; }}
 .coin-bureau {{ min-width: 8px; padding: 0; margin: 4px 0 4px 6px; border-radius: 3px; background: transparent; border-left: 1px solid alpha({p['texte']},0.18); box-shadow: none; }}

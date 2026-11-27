@@ -196,6 +196,12 @@ class Shell(Gtk.Application):
         w = self.barre
         for e in (T, B, L, R): LS.set_anchor(w, e, e == bord or (style == "classique" and e in cotes)); LS.set_margin(w, e, 0)
         if style != "classique": LS.set_margin(w, bord, 8)
+        # dock : place transparente côté écran pour que les icônes grossies au survol ne soient pas coupées
+        ex = 16 if style == "dock" and self.cfg.get("dock_grossissement", True) else 0
+        self.cb.set_margin_top(ex if pos == "bas" else 0); self.cb.set_margin_bottom(ex if pos == "haut" else 0)
+        self.cb.set_margin_end(ex if pos == "gauche" else 0); self.cb.set_margin_start(ex if pos == "droite" else 0)
+        if style == "dock" and self.cfg.get("dock_masquage", True): LS.set_exclusive_zone(w, 0)      # se cache : ne réserve pas de place
+        else: LS.auto_exclusive_zone_enable(w)
         for x in ("barre-flottante", "barre-dock", "barre-verticale"): w.remove_css_class(x)
         if style == "flottante": w.add_css_class("barre-flottante")
         if style == "dock": w.add_css_class("barre-dock")
@@ -206,6 +212,9 @@ class Shell(Gtk.Application):
         self.cb.set_size_request(HB + 6 if vert else -1, -1 if vert else HB)
         w.set_default_size(HB + 6 if vert else -1, -1 if vert else HB)
         if hasattr(self, "l_date"): self.l_date.set_visible(not vert)
+        self._meteo_compacte = vert
+        if getattr(self, "_meteo", None): self._rendu_meteo(self._meteo)
+        self.visibilite_barre()
         # panneaux : Démarrer / presse-papiers / émojis près de la barre ; widgets à gauche, notifications à droite
         ecart = HB + 10 + (8 if style != "classique" else 0)
         gauche = self.cfg["barre_alignement"] == "gauche"
@@ -244,6 +253,8 @@ class Shell(Gtk.Application):
             self.fermer(); self.vue_taches.ouvrir(); return
         if nom == "dispositions":
             self.fermer(); self.dispositions.ouvrir(); return
+        if nom == "dock":
+            self.montrer_dock(); return
         if nom in ("alttab", "alttab-prec"):
             if not hasattr(self, "alttab"): self.alttab = vues.AltTab(self)
             self.fermer(); self.alttab.ouvrir(1 if nom == "alttab" else -1); return
@@ -710,7 +721,47 @@ class Shell(Gtk.Application):
         les applis ouvertes y sont en tuiles, Super + Espace ouvre une appli, Alt + Tab passe de l'une à l'autre."""
         k = k or self.cfg.get("mode_bureau", "classique")
         cache = self.cfg.get("barre_masquee", False) or (k in ("production", "fiction", "multicam") and self.cfg.get("barre_modes_masquee", True))
-        if hasattr(self, "barre"): self.barre.set_visible(not cache)
+        auto = self.dock_auto() and not cache
+        if hasattr(self, "barre"): self.barre.set_visible(not cache and not auto)
+        self.declencheur_dock(auto)
+
+    def dock_auto(self):
+        return self.cfg.get("barre_forme") == "dock" and self.cfg.get("dock_masquage", True) and not self.cfg.get("barre_masquee")
+
+    def declencheur_dock(self, actif):
+        """Dock qui se cache tout seul : une bande de 3 px au bord de l'écran le fait apparaître au passage de la souris ;
+        il se recache 0,8 s après le départ de la souris (sauf si un panneau est ouvert)."""
+        T, B, L, R = LS.Edge.TOP, LS.Edge.BOTTOM, LS.Edge.LEFT, LS.Edge.RIGHT
+        d = getattr(self, "_decl", None)
+        if not actif:
+            if d: d.set_visible(False)
+            return
+        bord = {"bas": B, "haut": T, "gauche": L, "droite": R}[self.position_barre()]
+        if d is None:
+            d = Gtk.Window(application=self); couche(d, LS.Layer.TOP, (bord,), ns="xiii-dock-bord", exclusif=0)
+            d.set_child(Gtk.Box()); self._decl = d
+            m = Gtk.EventControllerMotion(); m.connect("enter", lambda *_: self.montrer_dock()); d.add_controller(m)
+            m2 = Gtk.EventControllerMotion(); m2.connect("leave", lambda *_: self.cacher_dock_bientot()); m2.connect("enter", lambda *_: self._annuler_cache_dock()); self.barre.add_controller(m2)
+        vert = bord in (L, R)
+        for e in (T, B, L, R): LS.set_anchor(d, e, e == bord or (e in ((T, B) if vert else (L, R))))
+        d.set_default_size(3 if vert else -1, -1 if vert else 3); d.get_child().set_size_request(3 if vert else -1, -1 if vert else 3)
+        LS.set_exclusive_zone(self.barre, 0); d.present()
+
+    def montrer_dock(self):
+        if not self.dock_auto(): return
+        self._annuler_cache_dock(); self.barre.set_visible(True)
+
+    def _annuler_cache_dock(self):
+        if getattr(self, "_dock_src", 0): GLib.source_remove(self._dock_src); self._dock_src = 0
+
+    def cacher_dock_bientot(self):
+        if not self.dock_auto(): return
+        self._annuler_cache_dock()
+        def go():
+            self._dock_src = 0
+            if self.ouvert: self._dock_src = GLib.timeout_add(800, go) or 0; return False     # panneau ouvert : on attend
+            self.barre.set_visible(False); return False
+        self._dock_src = GLib.timeout_add(800, go)
 
     def menu_projets(self):
         """Sélecteur de projet (en haut à gauche, comme la suite) : changer, créer, ajouter depuis un fichier .xiii."""
@@ -1051,7 +1102,9 @@ class Shell(Gtk.Application):
         if hasattr(self, "bureau") and "meteo" in self.cfg.get("widgets_bureau", []): self.bureau.wb.maj(force=True)
         ic, nom = P.METEO.get(m["code"], ("cloud", ""))
         bx = boite(False, 8, margin_start=4, margin_end=4); bx.append(ico(ic, 22, "c"))
-        v = boite(True, 0, valign=Gtk.Align.CENTER); v.append(label("%d°C" % m["t"], "meteo-t")); v.append(label(nom, "horloge-d", ellipsize=True, largeur=16))
+        v = boite(True, 0, valign=Gtk.Align.CENTER); v.append(label("%d°C" % m["t"], "meteo-t"))
+        if not getattr(self, "_meteo_compacte", False): v.append(label(nom, "horloge-d", ellipsize=True, largeur=16))
+        else: bx.set_orientation(Gtk.Orientation.VERTICAL)
         bx.append(v); self.b_meteo.set_child(bx); self.b_meteo.set_tooltip_text("Widgets — %s, %s" % (self.cfg["meteo_ville"], nom))
 
     # ============================================================== notifications
@@ -1113,7 +1166,7 @@ class Shell(Gtk.Application):
         self.css.load_from_string(theme.css_shell(cfg))
         theme._cache.clear()
         if (ancien.get("barre_masquee"), ancien.get("barre_modes_masquee")) != (cfg.get("barre_masquee"), cfg.get("barre_modes_masquee")): self.visibilite_barre()
-        if (ancien.get("barre_position"), ancien.get("barre_forme"), ancien.get("barre_alignement")) != (cfg.get("barre_position"), cfg.get("barre_forme"), cfg.get("barre_alignement")): self.positionner_barre()
+        if (ancien.get("barre_position"), ancien.get("barre_forme"), ancien.get("barre_alignement"), ancien.get("dock_masquage")) != (cfg.get("barre_position"), cfg.get("barre_forme"), cfg.get("barre_alignement"), cfg.get("dock_masquage")): self.positionner_barre()
         self.liberer_bientot(22)
         if ancien["barre_alignement"] != cfg["barre_alignement"] or ancien["barre_meteo"] != cfg["barre_meteo"] or ancien["barre_recherche"] != cfg["barre_recherche"]:
             self.placer_barre(); self.aligner_menu()
