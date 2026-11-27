@@ -279,6 +279,18 @@ a=Gio.DesktopAppInfo.new("xiii-fichiers.desktop"); print("OK        logo vu par 
 print("OK        logo d origine rétabli" if IP.retablir(a) and not os.path.exists(os.path.expanduser("~/.local/share/applications/xiii-fichiers.desktop")) else "ÉCHEC     retour au logo d origine")' >> $R 2>&1
 sleep 1; pkill -f "xiii.icones"; grep -q Traceback /out/icones.log && { echo "PLANTAGE  Icônes XIII"; grep -A6 Traceback /out/icones.log | tail -7; } >> $R
 
+echo "== Fonds d'écran en anneau" >> $R
+F0=$(python3 -c "$CFG"'print(config.charger()["fond"])')
+xiii-fonds > /out/fonds.log 2>&1 & sleep 3.5; grim -s 0.5 /out/fonds-anneau.png
+wtype -k Right; sleep 1.2; grim -s 0.5 /out/fonds-anneau-tourne.png
+wtype -k Return; sleep 1.5
+F1=$(python3 -c "$CFG"'print(config.charger()["fond"])')
+[ "$F0" != "$F1" ] && echo "OK        anneau : fond changé ($(basename "$F1"))" >> $R || echo "ÉCHEC     anneau : le fond n'a pas changé" >> $R
+wtype -k Escape; sleep 1
+pgrep -f "xiii.fonds" >/dev/null && { echo "ÉCHEC     anneau : Échap ne ferme pas"; pkill -f xiii.fonds; } >> $R
+grep -q Traceback /out/fonds.log && { echo "PLANTAGE  Fonds d'écran"; grep -A6 Traceback /out/fonds.log | tail -7; } >> $R
+python3 -c "$CFG"'config.modifier(fond="'"$F0"'")'; sleep 1
+
 echo "== Modes sans barre des tâches (applis ouvertes en tuiles)" >> $R
 mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2
 python3 -c "$CFG"'config.modifier(mode_bureau="fiction", haut_applis=True)'; sleep 4; grim -s 0.5 /out/mode-fiction-applis.png

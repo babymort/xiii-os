@@ -139,7 +139,7 @@ class Bureau:
                                    ("refresh-cw", "Actualiser", self.remplir), None,
                                    ("layout-dashboard", "Vue des tâches", lambda: self.shell.basculer("vue")),
                                    ("layout-panel-left", "Disposer les fenêtres", lambda: self.shell.basculer("dispositions")), None,
-                                   ("image", "Changer de fond d'écran", lambda: self.shell.parametres("fond")),
+                                   ("image", "Changer de fond d'écran", lambda: S.detacher("xiii-fonds")),
                                    ("monitor", "Paramètres d'affichage", lambda: self.shell.parametres("ecran")),
                                    ("palette", "Personnaliser", lambda: self.shell.parametres("perso")), None,
                                    ("folder-open", "Ouvrir le dossier Bureau", lambda: S.detacher(["thunar", self.dossier])),

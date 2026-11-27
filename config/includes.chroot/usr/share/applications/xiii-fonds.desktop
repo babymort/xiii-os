@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Fonds d'écran
+Comment=Choisir son fond d'écran dans un anneau de vignettes
+Exec=xiii-fonds %F
+Icon=xiii-fonds
+Type=Application
+Categories=Settings;DesktopSettings;XIII;
+Keywords=fond;fonds;ecran;wallpaper;image;bureau;anneau;

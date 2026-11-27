@@ -1419,6 +1419,8 @@ class Parametres(Gtk.Application):
         else:
             pic = vignette(cfg["fond"], 640, 260)
         f = Gtk.Frame(); f.set_child(pic); c.append(f)
+        c.append(reglage("orbit" if os.path.exists(theme.LUCIDE + "/orbit.svg") else "image", "Choisir en anneau", "Les fonds tournent autour d'un grand aperçu, en plein écran (flèches, molette, Entrée)",
+                         droite=bouton("Ouvrir", None, "pilule", rappel=lambda: S.detacher("xiii-fonds"))))
         c.append(groupe_titre("Images récentes et fonds XIII"))
         fl = Gtk.FlowBox(max_children_per_line=5, min_children_per_line=3, selection_mode=Gtk.SelectionMode.NONE, column_spacing=8, row_spacing=8, homogeneous=True)
         for p in sorted(glob.glob(config.FONDS + "/*.png") + glob.glob(config.FONDS + "/*.jpg")) + sorted(glob.glob(FONDS_PERSO + "/*")):
