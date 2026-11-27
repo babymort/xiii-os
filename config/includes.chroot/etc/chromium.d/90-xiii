@@ -1,0 +1,11 @@
+# OS XIII — Chromium : réglages d'affichage (fichier lu par /usr/bin/chromium).
+# Vieilles puces graphiques Intel (2e génération Core i et avant, ex. ThinkPad T420) : le rendu par la carte graphique
+# donne des pages ou des fenêtres blanches (connexion Google, fenêtres surgissantes). On passe au rendu par le processeur.
+# Pour revenir au rendu matériel : créez ~/.config/xiii/chromium-gpu (fichier vide).
+if [ ! -e "$HOME/.config/xiii/chromium-gpu" ]; then
+  ancien=0
+  grep -qiE 'Core\(TM\)2|Core\(TM\) i[3579]-[1-3][0-9]{3}|Celeron|Pentium|Atom' /proc/cpuinfo 2>/dev/null && ancien=1
+  if [ "$ancien" = 1 ] || systemd-detect-virt -q 2>/dev/null || ! ls /dev/dri/renderD* >/dev/null 2>&1; then
+    CHROMIUM_FLAGS="$CHROMIUM_FLAGS --disable-gpu --disable-gpu-compositing"
+  fi
+fi

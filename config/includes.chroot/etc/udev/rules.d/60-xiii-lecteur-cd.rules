@@ -1,0 +1,2 @@
+# OS XIII — lecteur CD/DVD : détection d'un disque toutes les 10 s au lieu de 2 s (moins de sollicitations du lecteur)
+ACTION=="add|change", KERNEL=="sr[0-9]*", ATTR{events_poll_msecs}="10000"

@@ -193,7 +193,8 @@ def fusion_xml(nouveau, actuel, balise, cle, texte=False):
 def finaliser(sha, canal, src=None):
     canal = "main" if canal in ("stable", "main") else "beta"
     for c in (["update-desktop-database", "-q", "/usr/share/applications"], ["gtk-update-icon-cache", "-qf", "/usr/share/icons/hicolor"],
-              ["gtk-update-icon-cache", "-qf", "/usr/share/icons/XIII"], ["update-mime-database", "/usr/share/mime"], ["fc-cache", "-f"], ["systemctl", "daemon-reload"]):
+              ["gtk-update-icon-cache", "-qf", "/usr/share/icons/XIII"], ["update-mime-database", "/usr/share/mime"], ["fc-cache", "-f"], ["systemctl", "daemon-reload"],
+              ["sysctl", "--system"], ["udevadm", "control", "--reload"], ["udevadm", "trigger", "--action=change", "--sysname-match=sr*"]):
         try: subprocess.run(c, capture_output=True, timeout=300)
         except Exception: pass
     try: base = open(os.path.join(src, "VERSION")).read().strip()

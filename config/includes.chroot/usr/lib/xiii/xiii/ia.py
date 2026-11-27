@@ -108,7 +108,7 @@ class IA(Gtk.Application):
             v.append(bouton("Ouvrir OpenJarvis", "terminal", "pilule", rappel=lambda: S.detacher(["foot", "--app-id=fr.xiii.terminal", "-e", "jarvis"])))
         else:
             v.append(bouton("Installer OpenJarvis", "download", "pilule",
-                            rappel=lambda: S.detacher(["foot", "--app-id=fr.xiii.terminal", "-e", "sh", "-c", "curl -fsSL https://openjarvis.ai/install.sh | bash; echo; echo 'Terminé : appuyez sur Entrée'; read x"])))
+                            rappel=lambda: S.detacher(["foot", "--app-id=fr.xiii.terminal", "-e", "sh", "-c", "curl -fsSL https://open-jarvis.github.io/OpenJarvis/install.sh | bash || curl -fsSL https://raw.githubusercontent.com/open-jarvis/OpenJarvis/main/scripts/install/install.sh | bash; echo; echo 'Terminé : appuyez sur Entrée'; read x"])))
             v.append(label("L'installation (environ 3 minutes) se fait dans une fenêtre : elle installe aussi Ollama et un petit modèle.", "petit", "attenue", wrap=True))
         return v
 
