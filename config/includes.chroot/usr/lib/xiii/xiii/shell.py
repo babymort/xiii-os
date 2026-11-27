@@ -255,6 +255,9 @@ class Shell(Gtk.Application):
             self.fermer(); self.dispositions.ouvrir(); return
         if nom == "dock":
             self.montrer_dock(); return
+        if nom == "ile":
+            if hasattr(self, "ile"): (self.ile.fermer if self.ile.ouverte else self.ile.ouvrir)()
+            return
         if nom in ("alttab", "alttab-prec"):
             if not hasattr(self, "alttab"): self.alttab = vues.AltTab(self)
             self.fermer(); self.alttab.ouvrir(1 if nom == "alttab" else -1); return
@@ -421,6 +424,7 @@ class Shell(Gtk.Application):
         if not hasattr(self, "alttab"): self.alttab = vues.AltTab(self)
         self.alttab.noter_active(fen)
         if hasattr(self, "vue_mode"): self.vue_mode.maj_fenetres(fen)
+        if hasattr(self, "ile") and self.ile.w.get_visible(): self.ile.maj()
         self.maj_haut_applis(fen)
         groupes = {}   # id d'appli -> [fenetres]
         info = {}
@@ -722,8 +726,15 @@ class Shell(Gtk.Application):
         k = k or self.cfg.get("mode_bureau", "classique")
         cache = self.cfg.get("barre_masquee", False) or (k in ("production", "fiction", "multicam") and self.cfg.get("barre_modes_masquee", True))
         auto = self.dock_auto() and not cache
-        if hasattr(self, "barre"): self.barre.set_visible(not cache and not auto)
+        ile = self.cfg.get("barre_forme") == "ile" and not cache and not self.cfg.get("barre_masquee")
+        if hasattr(self, "barre"): self.barre.set_visible(not cache and not auto and not ile)
         self.declencheur_dock(auto)
+        if ile and not hasattr(self, "ile"):
+            from .ile import Ile
+            self.ile = Ile(self)
+        if hasattr(self, "ile"):
+            self.ile.montrer(ile)
+            if ile: self.ile.maj()
 
     def dock_auto(self):
         return self.cfg.get("barre_forme") == "dock" and self.cfg.get("dock_masquage", True) and not self.cfg.get("barre_masquee")

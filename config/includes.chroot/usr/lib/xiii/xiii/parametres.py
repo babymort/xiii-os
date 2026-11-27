@@ -1427,8 +1427,8 @@ class Parametres(Gtk.Application):
         def chg_forme(v):
             if v == "sans": self.regler(barre_masquee=True, haut_applis=True)
             else: self.regler(barre_forme=v, barre_masquee=False)
-        c.append(reglage("panel-bottom", "Forme", "Classique : d'un bord à l'autre · Flottante : détachée et arrondie · Dock : juste la taille des icônes · Sans barre : menu Démarrer par Super, applis en haut",
-                         droite=deroulant([("classique", "Classique"), ("flottante", "Flottante"), ("dock", "Dock"), ("sans", "Sans barre")], forme, chg_forme, 180)))
+        c.append(reglage("panel-bottom", "Forme", "Classique : d'un bord à l'autre · Flottante : détachée et arrondie · Dock : juste la taille des icônes · Île dynamique : une pilule qui s'ouvre au survol · Sans barre : menu Démarrer par Super, applis en haut",
+                         droite=deroulant([("classique", "Classique"), ("flottante", "Flottante"), ("dock", "Dock"), ("ile", "Île dynamique"), ("sans", "Sans barre")], forme, chg_forme, 180)))
         if cfg.get("barre_forme") == "dock" and not cfg.get("barre_masquee"):
             c.append(reglage("eye", "Dock : se cacher tout seul", "Il apparaît quand la souris touche le bord de l'écran",
                              droite=interrupteur(cfg.get("dock_masquage", True), lambda on: self.regler(dock_masquage=on))))

@@ -213,6 +213,10 @@ for pf in "gauche classique" "haut flottante" "droite dock" "bas flottante"; do 
 done
 python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="dock")'; sleep 2.5; grim -s 0.5 /out/dock-cache.png
 xiii-ctl dock; sleep 1; grim -s 0.5 /out/dock-montre.png
+mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2
+python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="ile")'; sleep 3; grim -s 0.5 /out/ile-repliee.png
+xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-ouverte.png; xiii-ctl ile; sleep 0.5
+python3 -c "$CFG"'config.modifier(barre_position="haut")'; sleep 2.5; xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-haut-ouverte.png; xiii-ctl ile; pkill mousepad
 python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="classique")'; sleep 2
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  barre (position / forme)"; grep -A6 Traceback /out/shell.log | tail -8; } >> $R || echo "OK        barre en bas / haut / gauche / droite, classique / flottante / dock : sans erreur" >> $R
 

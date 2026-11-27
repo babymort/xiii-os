@@ -334,6 +334,13 @@ window.xiii-surface {{ background: transparent; }}
 {('.barre-dock button.tb:hover { transform: scale(1.32) translateY(-7px); } .barre-dock.barre-verticale button.tb:hover { transform: scale(1.32); } .barre-dock button.tb:active { transform: scale(1.18) translateY(-3px); }' if cfg.get('dock_grossissement', True) else '')}
 .barre-verticale .barre {{ padding: 8px 0; }}
 window.barre-flottante, window.barre-dock {{ background: transparent; }}
+.ile {{ background: alpha(#0c0b0a,0.94); border-radius: 22px; padding: 6px 16px; border: 1px solid alpha({p['texte']},0.10); box-shadow: 0 8px 28px alpha(black,0.45);
+        transition: padding 220ms ease, border-radius 220ms ease; }}
+.ile.ile-ouverte {{ border-radius: 26px; padding: 12px 18px; }}
+.ile.ile-rec {{ border-color: alpha(#e5534b,0.8); }} .ile.ile-media {{ border-color: alpha({p['accent']},0.45); }}
+.ile-compacte {{ min-height: 26px; }} .ile-texte {{ font-weight: 600; font-size: 12px; }} .ile-heure {{ font-family: "IBM Plex Mono", monospace; font-size: 12px; color: alpha({p['texte']},0.75); }}
+.ile-logo {{ font-size: 14px; }} .ile-grande {{ margin-top: 8px; margin-bottom: 4px; }}
+.ile-carte {{ border-radius: 14px; padding: 4px 10px; background: alpha({p['texte']},0.07); }}
 .coin-bureau {{ min-width: 8px; padding: 0; margin: 4px 0 4px 6px; border-radius: 3px; background: transparent; border-left: 1px solid alpha({p['texte']},0.18); box-shadow: none; }}
 .coin-bureau:hover {{ background: alpha({p['accent']},0.35); }}
 .haut-logo {{ font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 1px; color: {p['accent_texte']}; padding: 0 6px; }}
