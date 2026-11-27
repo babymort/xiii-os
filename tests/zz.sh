@@ -206,6 +206,14 @@ curl -s -u zz:x -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null -w
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
+echo "== Modes sans barre des tâches (applis ouvertes en tuiles)" >> $R
+mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2
+python3 -c "$CFG"'config.modifier(mode_bureau="fiction", haut_applis=True)'; sleep 4; grim -s 0.5 /out/mode-fiction-applis.png
+python3 -c "$CFG"'config.modifier(mode_bureau="classique")'; sleep 2
+python3 -c "$CFG"'config.modifier(production_page="accueil", mode_bureau="production")'; sleep 4; grim -s 0.5 /out/mode-production-applis.png
+python3 -c "$CFG"'config.modifier(mode_bureau="classique", haut_applis=False)'; sleep 2; pkill mousepad; sleep 1
+grep -q Traceback /out/shell.log && { echo "PLANTAGE  modes sans barre"; grep -A6 Traceback /out/shell.log | tail -8; } >> $R || echo "OK        modes sans barre des tâches : sans erreur" >> $R
+
 echo "== Étape 4 (bureau)" >> $R
 mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2; mousepad --new-window >/dev/null 2>&1 & sleep 2
 xiii-ctl alttab; sleep 0.3; grim -s 0.5 /out/alttab.png; sleep 1

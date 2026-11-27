@@ -128,6 +128,44 @@ class VueMode:
         getattr(self, "v_" + ("tuiles" if mode in ("fiction", "multicam") else mode))(mode)
         self.w.present()
 
+    # ----------------------------------------------------------------- applis ouvertes (modes sans barre des tâches)
+    def zone_fenetres(self):
+        """Tuiles des applis ouvertes, tenues à jour quand une fenêtre s'ouvre, se ferme ou change."""
+        b = boite(True, 8); self._zones = [z for z in getattr(self, "_zones", []) if z.get_root() is not None] + [b]
+        self._remplir_fenetres(b, self.shell.fenetres.liste() if self.shell.fenetres and self.shell.fenetres.ok else [])
+        return b
+
+    def maj_fenetres(self, fen):
+        if self.mode in (None, "classique"): return
+        for z in list(getattr(self, "_zones", [])):
+            if z.get_root() is None: self._zones.remove(z); continue
+            self._remplir_fenetres(z, fen)
+
+    def _remplir_fenetres(self, z, fen):
+        vider(z)
+        fen = [f for f in fen if (f.app_id or "") not in ("fr.xiii.Shell",)]
+        if not fen: z.set_visible(False); return
+        z.set_visible(True)
+        h = boite(False, 8); h.append(label("Applications ouvertes", "section", hexpand=True))
+        h.append(label("Super + Espace : ouvrir une appli  ·  Alt + Tab : passer de l'une à l'autre", "petit", "attenue")); z.append(h)
+        fl = Gtk.FlowBox(max_children_per_line=8, min_children_per_line=3, selection_mode=Gtk.SelectionMode.NONE, column_spacing=12, row_spacing=12, homogeneous=True)
+        for f in fen:
+            a = apps.pour_fenetre(f.app_id)
+            c = boite(True, 6, "tuile-mode", "tuile-fenetre"); c.set_size_request(-1, 140)
+            if f.active and not f.reduite: c.add_css_class("actif")
+            hd = boite(False, 6); hd.append(gicon_image(a.get_icon(), 18) if a else ico("app-window", 18, "c"))
+            hd.append(label(a.get_display_name() if a else (f.app_id or "Application"), "gras", "petit", hexpand=True, ellipsize=True))
+            hd.append(bouton(None, "x", "plat", taille=12, role="d", tip="Fermer", rappel=lambda f=f: self.shell.fenetres.fermer(f))); c.append(hd)
+            mp = self.shell.miniatures.chemin(f) if getattr(self.shell, "miniatures", None) else None
+            if mp:
+                pic = Gtk.Picture.new_for_filename(mp); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(-1, 86); pic.add_css_class("miniature"); c.append(pic)
+            else:
+                c.append(label(f.titre or "", "petit", "attenue", wrap=True, xalign=0, vexpand=True))
+            if f.reduite: c.append(label("réduite", "petit", "accent"))
+            g = Gtk.GestureClick(); g.connect("released", lambda gg, n, x, y, f=f: None if isinstance(gg.get_widget().pick(x, y, Gtk.PickFlags.DEFAULT), Gtk.Button) or (gg.get_widget().pick(x, y, Gtk.PickFlags.DEFAULT) or gg.get_widget()).get_ancestor(Gtk.Button) else self.shell.fenetres.activer(f))
+            c.add_controller(g); fl.append(c)
+        z.append(fl)
+
     def arreter(self):
         if self._src: GLib.source_remove(self._src); self._src = 0
 
@@ -164,6 +202,7 @@ class VueMode:
                 bx = boite(False, 8); bx.append(icone_outil("suite", i, None, 18)); bx.append(label(i.upper() if i != "callsheeto" else "CALL SHEETO", "gras")); b.set_child(bx)
                 b.connect("clicked", lambda _b, i=i: (self.marquer(ong, _b), lancer_outil("suite", i))); ong.append(b)
             cont.append(ong)
+        cont.append(self.zone_fenetres())          # applis ouvertes (la barre des tâches est cachée dans ce mode)
         # tuiles d'outils
         cont.append(label("Outils", "section"))
         g = Gtk.FlowBox(max_children_per_line=8, min_children_per_line=3, selection_mode=Gtk.SelectionMode.NONE, column_spacing=12, row_spacing=12, homogeneous=True)
@@ -336,6 +375,7 @@ class VueMode:
         if pj: bx.append(bouton("Ouvrir le dossier", "folder-open", "fantome", rappel=lambda: S.detacher(["xdg-open", os.path.expanduser("~/XIII/" + pj)])))
         bx.append(bouton("Suite XIII", "layout-grid", "pilule", rappel=lambda: self.ouvrir("suite", "index", "Suite XIII", None)))
         d.append(bx); hero.append(d); v.append(hero)
+        v.append(self.zone_fenetres())
         # récents (ou les outils principaux tant que rien n'a été ouvert)
         v.append(label("RÉCENTS  ·  CLIC POUR OUVRIR" if rec else "POUR COMMENCER  ·  CLIC POUR OUVRIR", "surtitre", margin_top=6))
         L = [tuple(x[:4]) + (x[4],) for x in rec][:8] or [o + (None,) for o in OUTILS["production"][1:9]]

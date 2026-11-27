@@ -360,6 +360,8 @@ class Shell(Gtk.Application):
         if hasattr(self, "miniatures"): self.miniatures.changement(fen)
         if not hasattr(self, "alttab"): self.alttab = vues.AltTab(self)
         self.alttab.noter_active(fen)
+        if hasattr(self, "vue_mode"): self.vue_mode.maj_fenetres(fen)
+        self.maj_haut_applis(fen)
         groupes = {}   # id d'appli -> [fenetres]
         info = {}
         for f in fen:
@@ -554,6 +556,7 @@ class Shell(Gtk.Application):
         d = boite(False, 2, margin_end=6)
         # secteur 2 : rechercher · Suite XIII · fichiers · Claude (libellés au survol, comme dans la suite)
         outils = boite(False, 2)
+        self.haut_applis = boite(False, 2, valign=Gtk.Align.CENTER); outils.append(self.haut_applis)     # applis ouvertes (option)
         outils.append(self.bouton_survol("search", "Rechercher", lambda: self.basculer("demarrer-recherche"),
                                          [("search", "Rechercher (Super + Espace)", lambda: self.basculer("demarrer-recherche")), ("sparkles", "Demander à l'IA", lambda: S.detacher("xiii-ia"))]))
         outils.append(self.bouton_survol("layout-grid", "Suite XIII", lambda: S.detacher(["xiii-suite"]),
@@ -625,6 +628,7 @@ class Shell(Gtk.Application):
         from .modes import PAR_CLE
         k = k if k in PAR_CLE else "classique"
         self.vue_mode.appliquer(k)
+        self.visibilite_barre(k)
         self.bureau.w.set_visible(k == "classique" and bool(self.cfg.get("icones_bureau", True) or self.cfg.get("widgets_bureau")))
         prof = PAR_CLE[k][4]
         avant = getattr(self, "_mode_prec", None); self._mode_prec = k
@@ -634,6 +638,30 @@ class Shell(Gtk.Application):
             elif avant and PAR_CLE.get(avant, (0, 0, 0, 0, None))[4]: config.modifier(profil="normal", mode_tournage=False)
         if k in ("fiction", "multicam") and not self.cfg.get("timecode"): config.modifier(_histo=False, timecode=True)
         if k == "gaming" and (not premier or avant is None): S.detacher("xiii-console")      # l'interface console plein écran
+
+    def maj_haut_applis(self, fen=None):
+        """Option : petites icônes des applis ouvertes dans la barre du haut, à gauche de Rechercher (clic = réduire / rouvrir)."""
+        z = getattr(self, "haut_applis", None)
+        if z is None: return
+        vider(z)
+        if not self.cfg.get("haut_applis", False): return
+        fen = fen if fen is not None else (self.fenetres.liste() if self.fenetres and self.fenetres.ok else [])
+        for f in fen[:14]:
+            a = apps.pour_fenetre(f.app_id)
+            b = Gtk.Button(); b.add_css_class("hb"); b.add_css_class("haut-appli")
+            if f.active: b.add_css_class("actif")
+            if f.reduite: b.add_css_class("reduite")
+            b.set_child(gicon_image(a.get_icon(), 16) if a else ico("app-window", 16))
+            b.set_tooltip_text((f.titre or (a.get_display_name() if a else f.app_id or "")) + (" (réduite)" if f.reduite else ""))
+            b.connect("clicked", lambda *_x, f=f: self.fenetres.clic(f)); z.append(b)
+        if fen: z.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL, margin_start=4, margin_end=4))
+
+    def visibilite_barre(self, k=None):
+        """Barre des tâches cachée : toujours (réglage), ou dans les modes de travail plein écran (Production, Fiction, Multicam) —
+        les applis ouvertes y sont en tuiles, Super + Espace ouvre une appli, Alt + Tab passe de l'une à l'autre."""
+        k = k or self.cfg.get("mode_bureau", "classique")
+        cache = self.cfg.get("barre_masquee", False) or (k in ("production", "fiction", "multicam") and self.cfg.get("barre_modes_masquee", True))
+        if hasattr(self, "barre"): self.barre.set_visible(not cache)
 
     def menu_projets(self):
         """Sélecteur de projet (en haut à gauche, comme la suite) : changer, créer, ajouter depuis un fichier .xiii."""
@@ -1035,6 +1063,7 @@ class Shell(Gtk.Application):
             GLib.timeout_add_seconds(1, lambda: (self.antivol(), False)[1])
         self.css.load_from_string(theme.css_shell(cfg))
         theme._cache.clear()
+        if (ancien.get("barre_masquee"), ancien.get("barre_modes_masquee")) != (cfg.get("barre_masquee"), cfg.get("barre_modes_masquee")): self.visibilite_barre()
         self.liberer_bientot(22)
         if ancien["barre_alignement"] != cfg["barre_alignement"] or ancien["barre_meteo"] != cfg["barre_meteo"] or ancien["barre_recherche"] != cfg["barre_recherche"]:
             self.placer_barre(); self.aligner_menu()

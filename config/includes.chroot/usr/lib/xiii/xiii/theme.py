@@ -325,6 +325,9 @@ window.xiii-surface {{ background: transparent; }}
 .alttab-carte {{ padding: 14px 10px; border-radius: 14px; border: 2px solid transparent; }}
 .alttab-vide {{ border-radius: 10px; background: alpha({p['texte']},0.05); border: 1px dashed alpha({p['texte']},0.12); padding: 10px; }}
 .alttab-carte.alttab-sel {{ background: alpha({p['accent']},0.18); border-color: {p['accent']}; }}
+.tuile-fenetre.actif {{ border-color: {p['accent']}; }}
+.haut-appli.reduite {{ opacity: .5; }}
+.haut-appli.actif {{ background: alpha({p['accent']},0.18); }}
 .coin-bureau {{ min-width: 8px; padding: 0; margin: 4px 0 4px 6px; border-radius: 3px; background: transparent; border-left: 1px solid alpha({p['texte']},0.18); box-shadow: none; }}
 .coin-bureau:hover {{ background: alpha({p['accent']},0.35); }}
 .haut-logo {{ font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 1px; color: {p['accent_texte']}; padding: 0 6px; }}

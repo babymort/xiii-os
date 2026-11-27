@@ -1420,6 +1420,13 @@ class Parametres(Gtk.Application):
 
     def p_barre(self, c, cle):
         cfg = self.cfg
+        c.append(groupe_titre("Afficher la barre des tâches"))
+        c.append(reglage("eye-off", "Cacher complètement la barre des tâches", "Applis par Super + Espace, Alt + Tab, ou leurs icônes dans la barre du haut (option ci-dessous)",
+                         droite=interrupteur(cfg.get("barre_masquee", False), lambda on: self.regler(barre_masquee=on, **({"haut_applis": True} if on else {})))))
+        c.append(reglage("clapperboard", "Cacher dans les modes Production, Fiction et Multicam", "Les applis ouvertes s'affichent alors en tuiles sur l'accueil du mode",
+                         droite=interrupteur(cfg.get("barre_modes_masquee", True), lambda on: self.regler(barre_modes_masquee=on))))
+        c.append(reglage("panel-top", "Applis ouvertes dans la barre du haut", "Petites icônes à gauche de Rechercher : un clic réduit ou rouvre la fenêtre",
+                         droite=interrupteur(cfg.get("haut_applis", False), lambda on: self.regler(haut_applis=on))))
         c.append(groupe_titre("Éléments de la barre des tâches"))
         c.append(reglage("search", "Recherche", "Bouton de recherche à côté de Démarrer", droite=interrupteur(cfg["barre_recherche"], lambda on: self.regler(barre_recherche=on))))
         c.append(reglage("cloud-sun", "Météo", "Température et ciel à gauche de la barre", droite=interrupteur(cfg["barre_meteo"], lambda on: self.regler(barre_meteo=on))))
@@ -1959,6 +1966,8 @@ class Parametres(Gtk.Application):
 
     def p_haut(self, c, cle):
         cfg = self.cfg
+        c.append(reglage("layout-grid", "Applis ouvertes", "Petites icônes à gauche de Rechercher : un clic réduit ou rouvre la fenêtre",
+                         droite=interrupteur(cfg.get("haut_applis", False), lambda on: self.regler(haut_applis=on))))
         c.append(reglage("app-window", "Titre de la fenêtre active", "Affiché à gauche de la barre du haut", droite=interrupteur(cfg["haut_titre"], lambda on: self.regler(haut_titre=on))))
         c.append(reglage("clock", "Afficher les secondes", "", droite=interrupteur(cfg["haut_secondes"], lambda on: self.regler(haut_secondes=on))))
         c.append(reglage("clock", "Format 24 heures", "", droite=interrupteur(cfg["horloge_24h"], lambda on: self.regler(horloge_24h=on))))
