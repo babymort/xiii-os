@@ -242,6 +242,7 @@ class VueMode:
     PAGES_PROD = [("accueil", "house", "Accueil — tableau de bord"), ("organiser", "square-kanban", "Organiser (tableaux façon Trello)"),
                   ("tableau", "layout-grid", "Tableau des outils"), ("planning", "calendar-days", "Planning et tournage"),
                   ("memos", "sticky-note", "Mémos"), ("taches", "list-checks", "Tâches"), ("objectifs", "trophy", "Objectifs"),
+                  ("contacts", "contact", "Contacts"), ("materiel", "package", "Matériel"), ("budget", "wallet", "Budget"),
                   ("direct", "radio-tower", "En direct")]
 
     def ouvrir(self, t, i, nom, ic):
@@ -281,7 +282,7 @@ class VueMode:
         from .studio import Studio
         self.studio = Studio(ouvrir_page=lambda k: aller(k), haut_bord=self.accueil_haut)
         self.pile.add_named(self.studio.page("bord"), "accueil")
-        for k in ("organiser", "memos", "taches", "objectifs"): self.pile.add_named(self.studio.page(k), k)
+        for k in ("organiser", "memos", "taches", "objectifs", "contacts", "materiel", "budget"): self.pile.add_named(self.studio.page(k), k)
         self.pile.add_named(self.p_tableau(mode), "tableau")
         self.pile.add_named(self.p_widgets(["jour", "plan", "compte", "meteo", "calendrier"]), "planning")
         self.pile.add_named(self.p_widgets(["projet", "offload", "systeme", "conducteur"]), "direct")

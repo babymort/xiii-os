@@ -83,7 +83,7 @@ mp.add_key_binding(nil, "timecode", function() opts.tc = not opts.tc; afficher()
 mp.add_key_binding(nil, "aide", function()
   mp.osd_message("XIII Lecteur\n\nEspace : lecture / pause    . et , : image suivante / précédente\n← → : 1 s    Maj + ← → : 10 s    [ ] : vitesse\n" ..
     "l : boucle A puis B (3e appui : efface)    L : répéter le fichier\nw : forme d'onde    v : vecteurscope    h : histogramme    z : zébras\n" ..
-    "t : timecode    s : sous-titres    a : piste son    p : capture de l'image\ni : infos techniques    f : plein écran    q : quitter", 8)
+    "t : timecode    c : carte dans le Studio XIII    s : sous-titres    a : piste son    p : capture de l'image\ni : infos techniques    f : plein écran    q : quitter", 8)
 end)
 
 mp.register_event("file-loaded", function() lire_tc_depart(); afficher() end)
@@ -91,3 +91,14 @@ mp.observe_property("time-pos", "number", afficher)
 mp.observe_property("ab-loop-a", "native", afficher)
 mp.observe_property("ab-loop-b", "native", afficher)
 mp.observe_property("osd-dimensions", "native", afficher)
+
+-- « c » : carte « plan / rush » dans l'Organiser du Studio XIII (projet actif), avec le timecode courant et le fichier
+mp.add_key_binding(nil, "carte_studio", function()
+  local f = fps(); local pos = mp.get_property_number("time-pos") or 0
+  local base = debut_tc and tc_en_images(debut_tc, f) or 0
+  local tc = images_en_tc(base + math.floor(pos * f + 0.0001), f)
+  local chemin = mp.get_property("path") or ""
+  local nom = mp.get_property("filename/no-ext") or "plan"
+  mp.command_native_async({ name = "subprocess", playback_only = false, args = { "xiii-studio", "--carte", nom .. " — " .. tc, "--timecode", tc, "--fichier", chemin } }, function() end)
+  mp.osd_message("Carte ajoutée au Studio XIII : " .. tc, 2.5)
+end)

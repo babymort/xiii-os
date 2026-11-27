@@ -145,11 +145,25 @@ d.memos().extend([{"id": "m1", "titre": "Wi-Fi du lieu", "texte": "Réseau : Sal
                   {"id": "m2", "titre": "Matériel à rendre", "liste": [{"t": "Rail 2 m", "ok": True}, {"t": "Mixette", "ok": False}], "couleur": "bleu", "modif": time.time() - 10},
                   {"id": "m3", "titre": "", "texte": "Idée : ouvrir sur la salle vide, la nuit.", "couleur": "violet", "etiquettes": ["idees"], "modif": time.time() - 20}]); d.ecrire("memos")
 o = d.objectifs(); o["semaine"] += [{"t": "Tourner le concert", "ok": False}, {"t": "Sauvegarder 3-2-1", "ok": True}]; o["mois"] += [{"t": "Livrer le film", "ok": False}]; d.ecrire("objectifs")
+d.lire("contacts", []).extend([{"id": "c1", "nom": "Léa Martin", "role": "Cheffe opératrice", "categorie": "Équipe", "tel": "06 12 34 56 78", "email": "lea@exemple.fr", "date": aujourdhui().isoformat()},
+                               {"id": "c2", "nom": "Label Nuit", "role": "Production", "categorie": "Client", "email": "prod@label.fr"},
+                               {"id": "c3", "nom": "Salle Pleyel", "role": "Régie lieu", "categorie": "Lieu", "tel": "01 00 00 00 00"}]); d.ecrire("contacts")
+d.lire("materiel", []).extend([{"id": "x1", "nom": "Sony FX6", "categorie": "Caméra", "statut": "Sorti", "quantite": 2, "valeur": 6500.0, "retour": (aujourdhui() + datetime.timedelta(days=3)).isoformat(), "qui": "Léa"},
+                               {"id": "x2", "nom": "Zoom F8n", "categorie": "Son", "statut": "Disponible", "quantite": 1, "valeur": 1100.0},
+                               {"id": "x3", "nom": "Aputure 600d", "categorie": "Lumière", "statut": "En panne", "quantite": 1}]); d.ecrire("materiel")
+d.lire("budget", []).extend([{"id": "b1", "libelle": "Prestation captation", "type": "Recette", "categorie": "Autre", "montant": 6000.0, "statut": "Engagé"},
+                             {"id": "b2", "libelle": "Cadreurs (2 j)", "type": "Dépense", "categorie": "Équipe", "montant": 1400.0, "statut": "Prévu", "date": aujourdhui().isoformat()},
+                             {"id": "b3", "libelle": "Location optiques", "type": "Dépense", "categorie": "Matériel", "montant": 650.0, "statut": "Payé"},
+                             {"id": "b4", "libelle": "Repas équipe", "type": "Dépense", "categorie": "Repas", "montant": 240.0, "statut": "Prévu"}]); d.ecrire("budget")
+import json, os
+os.makedirs(os.path.expanduser("~/XIII/Test/03_Documents"), exist_ok=True)
+json.dump({"format": "xiii-link", "kind": "workplan", "project": {"name": "Test"}, "days": [{"n": 1, "date": (aujourdhui() + datetime.timedelta(days=1)).isoformat(), "scenes": [{"seq": "12", "ie": "INT.", "decor": "Loges", "effet": "NUIT"}, {"seq": "13", "ie": "EXT.", "decor": "Parvis", "effet": "NUIT"}]}]},
+          open(os.path.expanduser("~/XIII/Test/03_Documents/plan-de-travail.xiii.json"), "w"))
 P
 python3 -c "$CFG"'config.modifier(mode_bureau="classique")'; sleep 2
 python3 -c "$CFG"'config.modifier(production_page="accueil", mode_bureau="production")'; sleep 4
 grim -s 0.5 /out/production-accueil.png
-for pg in organiser memos taches objectifs tableau planning; do
+for pg in organiser memos taches objectifs contacts materiel budget tableau planning; do
   python3 -c "$CFG"'config.modifier(mode_bureau="classique")'; sleep 2
   python3 -c "$CFG"'config.modifier(production_page="'$pg'", mode_bureau="production")'; sleep 4; grim -s 0.5 /out/production-$pg.png
 done

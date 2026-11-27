@@ -9,7 +9,7 @@
 # Tout est rangé avec le projet actif (~/XIII/<projet>/.studio/, donc synchronisé avec OneDrive si le dossier XIII l'est),
 # sinon dans ~/XIII/.studio. Fichiers JSON simples. Utilisé dans le mode Production et en application (xiii-studio, xiii-memos).
 # Application développée par Matthieu Lamotte.
-import os, sys, json, time, uuid, datetime, math
+import os, sys, re, json, time, uuid, datetime, math, subprocess
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, Gio, Pango
@@ -23,7 +23,7 @@ COUL_MEMOS = [("defaut", None), ("ambre", "#5a4325"), ("rouge", "#5c2b29"), ("ve
 PRIOS = [("haute", "Haute", "#e5534b"), ("moyenne", "Moyenne", "#d4a72c"), ("basse", "Basse", "#57ab5a")]
 STATUTS = [("a_faire", "À faire", "#8b949e"), ("en_cours", "En cours", "#539bf5"), ("fait", "Fait", "#57ab5a")]
 TYPES_CARTE = [("simple", "Carte", "square"), ("plan", "Plan / rush", "clapperboard"), ("livrable", "Livrable", "package"), ("validation", "Validation client", "badge-check")]
-CHAMPS_TYPE = {"plan": [("sequence", "Séquence"), ("plan", "Plan"), ("prise", "Prise"), ("timecode", "Timecode"), ("camera", "Caméra"), ("carte_memoire", "Carte mémoire")],
+CHAMPS_TYPE = {"plan": [("sequence", "Séquence"), ("plan", "Plan"), ("prise", "Prise"), ("timecode", "Timecode"), ("camera", "Caméra"), ("carte_memoire", "Carte mémoire"), ("fichier", "Fichier")],
                "livrable": [("format", "Format (ex. 1920×1080 25p)"), ("duree", "Durée"), ("codec", "Codec / conteneur"), ("diffusion", "Date de diffusion")],
                "validation": [("version", "Version (V1, V2…)"), ("client", "Client"), ("lien", "Lien de visionnage")]}
 STATUT_VALID = ["En attente", "Retours", "Validé"]
@@ -34,6 +34,102 @@ MODELES = {
     "postprod": ("Post-production", [("Dérushage", "#8b949e"), ("Montage", "#539bf5"), ("Étalonnage", "#b083f0"), ("Son / mixage", "#d4a72c"), ("Fini", "#57ab5a")]),
     "livraison": ("Livraison", [("À exporter", "#8b949e"), ("En validation", "#d4a72c"), ("Retours client", "#e5534b"), ("Livré", "#57ab5a")]),
 }
+
+# bases « façon Notion » : chaque fiche est un dictionnaire ; champs (clé, libellé, type, options)
+BASES = {
+    "contacts": {"titre": "Contacts", "icone": "contact", "sous": "Équipe, clients, prestataires et lieux du projet. Importez l'équipe du CALL SHEETO.",
+                 "champs": [("nom", "Nom", "texte", None), ("role", "Rôle / poste", "texte", None),
+                            ("categorie", "Catégorie", "choix", ["Équipe", "Client", "Prestataire", "Lieu", "Autre"]),
+                            ("tel", "Téléphone", "texte", None), ("email", "E-mail", "texte", None), ("date", "Date (convocation, rendez-vous)", "date", None), ("notes", "Notes", "long", None)],
+                 "titre_fiche": "nom", "filtre": "categorie", "date": "date"},
+    "materiel": {"titre": "Matériel", "icone": "package", "sous": "Inventaire du projet : ce qui est disponible, sorti, en panne ou loué. Importez une liste PACKINGO.",
+                 "champs": [("nom", "Matériel", "texte", None), ("categorie", "Catégorie", "choix", ["Caméra", "Optique", "Son", "Lumière", "Machinerie", "Stockage", "Régie", "Autre"]),
+                            ("statut", "Statut", "choix", ["Disponible", "Sorti", "En panne", "Loué"]), ("quantite", "Quantité", "nombre", None),
+                            ("valeur", "Valeur (€)", "nombre", None), ("retour", "Date de retour", "date", None), ("qui", "Qui l'a", "texte", None), ("notes", "Notes", "long", None)],
+                 "titre_fiche": "nom", "filtre": "statut", "date": "retour"},
+    "budget": {"titre": "Budget", "icone": "wallet", "sous": "Dépenses et recettes du projet, par catégorie. Importez les lignes d'un devis DEVISO.",
+               "champs": [("libelle", "Libellé", "texte", None), ("type", "Type", "choix", ["Dépense", "Recette"]),
+                          ("categorie", "Catégorie", "choix", ["Équipe", "Matériel", "Lieu", "Transport", "Repas", "Post-production", "Diffusion", "Autre"]),
+                          ("montant", "Montant (€)", "nombre", None), ("statut", "Statut", "choix", ["Prévu", "Engagé", "Payé"]), ("date", "Date", "date", None), ("notes", "Notes", "long", None)],
+               "titre_fiche": "libelle", "filtre": "categorie", "date": "date"},
+}
+COUL_CHOIX = {"Équipe": "#539bf5", "Client": "#d4a72c", "Prestataire": "#b083f0", "Lieu": "#57ab5a", "Disponible": "#57ab5a", "Sorti": "#d4a72c", "En panne": "#e5534b", "Loué": "#539bf5",
+              "Dépense": "#e5534b", "Recette": "#57ab5a", "Prévu": "#8b949e", "Engagé": "#d4a72c", "Payé": "#57ab5a"}
+
+def euros(x):
+    try: return ("%.2f €" % float(x)).replace(".", ",")
+    except (TypeError, ValueError): return ""
+
+def nombre(t):
+    try: return float(str(t).replace(",", ".").replace("€", "").replace(" ", "")) if str(t).strip() else ""
+    except ValueError: return ""
+
+
+# ---------------------------------------------------------------- liens avec la Suite XIII (fichiers .xiii.json « xiii-link »)
+def liens_suite(types):
+    """Fichiers xiii-link du projet et de Documents dont le « kind » est dans types (le plus récent d'abord)."""
+    try:
+        from .widgets import dossiers_xiii
+        D = dossiers_xiii()
+    except Exception:
+        D = [os.path.expanduser("~/XIII"), os.path.expanduser("~/Documents"), os.path.expanduser("~/Téléchargements")]
+    import glob
+    R = []
+    for d in D:
+        for f in glob.glob(os.path.join(d, "**", "*.json"), recursive=True)[:600]:
+            try: o = json.load(open(f, encoding="utf-8"))
+            except Exception: continue
+            if isinstance(o, dict) and o.get("format") == "xiii-link" and any(t in str(o.get("kind", "")).lower() for t in types):
+                R.append((os.path.getmtime(f), f, o))
+    return [(f, o) for _t, f, o in sorted(R, key=lambda x: -x[0])]
+
+def listes_de(o, cles):
+    """Toutes les listes de dictionnaires contenues dans o dont les éléments ont au moins une des clés données."""
+    R = []
+    def visite(x):
+        if isinstance(x, list) and x and all(isinstance(e, dict) for e in x) and any(k in x[0] for k in cles): R.append(x)
+        if isinstance(x, dict): [visite(v) for v in x.values()]
+        elif isinstance(x, list): [visite(v) for v in x]
+    visite(o); return R
+
+def premier(e, *cles):
+    for k in cles:
+        v = e.get(k)
+        if v not in (None, "", []): return str(v).strip()
+    return ""
+
+def personnes_suite(o):
+    L = []
+    for liste in listes_de(o, ("name", "nom", "firstName", "prenom", "role", "poste", "fonction", "email", "phone", "tel")):
+        for e in liste:
+            nom = premier(e, "name", "nom", "fullName") or " ".join(x for x in (premier(e, "firstName", "prenom"), premier(e, "lastName", "nomFamille")) if x)
+            if not nom: continue
+            L.append({"nom": nom, "role": premier(e, "role", "poste", "fonction", "job", "dept", "departement"), "tel": premier(e, "phone", "tel", "telephone", "mobile"),
+                      "email": premier(e, "email", "mail"), "date": (premier(e, "call", "convocation", "date") or "")[:10] if re.match(r"\d{4}-\d\d-\d\d", premier(e, "call", "convocation", "date") or "") else "",
+                      "categorie": "Équipe"})
+    vus = set(); R = []
+    for x in L:
+        if x["nom"].lower() not in vus: vus.add(x["nom"].lower()); R.append(x)
+    return R
+
+def lignes_devis(o):
+    R = []
+    for liste in listes_de(o, ("label", "libelle", "designation", "description", "title", "titre", "name")):
+        for e in liste:
+            lib = premier(e, "label", "libelle", "designation", "description", "title", "titre", "name")
+            q = nombre(premier(e, "qty", "quantite", "qte", "quantity") or 1) or 1
+            pu = nombre(premier(e, "price", "prix", "pu", "unitPrice", "rate", "tarif"))
+            tot = nombre(premier(e, "total", "montant", "amount")) or (pu * q if pu != "" else "")
+            if lib and tot != "": R.append({"libelle": lib, "type": "Dépense", "categorie": "Autre", "montant": round(tot, 2), "statut": "Prévu"})
+    return R
+
+def articles_packing(o):
+    R = []
+    for liste in listes_de(o, ("name", "nom", "label", "item", "article", "designation")):
+        for e in liste:
+            n = premier(e, "name", "nom", "label", "item", "article", "designation")
+            if n: R.append({"nom": n, "categorie": premier(e, "category", "categorie", "cat") or "Autre", "statut": "Disponible", "quantite": nombre(premier(e, "qty", "quantite", "qte", "quantity") or 1) or 1})
+    return R
 
 CSS = """
 .studio-banniere { border-radius: 16px; }
@@ -60,6 +156,10 @@ def css():
 
 
 def nid(): return uuid.uuid4().hex[:10]
+
+def S_notifier(titre, texte=""):
+    try: subprocess.Popen(["notify-send", "-a", "Studio XIII", "-i", "view-list-details", titre, texte], start_new_session=True)
+    except OSError: pass
 def aujourdhui(): return datetime.date.today()
 def lire_date(s):
     try: return datetime.date.fromisoformat(s)
@@ -203,11 +303,12 @@ class Horloge(Gtk.DrawingArea):
 class Studio:
     """Studio XIII en un seul objet : self.page(cle) donne la page à afficher (tableau de bord, organiser, tâches, mémos, objectifs)."""
     PAGES = [("bord", "layout-dashboard", "Tableau de bord"), ("organiser", "square-kanban", "Organiser"), ("taches", "list-checks", "Tâches"),
-             ("memos", "sticky-note", "Mémos"), ("objectifs", "trophy", "Objectifs")]
+             ("memos", "sticky-note", "Mémos"), ("objectifs", "trophy", "Objectifs"), ("contacts", "contact", "Contacts"), ("materiel", "package", "Matériel"), ("budget", "wallet", "Budget")]
 
     def __init__(self, ouvrir_page=None, projet=None, haut_bord=None):
         css(); self.d = Donnees(projet); self.ouvrir_page = ouvrir_page or (lambda k: None); self.haut_bord = haut_bord
         self.conteneurs = {}; self.vue_taches = "semaine"; self.recherche_memos = ""
+        self.vues_base = {}; self.filtres_base = {}; self.recherche_base = {}
 
     def page(self, cle):
         """Conteneur (ScrolledWindow) de la page, rempli maintenant et à chaque changement."""
@@ -276,6 +377,26 @@ class Studio:
             pb = Gtk.ProgressBar(fraction=(f / n) if n else 0); pb.add_css_class("studio-progres"); bx.append(pb); c.set_child(bx)
             c.connect("clicked", lambda _b, t=t: (self.d.tableaux().__setitem__("actif", t["id"]), self.d.ecrire("organiser"), self.ouvrir_page("organiser"))); fl.append(c)
         pr.append(fl); g2.append(pr)
+        # plan de travail (PLANO) : prochaine journée de tournage
+        o = self.plan_de_travail()
+        if o:
+            pb_ = boite(True, 6, "studio-bloc"); pb_.append(titre_bloc("calendar-days", "Plan de travail (PLANO)", bouton("Créer les cartes", "square-plus", "plat", taille=14, rappel=self.cartes_du_plan)))
+            J = sorted([j for j in o.get("days") or [] if (j.get("date") or "") >= aujourdhui().isoformat()], key=lambda j: j.get("date") or "")[:3]
+            if not J: pb_.append(label("Toutes les journées du plan de travail sont passées.", "petit", "attenue"))
+            for j in J:
+                d_ = lire_date((j.get("date") or "")[:10])
+                pb_.append(label("J%s · %s — %s" % (j.get("n", "?"), date_courte(d_) if d_ else "?", ", ".join("séq. %s %s" % (x.get("seq", ""), x.get("decor", "")) for x in (j.get("scenes") or [])[:4])), "petit", wrap=True, xalign=0))
+            g2.append(pb_)
+        # chiffres du projet : budget, matériel, contacts
+        Bd = self.d.lire("budget", []); Mt = self.d.lire("materiel", []); Ct = self.d.lire("contacts", [])
+        if Bd or Mt or Ct:
+            cb_ = boite(False, 10, "studio-bloc")
+            dep = sum(float(x.get("montant") or 0) for x in Bd if x.get("type", "Dépense") == "Dépense"); rec = sum(float(x.get("montant") or 0) for x in Bd if x.get("type") == "Recette")
+            for ic, n, val, k in (("wallet", "Dépenses", euros(dep), "budget"), ("trending-up" if os.path.exists(os.path.join(os.path.dirname(__file__), "..", "..", "..", "share", "xiii", "lucide", "trending-up.svg")) else "wallet", "Solde", euros(rec - dep), "budget"),
+                                  ("package", "Matériel sorti", "%d / %d" % (sum(1 for x in Mt if x.get("statut") == "Sorti"), len(Mt)), "materiel"), ("contact", "Contacts", str(len(Ct)), "contacts")):
+                bt = Gtk.Button(hexpand=True); bt.add_css_class("plat"); c_ = boite(True, 2); h_ = boite(False, 6); h_.append(ico(ic, 14, "c")); h_.append(label(n, "petit", "attenue")); c_.append(h_)
+                c_.append(label(val, "gras")); bt.set_child(c_); bt.connect("clicked", lambda *_a, k=k: self.ouvrir_page(k)); cb_.append(bt)
+            g2.append(cb_)
         # col. 3 : habitudes du jour + objectifs + mémos épinglés
         hb = boite(True, 6, "studio-bloc"); hb.append(titre_bloc("repeat", "Habitudes du jour", bouton(None, "plus", "plat", taille=14, rappel=lambda: self.ajouter_habitude(hb))))
         j = aujourdhui().isoformat(); H = self.d.habitudes()
@@ -361,6 +482,7 @@ class Studio:
             popover_menu(b, [("pencil", "Renommer", lambda: self.renommer(b, c["nom"], lambda n: (c.__setitem__("nom", n), self.d.ecrire("organiser"), self.remplir("organiser")))),
                              ("palette", "Changer la couleur", lambda: popover_menu(b, [("circle", n, (lambda x=x: (c.__setitem__("couleur", x), self.d.ecrire("organiser"), self.remplir("organiser")))) for n, x in ETIQUETTES])),
                              ("arrow-left", "Déplacer à gauche", lambda: self.bouger_colonne(t, c, -1)), ("arrow-right", "Déplacer à droite", lambda: self.bouger_colonne(t, c, 1)),
+                             ("send", "Envoyer la colonne à DOSSIER", lambda: self.envoyer_dossier("%s — %s" % (t["nom"], c["nom"]), self.markdown_colonne(t, c))),
                              None, ("trash-2", "Supprimer la colonne", lambda: self.supprimer_colonne(t, c))])
         m.connect("clicked", menu); h.append(m); col.append(h)
         liste = boite(True, 8); col.append(liste)
@@ -545,6 +667,8 @@ class Studio:
                 if dj == a: col.add_css_class("aujourdhui")
                 col.append(label("%s %d" % (JOURS[j], dj.day), "gras" if dj == a else "attenue"))
                 for t in [t for t in T if t.get("echeance") == dj.isoformat()]: col.append(self.ligne_tache(t, compacte=True))
+                for j in (self.plan_de_travail() or {}).get("days") or []:
+                    if (j.get("date") or "")[:10] == dj.isoformat(): col.append(pastille("🎬 Tournage J%s" % j.get("n", ""), "#f0883e"))
                 g.append(col)
             v.append(g); return
         def garde(t):
@@ -662,6 +786,236 @@ class Studio:
             GLib.idle_add(lambda: (self.rafraichir("memos", "bord"), False)[1]); return False
         w.connect("close-request", fin); w.set_child(v); w.present(); (e_t if not liste else lc).grab_focus()
 
+    # ---------------------------------------------------------------- bases (contacts, matériel, budget)
+    def p_contacts(self, v): self.p_base(v, "contacts")
+    def p_materiel(self, v): self.p_base(v, "materiel")
+    def p_budget(self, v): self.p_base(v, "budget")
+
+    def p_base(self, v, nom):
+        B = BASES[nom]; L = self.d.lire(nom, [])
+        droite = boite(False, 6)
+        droite.append(bouton("Nouveau", "plus", "pilule", rappel=lambda: self.editer_fiche(nom, None, v)))
+        imp = {"contacts": ("Importer l'équipe (CALL SHEETO)", self.importer_equipe), "materiel": ("Importer une liste PACKINGO", self.importer_packing),
+               "budget": ("Importer un devis DEVISO", self.importer_devis)}[nom]
+        bi = bouton(imp[0], "download", "fantome"); bi.connect("clicked", lambda b: imp[1](b)); droite.append(bi)
+        be = bouton(None, "send", "plat", tip="Envoyer la liste à DOSSIER"); be.connect("clicked", lambda b: self.envoyer_dossier(B["titre"], self.markdown_base(nom))); droite.append(be)
+        self.entete(v, B["titre"], B["sous"], droite)
+        # onglets de filtre (catégorie / statut) + vues + recherche
+        cf = B["filtre"]; opts = next(c[3] for c in B["champs"] if c[0] == cf)
+        barre = boite(False, 6)
+        f_act = self.filtres_base.get(nom, "Tous"); premier_b = None
+        for o in ["Tous"] + opts:
+            n = sum(1 for x in L if o == "Tous" or x.get(cf) == o)
+            if o != "Tous" and not n: continue
+            b = Gtk.ToggleButton(label="%s  %d" % (o, n), active=o == f_act)
+            if premier_b: b.set_group(premier_b)
+            premier_b = premier_b or b
+            b.connect("toggled", lambda b, o=o: b.get_active() and (self.filtres_base.__setitem__(nom, o), GLib.idle_add(lambda: (self.remplir(nom), False)[1])))
+            barre.append(b)
+        barre.append(Gtk.Box(hexpand=True))
+        vue = self.vues_base.get(nom, "cartes" if nom == "contacts" else "tableau"); premier_v = None
+        for k, ic, tip in (("tableau", "table-2", "Tableau"), ("cartes", "layout-grid", "Cartes"), ("calendrier", "calendar-days", "Calendrier")):
+            b = Gtk.ToggleButton(active=vue == k); b.set_child(ico(ic, 16)); b.set_tooltip_text(tip)
+            if premier_v: b.set_group(premier_v)
+            premier_v = premier_v or b
+            b.connect("toggled", lambda b, k=k: b.get_active() and (self.vues_base.__setitem__(nom, k), GLib.idle_add(lambda: (self.remplir(nom), False)[1])))
+            barre.append(b)
+        v.append(barre)
+        se = Gtk.SearchEntry(placeholder_text="Rechercher…"); se.set_text(self.recherche_base.get(nom, "")); v.append(se)
+        zone = boite(True, 8); v.append(zone)
+        if nom == "budget": v.append(self.totaux_budget(L))
+        def remplir_z():
+            vider(zone); q = se.get_text().strip().lower(); self.recherche_base[nom] = se.get_text()
+            F = [x for x in L if (f_act == "Tous" or x.get(cf) == f_act) and (not q or q in " ".join(str(x.get(c[0], "")) for c in B["champs"]).lower())]
+            if not F: zone.append(label("Rien ici pour l'instant : « Nouveau » ou importez depuis la Suite XIII.", "attenue")); return
+            if vue == "tableau": zone.append(self.vue_tableau(nom, F, v))
+            elif vue == "cartes": zone.append(self.vue_cartes(nom, F, v))
+            else: zone.append(self.vue_calendrier([(lire_date(x.get(B["date"], "")), x.get(B["titre_fiche"]) or "", (lambda x=x: self.editer_fiche(nom, x, v))) for x in F]))
+        se.connect("search-changed", lambda *_: remplir_z()); remplir_z()
+
+    def valeur(self, nom, x, c):
+        k, lib, typ, opts = c; val = x.get(k, "")
+        if typ == "date": d = lire_date(val); return d.strftime("%d/%m/%Y") if d else ""
+        if typ == "nombre" and k in ("montant", "valeur"): return euros(val) if val != "" else ""
+        if typ == "nombre": return ("%g" % val) if isinstance(val, (int, float)) else str(val)
+        return str(val)
+
+    def vue_tableau(self, nom, F, ancre):
+        B = BASES[nom]; cols = [c for c in B["champs"] if c[2] != "long"]
+        g = Gtk.Grid(column_spacing=0, row_spacing=0); g.add_css_class("studio-bloc")
+        for j, c in enumerate(cols):
+            h = label(c[1], "petit", "attenue", xalign=0, margin_start=8, margin_end=8, margin_bottom=6); h.set_hexpand(j == 0); g.attach(h, j, 0, 1, 1)
+        for i, x in enumerate(F, 1):
+            for j, c in enumerate(cols):
+                val = self.valeur(nom, x, c)
+                w = pastille(val, COUL_CHOIX.get(val, "#8b949e")) if c[2] == "choix" and val else label(val, "gras" if j == 0 else "", xalign=0, ellipsize=True, largeur=28)
+                w.set_halign(Gtk.Align.START); w.set_margin_top(6); w.set_margin_bottom(6); w.set_margin_start(8); w.set_margin_end(8)
+                bt = Gtk.Button(); bt.add_css_class("plat"); bt.set_child(w); bt.connect("clicked", lambda *_a, x=x: self.editer_fiche(nom, x, ancre)); g.attach(bt, j, i, 1, 1)
+        return g
+
+    def vue_cartes(self, nom, F, ancre):
+        B = BASES[nom]
+        fl = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=5, min_children_per_line=2, column_spacing=12, row_spacing=12, homogeneous=True)
+        for x in F:
+            c = boite(True, 4, "studio-carte"); c.set_size_request(220, -1)
+            h = boite(False, 6); h.append(ico(B["icone"], 16, "c")); h.append(label(x.get(B["titre_fiche"]) or "—", "gras", ellipsize=True, hexpand=True)); c.append(h)
+            r = boite(False, 4)
+            for k, lib, typ, opts in B["champs"]:
+                if typ == "choix" and x.get(k): r.append(pastille(x[k], COUL_CHOIX.get(x[k], "#8b949e")))
+            c.append(r)
+            for cc in B["champs"][1:]:
+                if cc[2] in ("texte", "date", "nombre") and self.valeur(nom, x, cc): c.append(label(self.valeur(nom, x, cc), "petit", "attenue", ellipsize=True, xalign=0))
+            g = Gtk.GestureClick(); g.connect("released", lambda *_a, x=x: self.editer_fiche(nom, x, ancre)); c.add_controller(g); fl.append(c)
+        return fl
+
+    def vue_calendrier(self, E):
+        """E = [(date, titre, rappel)] : mois en cours, une case par jour."""
+        a = aujourdhui(); d0 = a.replace(day=1); debut = d0 - datetime.timedelta(days=d0.weekday())
+        b = boite(True, 6); b.append(label("%s %d" % (MOIS[a.month - 1].capitalize(), a.year), "gras"))
+        g = Gtk.Grid(column_spacing=6, row_spacing=6, column_homogeneous=True)
+        for j, n in enumerate(JOURS): g.attach(label(n, "petit", "attenue", xalign=0.5), j, 0, 1, 1)
+        for i in range(42):
+            dj = debut + datetime.timedelta(days=i)
+            if i >= 35 and dj.month != a.month: break
+            case = boite(True, 3, "studio-jour"); case.set_size_request(-1, 92)
+            if dj == a: case.add_css_class("aujourdhui")
+            case.append(label(str(dj.day), "petit", "gras" if dj.month == a.month else "attenue", xalign=1))
+            for d, t, rap in E:
+                if d == dj:
+                    bt = Gtk.Button(); bt.add_css_class("plat"); bt.set_child(label(t, "petit", ellipsize=True, xalign=0)); bt.connect("clicked", lambda *_a, r=rap: r()); case.append(bt)
+            g.attach(case, i % 7, 1 + i // 7, 1, 1)
+        b.append(g); return b
+
+    def totaux_budget(self, L):
+        dep = sum(float(x.get("montant") or 0) for x in L if x.get("type", "Dépense") == "Dépense"); rec = sum(float(x.get("montant") or 0) for x in L if x.get("type") == "Recette")
+        paye = sum(float(x.get("montant") or 0) for x in L if x.get("type", "Dépense") == "Dépense" and x.get("statut") == "Payé")
+        b = boite(True, 8, "studio-bloc"); b.append(titre_bloc("wallet", "Totaux"))
+        r = boite(False, 24)
+        for n, val, col in (("Dépenses", dep, "#e5534b"), ("Recettes", rec, "#57ab5a"), ("Solde", rec - dep, "#57ab5a" if rec - dep >= 0 else "#e5534b"), ("Déjà payé", paye, "#8b949e")):
+            c = boite(True, 0); c.append(label(n, "petit", "attenue")); l = label(euros(val), "hero-grand"); c.append(l); r.append(c)
+        b.append(r)
+        cats = {}
+        for x in L:
+            if x.get("type", "Dépense") == "Dépense": cats[x.get("categorie") or "Autre"] = cats.get(x.get("categorie") or "Autre", 0) + float(x.get("montant") or 0)
+        for c, m in sorted(cats.items(), key=lambda z: -z[1]):
+            rr = boite(False, 8); rr.append(label(c, "petit", hexpand=True)); pb = Gtk.ProgressBar(fraction=m / dep if dep else 0, valign=Gtk.Align.CENTER); pb.set_size_request(240, -1); pb.add_css_class("studio-progres")
+            rr.append(pb); rr.append(label(euros(m), "petit")); b.append(rr)
+        return b
+
+    def editer_fiche(self, nom, x, ancre):
+        B = BASES[nom]; nouveau = x is None
+        if nouveau: x = {"id": nid()}
+        w = fenetre(ancre, B["titre"], 520, 600); v = boite(True, 8, margin_top=18, margin_bottom=18, margin_start=20, margin_end=20)
+        sc = Gtk.ScrolledWindow(vexpand=True); sc.set_child(v); w.set_child(sc)
+        widgets = {}
+        for k, lib, typ, opts in B["champs"]:
+            v.append(label(lib, "petit", "attenue"))
+            if typ == "choix":
+                dd = Gtk.DropDown.new_from_strings(opts); dd.set_selected(opts.index(x[k]) if x.get(k) in opts else 0); widgets[k] = dd; v.append(dd)
+            elif typ == "long":
+                tv = Gtk.TextView(wrap_mode=Gtk.WrapMode.WORD_CHAR, top_margin=6, left_margin=6); tv.get_buffer().set_text(x.get(k, "")); fr = Gtk.Frame(); fr.set_child(tv); fr.set_size_request(-1, 90); widgets[k] = tv; v.append(fr)
+            else:
+                val = x.get(k, "")
+                if typ == "date": d = lire_date(val); val = d.strftime("%d/%m/%Y") if d else ""
+                if typ == "nombre" and isinstance(val, float): val = ("%g" % val)
+                e = entree(str(val), "jj/mm/aaaa" if typ == "date" else ""); widgets[k] = e; v.append(e)
+        def sauver():
+            for k, lib, typ, opts in B["champs"]:
+                wd = widgets[k]
+                if typ == "choix": x[k] = opts[wd.get_selected()]
+                elif typ == "long": b_ = wd.get_buffer(); x[k] = b_.get_text(b_.get_start_iter(), b_.get_end_iter(), False)
+                elif typ == "date": x[k] = saisie_date(wd.get_text())
+                elif typ == "nombre": x[k] = nombre(wd.get_text())
+                else: x[k] = wd.get_text().strip()
+            L = self.d.lire(nom, [])
+            if nouveau and x.get(B["titre_fiche"]): L.append(x)
+            self.d.ecrire(nom); self.rafraichir(nom, "bord")
+        bas = boite(False, 8, margin_top=8)
+        if not nouveau: bas.append(bouton("Supprimer", "trash-2", "plat", rappel=lambda: (self.d.lire(nom, []).remove(x), self.d.ecrire(nom), self.rafraichir(nom, "bord"), w.close())))
+        bas.append(Gtk.Box(hexpand=True)); bas.append(bouton("Enregistrer", "check", "pilule", rappel=lambda: (sauver(), w.close()))); v.append(bas)
+        w.present()
+
+    # --- imports depuis la Suite XIII
+    def choisir_lien(self, ancre, types, extraire, nom_base, titre):
+        """Liste des exports de la Suite trouvés, ou choix d'un fichier ; les éléments trouvés sont ajoutés (sans doublons)."""
+        L = liens_suite(types)
+        def importer(o):
+            nouveaux = extraire(o); base = self.d.lire(nom_base, []); cle = BASES[nom_base]["titre_fiche"]
+            deja = {str(x.get(cle, "")).lower() for x in base}; n = 0
+            for e in nouveaux:
+                if str(e.get(cle, "")).lower() not in deja: e["id"] = nid(); base.append(e); deja.add(str(e.get(cle, "")).lower()); n += 1
+            self.d.ecrire(nom_base); self.rafraichir(nom_base, "bord")
+            S_notifier("%d élément(s) importé(s)" % n if n else "Rien de nouveau à importer", titre)
+        def fichier():
+            dlg = Gtk.FileDialog(title=titre); f_ = Gtk.FileFilter(); f_.set_name("Fichiers XIII"); f_.add_pattern("*.json"); f_.add_pattern("*.xiii")
+            st = Gio.ListStore.new(Gtk.FileFilter); st.append(f_); dlg.set_filters(st)
+            def fin(d_, r):
+                try: chemin = d_.open_finish(r).get_path()
+                except GLib.Error: return
+                from .projets import lire_xiii
+                o = lire_xiii(chemin)
+                if o: importer(o)
+            dlg.open(ancre.get_root() if isinstance(ancre.get_root(), Gtk.Window) else None, None, fin)
+        items = [("file-down", "%s — %s" % (os.path.basename(f)[:40], time.strftime("%d/%m %H:%M", time.localtime(os.path.getmtime(f)))), (lambda o=o: importer(o))) for f, o in L[:8]]
+        popover_menu(ancre, items + ([None] if items else []) + [("folder-open", "Choisir un fichier exporté de la Suite…", fichier)])
+
+    def importer_equipe(self, ancre): self.choisir_lien(ancre, ("crew", "contacts", "project", "callsheet", "workplan"), personnes_suite, "contacts", "Équipe du CALL SHEETO")
+    def importer_packing(self, ancre): self.choisir_lien(ancre, ("pack", "matos", "materiel", "gear", "inventaire"), articles_packing, "materiel", "Liste PACKINGO")
+    def importer_devis(self, ancre): self.choisir_lien(ancre, ("devis", "quote", "deviso", "budget"), lignes_devis, "budget", "Devis DEVISO")
+
+    # --- DOSSIER
+    def markdown_base(self, nom):
+        B = BASES[nom]; L = self.d.lire(nom, []); cols = [c for c in B["champs"] if c[2] != "long"]
+        t = ["# %s — %s" % (B["titre"], self.d.projet or "Studio XIII"), "", "| " + " | ".join(c[1] for c in cols) + " |", "|" + "---|" * len(cols)]
+        t += ["| " + " | ".join(self.valeur(nom, x, c).replace("|", "/") for c in cols) + " |" for x in L]
+        return "\n".join(t) + "\n"
+
+    def markdown_colonne(self, t, c):
+        lignes = ["# %s — %s" % (c["nom"], t["nom"]), ""]
+        for k in c["cartes"]:
+            if k.get("archive"): continue
+            lignes.append("## %s" % k["titre"])
+            d = lire_date(k.get("echeance", ""))
+            if d: lignes.append("Échéance : %s" % d.strftime("%d/%m/%Y"))
+            if k.get("personnes"): lignes.append("Personnes : %s" % ", ".join(k["personnes"]))
+            for cle, v_ in (k.get("champs") or {}).items():
+                if v_: lignes.append("%s : %s" % (cle.replace("_", " ").capitalize(), v_))
+            if k.get("desc"): lignes += ["", k["desc"]]
+            for x in k.get("checklist", []): lignes.append("- [%s] %s" % ("x" if x["ok"] else " ", x["t"]))
+            lignes.append("")
+        return "\n".join(lignes)
+
+    def envoyer_dossier(self, titre, texte):
+        """Le document est rangé dans le projet (03_Documents/Studio) puis envoyé à DOSSIER XIII."""
+        d = os.path.join(os.path.expanduser("~/XIII"), self.d.projet, "03_Documents", "Studio") if self.d.projet else os.path.expanduser("~/Documents/Studio XIII")
+        os.makedirs(d, exist_ok=True)
+        f = os.path.join(d, "%s — %s.md" % (titre.replace("/", "-"), time.strftime("%Y-%m-%d")))
+        open(f, "w", encoding="utf-8").write(texte)
+        try: subprocess.Popen(["xiii-suite", "--dossier", f], start_new_session=True)
+        except OSError: pass
+        S_notifier("« %s » envoyé à DOSSIER" % titre, f)
+
+    # --- plan de travail (PLANO)
+    def plan_de_travail(self):
+        L = liens_suite(("workplan",))
+        return L[0][1] if L else None
+
+    def cartes_du_plan(self):
+        """Chaque séquence du plan de travail devient une carte « plan » datée dans le tableau Tournage (sans doublons)."""
+        o = self.plan_de_travail()
+        if not o: S_notifier("Aucun plan de travail trouvé", "Exportez-le depuis PLANO (fichier .xiii.json) dans le dossier du projet."); return
+        d = self.d.tableaux(); t = next((x for x in d["tableaux"] if x.get("modele") == "tournage"), None) or self.d.nouveau_tableau("tournage", ecrire=False)
+        ids = {k["id"] for c in t["colonnes"] for k in c["cartes"]}; n = 0
+        for j in o.get("days") or []:
+            for sc in j.get("scenes") or []:
+                cid = "wp-%s-%s" % (j.get("date", ""), sc.get("seq", ""))
+                if cid in ids: continue
+                t["colonnes"][0]["cartes"].append({"id": cid, "titre": "Séq. %s — %s %s %s" % (sc.get("seq", "?"), sc.get("ie", ""), sc.get("decor", ""), sc.get("effet", "")).strip(),
+                                                   "type": "plan", "champs": {"sequence": str(sc.get("seq", ""))}, "echeance": (j.get("date") or "")[:10], "etiquettes": ["orange"],
+                                                   "checklist": [], "personnes": [], "commentaires": []}); n += 1
+        d["actif"] = t["id"]; self.d.ecrire("organiser"); self.rafraichir("organiser", "bord")
+        S_notifier("%d carte(s) créée(s) depuis le plan de travail" % n, "Tableau « %s »" % t["nom"])
+
     # ---------------------------------------------------------------- objectifs
     def p_objectifs(self, v):
         self.entete(v, "Objectifs", "Ce que vous visez cette semaine, ce mois-ci et cette année. Cochez au fil de l'eau.")
@@ -683,10 +1037,24 @@ class Studio:
         v.append(g)
 
 
+def ajouter_carte(titre, type_="plan", champs=None, colonne=None, projet=None, etiquettes=None):
+    """Carte ajoutée de l'extérieur (Lecteur XIII, déchargement des cartes…) dans le tableau actif du projet."""
+    d = Donnees(projet); t = d.tableau_actif()
+    c = next((x for x in t["colonnes"] if colonne and x["nom"].lower() == colonne.lower()), t["colonnes"][0])
+    k = {"id": nid(), "titre": titre, "type": type_, "champs": champs or {}, "etiquettes": etiquettes or [], "checklist": [], "personnes": [], "commentaires": [], "cree": time.time()}
+    c["cartes"].insert(0, k); d.ecrire("organiser")
+    return t["nom"], c["nom"]
+
 # ====================================================================================== application (mode Classique)
 def main():
     page = "memos" if sys.argv[0].endswith("memos") or "--memos" in sys.argv else (sys.argv[sys.argv.index("--page") + 1] if "--page" in sys.argv else "bord")
     if "--test" in sys.argv: sys.exit(0 if test() else 1)
+    if "--carte" in sys.argv:          # xiii-studio --carte "titre" [--timecode TC] [--fichier F] (touche « c » du Lecteur XIII)
+        A = sys.argv; g = lambda k: A[A.index(k) + 1] if k in A and A.index(k) + 1 < len(A) else ""
+        ch = {"timecode": g("--timecode")}
+        if g("--fichier"): ch["fichier"] = g("--fichier"); ch["plan"] = os.path.splitext(os.path.basename(g("--fichier")))[0]
+        tn, cn = ajouter_carte(g("--carte"), "plan", ch)
+        S_notifier("Carte ajoutée : %s" % g("--carte"), "Tableau « %s », colonne « %s »" % (tn, cn)); return
     app = Gtk.Application(application_id="fr.xiii.studio" + (".memos" if page == "memos" else ""), flags=Gio.ApplicationFlags.NON_UNIQUE)
     def activer(app):
         from .appli import preparer, Volet
@@ -712,8 +1080,13 @@ def test():
     d.taches().append({"id": "t1", "titre": "Appeler la régie", "priorite": "haute", "statut": "a_faire", "echeance": saisie_date("demain")}); d.ecrire("taches")
     d.memos().append({"id": "m1", "titre": "Codes Wi-Fi", "texte": "plateau : xiii", "liste": [], "epingle": True}); d.ecrire("memos")
     d.objectifs()["semaine"].append({"t": "Livrer la V1", "ok": False}); d.ecrire("objectifs")
+    d.lire("budget", []).extend([{"id": "b1", "libelle": "Location FX6", "type": "Dépense", "montant": 450.0}, {"id": "b2", "libelle": "Prestation", "type": "Recette", "montant": 2000.0}]); d.ecrire("budget")
+    eq = personnes_suite({"format": "xiii-link", "kind": "crew", "data": {"crew": [{"name": "Léa Martin", "role": "Cheffe op", "phone": "06"}, {"firstName": "Hugo", "lastName": "B.", "role": "Son"}]}})
+    dv = lignes_devis({"lines": [{"label": "Cadreur", "qty": 2, "price": 350}, {"designation": "Montage", "total": 800}]})
+    ajouter_carte("A001_C003 — 01:02:03:04", "plan", {"timecode": "01:02:03:04"}, projet="Concert")
     d2 = Donnees("Concert"); t2 = d2.tableau_actif()
-    ok = (t2["colonnes"][1]["cartes"][0]["id"] == "k1" and len(t2["colonnes"][0]["cartes"]) == 1 and d2.taches()[0]["echeance"] == (aujourdhui() + datetime.timedelta(days=1)).isoformat()
+    print(("OK        " if len(eq) == 2 and eq[1]["nom"] == "Hugo B." and sum(x["montant"] for x in dv) == 1500 else "ÉCHEC     ") + "Studio XIII : import équipe %s, devis %s €" % ([x["nom"] for x in eq], sum(x["montant"] for x in dv)))
+    ok = (t2["colonnes"][1]["cartes"][0]["id"] == "k1" and len(t2["colonnes"][0]["cartes"]) == 2 and t2["colonnes"][0]["cartes"][0]["champs"]["timecode"] == "01:02:03:04" and d2.taches()[0]["echeance"] == (aujourdhui() + datetime.timedelta(days=1)).isoformat()
           and d2.memos()[0]["epingle"] and d2.objectifs()["semaine"][0]["t"] == "Livrer la V1" and os.path.isdir(os.path.expanduser("~/XIII/Concert/.studio")))
     print(("OK        " if ok else "ÉCHEC     ") + "Studio XIII : %d tableau(x), carte déplacée de « %s » vers « %s », tâche pour demain, mémo épinglé, objectif — relus du disque"
           % (len(d2.tableaux()["tableaux"]), a["nom"], b["nom"]))

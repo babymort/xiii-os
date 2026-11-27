@@ -167,6 +167,13 @@ class Moteur:
             S.detacher(["xiii-suite", "--backupo", t["lien"]]); envoye.append("envoyé à BACKUPO")
             docs = [x for x in (t.get("pdf"), t.get("mhl")) if x and os.path.exists(x)]
             if docs: S.detacher(["xiii-suite", "--dossier"] + docs); envoye.append("à DOSSIER")
+        if t["etat"] == "fini" and c.get("projet_actif"):        # carte dans l'Organiser du Studio XIII (colonne « Sauvegardé » si elle existe)
+            try:
+                from .studio import ajouter_carte
+                ajouter_carte("Carte %s — %s" % (t["nom_support"], t["nom_transfert"]), "plan", {"carte_memoire": t["nom_support"], "fichier": t.get("rapport", "")},
+                              colonne="Sauvegardé", etiquettes=["vert"]); envoye.append("carte dans le Studio")
+            except Exception as e:
+                print("[xiii] carte Studio impossible :", e)
         if t["etat"] == "fini" and c.get("backup_ejecter", False) and t.get("mount"):
             m = t["mount"]
             GLib.idle_add(lambda: (m.eject_with_operation(Gio.MountUnmountFlags.NONE, None, None, None, None) if m.can_eject() else
