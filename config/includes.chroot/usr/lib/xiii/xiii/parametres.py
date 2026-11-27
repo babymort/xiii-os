@@ -294,7 +294,9 @@ class Parametres(Gtk.Application):
         from .modes import MODES
         cfg = self.cfg
         c.append(groupe_titre("Plusieurs écrans"))
-        noms = [e["nom"] for e in E]; princ = cfg.get("ecran_principal") if cfg.get("ecran_principal") in noms else noms[0]
+        noms = [e["nom"] for e in E]
+        defaut = next((n for n in noms if n.startswith(("eDP", "LVDS", "DSI"))), None) or min(E, key=lambda e: (e["x"], e["y"]))["nom"]
+        princ = cfg.get("ecran_principal") if cfg.get("ecran_principal") in noms else defaut
         c.append(reglage("star", "Écran principal", "Il garde la barre du haut, la barre des tâches complète, les icônes du bureau et le mode choisi en haut",
                          droite=deroulant([(e["nom"], "%s — %s" % (e["nom"], e["desc"]) if e["desc"] != e["nom"] else e["nom"]) for e in E], princ,
                                           lambda v: self.regler(ecran_principal=v), 300)))

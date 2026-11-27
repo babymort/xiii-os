@@ -412,7 +412,7 @@ def ecrans():
         for m in e.get("modes", []):
             t = (m["width"], m["height"], round(m["refresh"], 2))
             if t not in modes: modes.append(t)
-        L.append(dict(nom=e["name"], desc=(e.get("make", "") + " " + e.get("model", "")).strip() or e["name"], actif=e.get("enabled", True),
+        L.append(dict(nom=e["name"], desc=((e.get("make") or "") + " " + (e.get("model") or "")).strip() or e.get("description") or e["name"], actif=e.get("enabled", True),
                       w=cur["width"] if cur else 0, h=cur["height"] if cur else 0, hz=round(cur["refresh"], 2) if cur else 0,
                       echelle=e.get("scale", 1.0), rotation=e.get("transform", "normal"), modes=modes,
                       x=(e.get("position") or {}).get("x", 0), y=(e.get("position") or {}).get("y", 0)))

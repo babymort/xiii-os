@@ -100,7 +100,15 @@ class Ecrans:
         L = moniteurs()
         if not L: return None
         voulu = self.sh.cfg.get("ecran_principal")
-        return next((m for m in L if nom(m) == voulu), L[0])
+        m = next((m for m in L if nom(m) == voulu), None)
+        if m is not None: return m
+        # par défaut : l'écran intégré d'un portable, sinon celui le plus en haut à gauche
+        integre = [m for m in L if nom(m).startswith(("eDP", "LVDS", "DSI"))]
+        if integre: return integre[0]
+        def pos(m):
+            try: g = m.get_geometry(); return (g.x, g.y)
+            except Exception: return (0, 0)
+        return min(L, key=pos)
 
     def secondaires(self):
         p = self.principal()

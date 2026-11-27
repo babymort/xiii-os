@@ -14,7 +14,7 @@ xiii-shell > /out/shell-ecrans.log 2>&1 &
 sleep 7
 mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2.5
 grim -s 0.5 /out/ecrans-deux-barres.png
-python3 -c "$CFG"'config.modifier(modes_ecrans={"HEADLESS-2": "multicam"}, mode_bureau="fiction")'; sleep 5
+python3 -c "$CFG"'config.modifier(modes_ecrans={"HEADLESS-2": "multicam"}, mode_bureau="fiction")'; sleep 5   # HEADLESS-1 (à gauche) est l'écran principal par défaut
 grim -s 0.5 /out/ecrans-fiction-multicam.png
 python3 -c "$CFG"'config.modifier(modes_ecrans={"HEADLESS-2": "backup"}, mode_bureau="classique")'; sleep 4
 grim -s 0.5 /out/ecrans-classique-backup.png
