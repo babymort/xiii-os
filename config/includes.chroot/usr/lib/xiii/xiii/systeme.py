@@ -397,8 +397,9 @@ def regler_luminosite(pct):
 # ================================================================ ÉCRANS
 def ecrans():
     if DEMO:
-        return [dict(nom="HDMI-A-1", desc="Moniteur régie 27\"", actif=True, w=1920, h=1080, hz=60.0, echelle=1.0, rotation="normal",
-                     modes=[(1920, 1080, 60.0), (1600, 900, 60.0), (1280, 720, 60.0)])]
+        L = [dict(nom="HDMI-A-1", desc="Moniteur régie 27\"", actif=True, w=1920, h=1080, hz=60.0, echelle=1.0, rotation="normal",
+                  modes=[(1920, 1080, 60.0), (1600, 900, 60.0), (1280, 720, 60.0)], x=0, y=0)]
+        if not os.environ.get("XIII_VRAIS_ECRANS"): return L      # vérifications à plusieurs écrans : les vrais écrans (headless)
     rc, o, _ = sh(["wlr-randr", "--json"])
     try:
         d = json.loads(o)
@@ -413,10 +414,11 @@ def ecrans():
             if t not in modes: modes.append(t)
         L.append(dict(nom=e["name"], desc=(e.get("make", "") + " " + e.get("model", "")).strip() or e["name"], actif=e.get("enabled", True),
                       w=cur["width"] if cur else 0, h=cur["height"] if cur else 0, hz=round(cur["refresh"], 2) if cur else 0,
-                      echelle=e.get("scale", 1.0), rotation=e.get("transform", "normal"), modes=modes))
+                      echelle=e.get("scale", 1.0), rotation=e.get("transform", "normal"), modes=modes,
+                      x=(e.get("position") or {}).get("x", 0), y=(e.get("position") or {}).get("y", 0)))
     return L
 
-def regler_ecran(nom, w=None, h=None, hz=None, echelle=None, rotation=None, actif=None, perso=False):
+def regler_ecran(nom, w=None, h=None, hz=None, echelle=None, rotation=None, actif=None, perso=False, pos=None):
     if DEMO: return True
     cmd = ["wlr-randr", "--output", nom]
     if actif is False: cmd += ["--off"]
@@ -425,7 +427,16 @@ def regler_ecran(nom, w=None, h=None, hz=None, echelle=None, rotation=None, acti
         if w: cmd += ["--custom-mode" if perso else "--mode", "%dx%d@%.3fHz" % (w, h, hz) if hz else "%dx%d" % (w, h)]
         if echelle: cmd += ["--scale", str(echelle)]
         if rotation: cmd += ["--transform", rotation]
+        if pos: cmd += ["--pos", "%d,%d" % tuple(pos)]
     return sh(cmd)[0] == 0
+
+
+def taille_logique(e):
+    """Largeur × hauteur de l'écran dans la disposition (échelle et rotation comprises)."""
+    w, h = e.get("w") or 1920, e.get("h") or 1080
+    if str(e.get("rotation")) in ("90", "270", "flipped-90", "flipped-270"): w, h = h, w
+    k = float(e.get("echelle") or 1) or 1
+    return int(round(w / k)), int(round(h / k))
 
 # ================================================================ SYSTÈME / INFOS
 def infos_systeme():

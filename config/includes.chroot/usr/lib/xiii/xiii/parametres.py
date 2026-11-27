@@ -261,7 +261,9 @@ class Parametres(Gtk.Application):
                          droite=interrupteur(cfg["lumiere_nocturne"], lambda on: self.regler(lumiere_nocturne=on))))
         c.append(reglage("thermometer", "Intensité de la lumière nocturne", "Plus chaud = plus orangé",
                          droite=dim(curseur(cfg["nocturne_temp"], lambda v: self.regler(nocturne_temp=int(v)), 2500, 6000, 100, 400), 260)))
-        for e in S.ecrans():
+        E = S.ecrans()
+        if len(E) > 1: self.plusieurs_ecrans(c, E)
+        for e in E:
             c.append(groupe_titre("Écran " + e["nom"] + (" — " + e["desc"] if e["desc"] != e["nom"] else "")))
             modes = sorted({(w, h) for w, h, _ in e["modes"]}, key=lambda m: -m[0] * m[1])
             res = deroulant([("%dx%d" % m, "%d × %d%s" % (m[0], m[1], " (recommandé)" if i == 0 else "")) for i, m in enumerate(modes)],
@@ -286,6 +288,46 @@ class Parametres(Gtk.Application):
             c.append(reglage("rotate-ccw", "Orientation", "", droite=deroulant([("normal", "Paysage"), ("90", "Portrait"), ("180", "Paysage (retourné)"), ("270", "Portrait (retourné)")],
                                                                                 e["rotation"], lambda v, e=e: self.ecran(e, rotation=v))))
         c.append(info("Les réglages d'écran sont mémorisés et réappliqués à chaque ouverture de session."))
+
+    def plusieurs_ecrans(self, c, E):
+        """Écran principal, disposition, barre des tâches sur chaque écran et mode de chaque écran."""
+        from .modes import MODES
+        cfg = self.cfg
+        c.append(groupe_titre("Plusieurs écrans"))
+        noms = [e["nom"] for e in E]; princ = cfg.get("ecran_principal") if cfg.get("ecran_principal") in noms else noms[0]
+        c.append(reglage("star", "Écran principal", "Il garde la barre du haut, la barre des tâches complète, les icônes du bureau et le mode choisi en haut",
+                         droite=deroulant([(e["nom"], "%s — %s" % (e["nom"], e["desc"]) if e["desc"] != e["nom"] else e["nom"]) for e in E], princ,
+                                          lambda v: self.regler(ecran_principal=v), 300)))
+        c.append(reglage("panel-bottom", "Barre des tâches sur tous les écrans", "Démarrer, applis et heure sur chaque écran",
+                         droite=interrupteur(cfg.get("barre_tous_ecrans", True), lambda on: self.regler(barre_tous_ecrans=on))))
+        c.append(reglage("app-window", "Applis affichées dans les barres", "Comme Windows : toutes les applis sur chaque barre, ou chaque appli sur la barre de son écran",
+                         droite=deroulant([("toutes", "Toutes les barres"), ("ecran", "La barre de son écran")], cfg.get("barre_applis_ecrans", "toutes"),
+                                          lambda v: self.regler(barre_applis_ecrans=v), 220)))
+        p = next(e for e in E if e["nom"] == princ)
+        pw, ph = S.taille_logique(p)
+        modes_e = dict(cfg.get("modes_ecrans") or {})
+        for i, e in enumerate([e for e in E if e["nom"] != princ]):
+            t = "Écran %d — %s" % (i + 2, e["desc"] if e["desc"] != e["nom"] else e["nom"])
+            c.append(reglage("layout-dashboard", t + " : mode", "Un mode à part sur cet écran (ex. Multicam ici, Fiction sur l'écran principal)",
+                             droite=deroulant([(k, n) for k, n, *_ in MODES], modes_e.get(e["nom"], "classique"),
+                                              lambda v, n=e["nom"]: self.regler(modes_ecrans=dict(self.cfg.get("modes_ecrans") or {}, **{n: v})), 200)))
+            ew, eh = S.taille_logique(e)
+            if e["x"] >= p["x"] + pw: cote = "droite"
+            elif e["x"] + ew <= p["x"]: cote = "gauche"
+            elif e["y"] + eh <= p["y"]: cote = "dessus"
+            else: cote = "dessous"
+            c.append(reglage("move", t + " : position", "Par rapport à l'écran principal (la souris passe d'un écran à l'autre par ce bord)",
+                             droite=deroulant([("droite", "À droite"), ("gauche", "À gauche"), ("dessus", "Au-dessus"), ("dessous", "En dessous")], cote,
+                                              lambda v, e=e: self.placer_ecran(p, e, v), 200)))
+
+    def placer_ecran(self, p, e, cote):
+        pw, ph = S.taille_logique(p); ew, eh = S.taille_logique(e)
+        pp, pe = {"droite": ((0, 0), (pw, 0)), "gauche": ((ew, 0), (0, 0)), "dessus": ((0, eh), (0, 0)), "dessous": ((0, 0), (0, ph))}[cote]
+        ec = dict(self.cfg.get("ecrans", {}))
+        for x, pos in ((p, pp), (e, pe)):
+            S.en_fond(S.regler_ecran, None, x["nom"], None, None, None, None, None, None, False, pos)
+            d = dict(ec.get(x["nom"], {})); d["pos"] = list(pos); ec[x["nom"]] = d
+        self.regler(ecrans=ec)
 
     def ecran_perso(self, e, w, h, hz):
         """Essaie une résolution personnalisée : retour automatique à l'ancienne au bout de 15 s si on ne confirme pas (écran noir)."""

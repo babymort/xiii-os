@@ -177,6 +177,9 @@ class Shell(Gtk.Application):
         self.bureau = Bureau(self)
         from .modes import VueMode
         self.vue_mode = VueMode(self); self.appliquer_mode(self.cfg.get("mode_bureau", "classique"), premier=True)
+        # plusieurs écrans : écran principal, barre et mode de chaque écran
+        from .ecrans import Ecrans
+        self.ecrans = Ecrans(self); GLib.idle_add(lambda: (self.ecrans.maj(), False)[1])
 
     def aligner_menu(self):
         self.positionner_barre()
@@ -249,6 +252,7 @@ class Shell(Gtk.Application):
                     pw = self.panneaux[nom][0]
                     for e, v_ in mg.items(): LS.set_margin(pw, e, v_)
         IB.ancrer_panneaux(self, ecart, HH)
+        if getattr(self, "ecrans", None): self.ecrans.replacer()
 
     def _touche(self, ctrl, keyval, code, etat):
         if keyval == Gdk.KEY_Escape:
@@ -473,6 +477,7 @@ class Shell(Gtk.Application):
             a = apps.pour_fenetre(f.app_id)
             cle = a.get_id() if a else ("x:" + (f.app_id or f.titre))
             groupes.setdefault(cle, []).append(f); info[cle] = a
+        if getattr(self, "ecrans", None): groupes = {k: v for k, v in self.ecrans.filtre_principal(groupes).items() if v}
         ordre = [p for p in self.cfg["epingles"] if apps.par_id(p)] + [k for k in groupes if k not in self.cfg["epingles"]]
         mac = self.imit() == "macos"
         if mac: ordre = IB.ordre_dock(ordre)
@@ -485,6 +490,7 @@ class Shell(Gtk.Application):
             if mac and n == 1: self.taches.append(IB.bouton_launchpad(self))       # Fichiers, puis la tuile Applications
         if mac and n == 0: self.taches.append(IB.bouton_launchpad(self))
         if mac: IB.maj_corbeille(self)
+        if getattr(self, "ecrans", None): self.ecrans.maj_taches()
         self.maj_titre()
 
     def ecouter_progres(self):
@@ -757,6 +763,22 @@ class Shell(Gtk.Application):
                 col = boite(True, 0, hexpand=True); col.append(label(n, "gras")); col.append(label(d, "petit", "attenue", wrap=True, largeur=36)); r.append(col)
                 if k == cur: r.append(ico("check", 16, "c"))
                 it.set_child(r); it.connect("clicked", lambda _x, k=k: (pop.popdown(), config.modifier(mode_bureau=k))); v.append(it)
+            # plusieurs écrans : le mode de chacun des autres écrans
+            sec = self.ecrans.secondaires() if getattr(self, "ecrans", None) else []
+            if sec:
+                from .ecrans import nom as nom_ecran, description
+                v.append(Gtk.Separator(margin_top=6, margin_bottom=4))
+                v.append(label("Mode de l'écran principal ci-dessus · autres écrans :", "section", margin_start=8))
+                modes_e = dict(self.cfg.get("modes_ecrans") or {})
+                for i, m in enumerate(sec):
+                    n_ = nom_ecran(m)
+                    r = boite(False, 10, margin_start=8, margin_end=4); r.append(ico("monitor", 16, "t"))
+                    r.append(label("Écran %d · %s" % (i + 2, description(m)), "petit", hexpand=True, ellipsize=True, largeur=24))
+                    dd = Gtk.DropDown.new_from_strings([x[1] for x in MODES]); cles = [x[0] for x in MODES]
+                    dd.set_selected(cles.index(modes_e.get(n_, "classique")) if modes_e.get(n_, "classique") in cles else 0)
+                    def chg(d_, _p, n_=n_, cles=cles):
+                        me = dict(self.cfg.get("modes_ecrans") or {}); me[n_] = cles[d_.get_selected()]; config.modifier(modes_ecrans=me)
+                    dd.connect("notify::selected", chg); r.append(dd); v.append(r)
             pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
         b.connect("clicked", ouvrir); clic_droit_w(b, ouvrir); sel.append(b)
 
@@ -1263,6 +1285,8 @@ class Shell(Gtk.Application):
         if (ancien.get("barre_position"), ancien.get("barre_forme"), ancien.get("barre_alignement"), ancien.get("dock_masquage"), ancien.get("barre_taille")) != (cfg.get("barre_position"), cfg.get("barre_forme"), cfg.get("barre_alignement"), cfg.get("dock_masquage"), cfg.get("barre_taille")):
             self.positionner_barre()
             if ancien.get("barre_taille") != cfg.get("barre_taille"): self.maj_taches()
+        if getattr(self, "ecrans", None) and any(ancien.get(k) != cfg.get(k) for k in ("ecran_principal", "barre_tous_ecrans", "modes_ecrans", "barre_applis_ecrans", "barre_masquee", "barre_modes_masquee", "theme", "barre_taille")):
+            self.ecrans.maj()
         if hasattr(self, "ile") and any(ancien.get(k) != cfg.get(k) for k in ("ile_survol", "ile_minuteur", "ile_tally", "ile_media", "ile_meteo")): self.ile.maj()
         self.liberer_bientot(22)
         if ancien["barre_alignement"] != cfg["barre_alignement"] or ancien["barre_meteo"] != cfg["barre_meteo"] or ancien["barre_recherche"] != cfg["barre_recherche"]:
@@ -1343,7 +1367,7 @@ class Shell(Gtk.Application):
         if premier: self.automontage()
         if premier:
             for nom, e in (c.get("ecrans") or {}).items():
-                S.en_fond(S.regler_ecran, None, nom, e.get("w"), e.get("h"), e.get("hz"), e.get("echelle"), e.get("rotation"), None, bool(e.get("perso")))
+                S.en_fond(S.regler_ecran, None, nom, e.get("w"), e.get("h"), e.get("hz"), e.get("echelle"), e.get("rotation"), None, bool(e.get("perso")), e.get("pos"))
             if profils.courant(c)[0] != "normal": self.appliquer_profil(profils.courant(c)[0], silencieux=True)
             if c.get("reprise_session"): GLib.timeout_add_seconds(4, lambda: (self.reprendre_session(), False)[1])
             if c.get("jeu_console") and profils.courant(c)[0] == "jeu": S.detacher(["steam", "-gamepadui"])

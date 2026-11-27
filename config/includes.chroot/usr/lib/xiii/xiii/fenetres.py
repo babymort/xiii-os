@@ -9,7 +9,7 @@ ETAT_MAX, ETAT_MIN, ETAT_ACTIF, ETAT_PLEIN = 0, 1, 2, 3
 
 class Fenetre:
     def __init__(self, oid):
-        self.id = oid; self.titre = ""; self.app_id = ""; self.etats = set()
+        self.id = oid; self.titre = ""; self.app_id = ""; self.etats = set(); self.sorties = set()      # ids des wl_output où elle est affichée
     @property
     def active(self): return ETAT_ACTIF in self.etats
     @property
@@ -21,6 +21,7 @@ class Gestionnaire:
         self.rappel = rappel; self.fenetres = {}; self.ordre = []
         self.ok = False; self._buf = b""; self._next = 2; self._types = {1: "display"}
         self._registry = self._manager = self._seat = None
+        self.noms_sorties = {}          # id wl_output → nom de l'écran (HDMI-A-1, eDP-1…), comme Gdk.Monitor.get_connector()
         path = os.environ.get("WAYLAND_DISPLAY", "wayland-0")
         if not path.startswith("/"):
             path = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), path)
@@ -87,6 +88,9 @@ class Gestionnaire:
             if iface == "zwlr_foreign_toplevel_manager_v1" and not self._manager:
                 self._manager = self._nouvel("manager")
                 self._envoyer(self._registry, 0, struct.pack("<I", nom) + self._chaine(iface) + struct.pack("<II", min(ver, 3), self._manager))
+            elif iface == "wl_output" and ver >= 4:                         # pour savoir sur quel écran est chaque fenêtre
+                o_ = self._nouvel("output"); self.noms_sorties[o_] = ""
+                self._envoyer(self._registry, 0, struct.pack("<I", nom) + self._chaine(iface) + struct.pack("<II", 4, o_))
             elif iface == "wl_seat" and not self._seat:
                 self._seat = self._nouvel("seat")
                 self._envoyer(self._registry, 0, struct.pack("<I", nom) + self._chaine(iface) + struct.pack("<II", 1, self._seat))
@@ -101,17 +105,26 @@ class Gestionnaire:
             elif op == 4:
                 n = struct.unpack_from("<I", d, 0)[0]
                 f.etats = set(struct.unpack_from("<%dI" % (n // 4), d, 4)) if n else set()
+            elif op in (2, 3):                                              # output_enter / output_leave
+                o_ = struct.unpack_from("<I", d, 0)[0]
+                (f.sorties.add if op == 2 else f.sorties.discard)(o_)
             elif op == 5: return True                                       # done
             elif op == 6:                                                   # closed
                 self.fenetres.pop(obj, None)
                 if obj in self.ordre: self.ordre.remove(obj)
                 self._envoyer(obj, 7)                                       # destroy
                 return True
+        elif t == "output" and op == 4:                                     # wl_output.name
+            self.noms_sorties[obj] = self._lire_chaine(d, 0)[0]
         elif t == "display" and op == 1:                                    # delete_id
             self._types.pop(struct.unpack_from("<I", d, 0)[0], None)
         return False
 
     # ------------------------------------------------------------ actions
+    def ecrans(self, f):
+        """Noms des écrans où la fenêtre est affichée (vide si inconnu)."""
+        return {self.noms_sorties.get(o) for o in f.sorties if self.noms_sorties.get(o)}
+
     def liste(self):
         return [self.fenetres[i] for i in self.ordre if i in self.fenetres]
 

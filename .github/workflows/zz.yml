@@ -3,7 +3,7 @@ name: Vérification ZZ (fin de saison)
 on:
   push:
     branches: [beta]
-    paths: ['tests/zz.sh', '.github/workflows/zz.yml', 'config/includes.chroot/usr/lib/xiii/**']
+    paths: ['tests/zz.sh', 'tests/zz-ecrans.sh', '.github/workflows/zz.yml', 'config/includes.chroot/usr/lib/xiii/**']
   workflow_dispatch:
 permissions:
   contents: write
@@ -47,6 +47,7 @@ jobs:
           export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 LIBGL_ALWAYS_SOFTWARE=1
           chmod +x tests/zz.sh
           timeout 2400 dbus-run-session -- labwc -s tests/zz.sh > /out/labwc.log 2>&1 || true
+          chmod +x tests/zz-ecrans.sh; WLR_HEADLESS_OUTPUTS=2 timeout 300 dbus-run-session -- labwc -s tests/zz-ecrans.sh > /out/labwc-ecrans.log 2>&1 || true
           ls -la /out
       - name: Tests visuels (comparaison avec la vérification précédente)
         if: always()
