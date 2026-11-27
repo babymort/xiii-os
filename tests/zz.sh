@@ -127,13 +127,37 @@ python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import con
 echo "== Mode Production (barre latérale + tableau)" >> $R
 CFG='import sys,time; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; '
 python3 -c "$CFG"'t=int(time.time()); config.modifier(production_page="accueil", projet_actif="Test", production_recents=[["suite","callsheeto","CALL SHEETO",None,t-300],["suite","plano","PLANO",None,t-7200],["suite","deviso","DEVISO",None,t-90000],["suite","dossier","DOSSIER",None,t-200000],["app","xiii-blackmagic.desktop","Blackmagic","video",t-400000]], mode_bureau="production")'
-sleep 4; grim -s 0.5 /out/production-accueil.png
-for pg in tableau planning; do
+# données de démonstration du Studio (projet « Test »)
+python3 - <<'P'
+import sys, time, datetime; sys.path.insert(0, "/usr/lib/xiii")
+from xiii.studio import Donnees, aujourdhui
+d = Donnees("Test"); t = d.nouveau_tableau("tournage", "Tournage — Concert")
+c = t["colonnes"]
+c[0]["cartes"] += [{"id": "a1", "titre": "Plan large de la scène", "type": "plan", "champs": {"sequence": "2", "plan": "4", "camera": "FX6 A"}, "etiquettes": ["orange"], "personnes": ["Léa Martin"], "echeance": aujourdhui().isoformat(), "checklist": [{"t": "Trépied", "ok": True}, {"t": "Batteries", "ok": False}]},
+                   {"id": "a2", "titre": "Interview du chanteur", "etiquettes": ["violet"], "personnes": ["Hugo Bernard", "Léa Martin"], "commentaires": [{"date": "27/11", "texte": "Prévoir 2 micros"}]}]
+c[1]["cartes"] += [{"id": "a3", "titre": "Balances et soundcheck", "etiquettes": ["bleu"], "echeance": (aujourdhui() + datetime.timedelta(days=1)).isoformat()}]
+c[3]["cartes"] += [{"id": "a4", "titre": "Teaser 30 s — V2", "type": "validation", "champs": {"version": "V2", "client": "Label"}, "statut_valid": "Retours"}]
+d.ecrire("organiser")
+d.taches().extend([{"id": "t1", "titre": "Confirmer la régie mobile", "priorite": "haute", "statut": "en_cours", "echeance": aujourdhui().isoformat()},
+                   {"id": "t2", "titre": "Envoyer la feuille de service", "priorite": "moyenne", "statut": "a_faire", "echeance": (aujourdhui() + datetime.timedelta(days=2)).isoformat()},
+                   {"id": "t3", "titre": "Réserver les cartes CFexpress", "priorite": "basse", "statut": "fait"}]); d.ecrire("taches")
+d.memos().extend([{"id": "m1", "titre": "Wi-Fi du lieu", "texte": "Réseau : Salle-Pro\nCode : xiii2026", "couleur": "ambre", "epingle": True, "modif": time.time()},
+                  {"id": "m2", "titre": "Matériel à rendre", "liste": [{"t": "Rail 2 m", "ok": True}, {"t": "Mixette", "ok": False}], "couleur": "bleu", "modif": time.time() - 10},
+                  {"id": "m3", "titre": "", "texte": "Idée : ouvrir sur la salle vide, la nuit.", "couleur": "violet", "etiquettes": ["idees"], "modif": time.time() - 20}]); d.ecrire("memos")
+o = d.objectifs(); o["semaine"] += [{"t": "Tourner le concert", "ok": False}, {"t": "Sauvegarder 3-2-1", "ok": True}]; o["mois"] += [{"t": "Livrer le film", "ok": False}]; d.ecrire("objectifs")
+P
+python3 -c "$CFG"'config.modifier(mode_bureau="classique")'; sleep 2
+python3 -c "$CFG"'config.modifier(production_page="accueil", mode_bureau="production")'; sleep 4
+grim -s 0.5 /out/production-accueil.png
+for pg in organiser memos taches objectifs tableau planning; do
   python3 -c "$CFG"'config.modifier(mode_bureau="classique")'; sleep 2
   python3 -c "$CFG"'config.modifier(production_page="'$pg'", mode_bureau="production")'; sleep 4; grim -s 0.5 /out/production-$pg.png
 done
 python3 -c "$CFG"'config.modifier(mode_bureau="classique")'; sleep 2
-journalctl --user -n 0 >/dev/null 2>&1; echo "OK        mode Production capturé (accueil, tableau, planning)" >> $R
+journalctl --user -n 0 >/dev/null 2>&1; echo "OK        mode Production capturé (accueil, organiser, mémos, tâches, objectifs, tableau, planning)" >> $R
+xiii-studio --test >> $R 2>&1 || echo "ÉCHEC     Studio XIII (test des données)" >> $R
+xiii-memos > /out/xiii-memos.log 2>&1 & sleep 4; grim -s 0.5 /out/app-memos.png; verifier "Mémos XIII" "xiii.studio" /out/xiii-memos.log; pkill -f "xiii.studio import"; sleep 1
+xiii-studio --page organiser > /out/xiii-studio.log 2>&1 & sleep 4; grim -s 0.5 /out/app-studio.png; verifier "Studio XIII" "xiii.studio" /out/xiii-studio.log; pkill -f "xiii.studio import"; sleep 1
 
 echo "== Phase G (réseau : Envoi XIII compatible LocalSend)" >> $R
 python3 -c "$CFG"'config.modifier(envoi_auto=True, envoi_actif=True, envoi_nom="Poste ZZ")'

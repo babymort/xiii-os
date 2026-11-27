@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Mémos XIII
+Comment=Notes rapides en cartes de couleur, listes, épingles
+Exec=xiii-memos %F
+Icon=xiii-memos
+Type=Application
+Categories=Office;Utility;XIII;
+Keywords=notes;memo;keep;post-it;pense-bete;liste;

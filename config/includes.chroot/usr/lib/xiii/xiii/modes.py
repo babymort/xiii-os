@@ -239,8 +239,10 @@ class VueMode:
         pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
 
     # ----------------------------------------------------------------- Production : barre latérale + tableau façon Trello
-    PAGES_PROD = [("accueil", "house", "Accueil"), ("tableau", "square-kanban", "Tableau des outils"),
-                  ("planning", "calendar-days", "Planning et tournage"), ("direct", "radio-tower", "En direct")]
+    PAGES_PROD = [("accueil", "house", "Accueil — tableau de bord"), ("organiser", "square-kanban", "Organiser (tableaux façon Trello)"),
+                  ("tableau", "layout-grid", "Tableau des outils"), ("planning", "calendar-days", "Planning et tournage"),
+                  ("memos", "sticky-note", "Mémos"), ("taches", "list-checks", "Tâches"), ("objectifs", "trophy", "Objectifs"),
+                  ("direct", "radio-tower", "En direct")]
 
     def ouvrir(self, t, i, nom, ic):
         """Lance un outil et le garde en tête des « Récents » du mode Production."""
@@ -276,7 +278,10 @@ class VueMode:
         tout.append(self.pile)
         from .widgets import Tableau
         self.tb = Tableau(self.shell)
-        self.pile.add_named(self.p_accueil(), "accueil")
+        from .studio import Studio
+        self.studio = Studio(ouvrir_page=lambda k: aller(k), haut_bord=self.accueil_haut)
+        self.pile.add_named(self.studio.page("bord"), "accueil")
+        for k in ("organiser", "memos", "taches", "objectifs"): self.pile.add_named(self.studio.page(k), k)
         self.pile.add_named(self.p_tableau(mode), "tableau")
         self.pile.add_named(self.p_widgets(["jour", "plan", "compte", "meteo", "calendrier"]), "planning")
         self.pile.add_named(self.p_widgets(["projet", "offload", "systeme", "conducteur"]), "direct")
@@ -306,8 +311,14 @@ class VueMode:
         return sc, v
 
     def p_accueil(self):
+        sc, v = self.page("Production", "Tableau de bord des outils de production"); self.accueil_haut(v, entete=False); return sc
+
+    def accueil_haut(self, v, entete=True):
+        """Haut du tableau de bord : projet en cours et outils récents."""
         from . import projets
-        sc, v = self.page("Production", "Tableau de bord des outils de production")
+        if entete:
+            h = boite(False, 12); c = boite(True, 0, hexpand=True); c.append(label("Production", "grand-titre")); c.append(label("Tableau de bord du projet", "attenue")); h.append(c)
+            pj_ = self.shell.cfg.get("projet_actif"); h.append(bouton(pj_ or "Choisir un projet", "folder-kanban", "fantome", rappel=lambda: self.shell.menu_projets())); v.append(h)
         pj = self.shell.cfg.get("projet_actif") or ""
         hero = boite(False, 18, "hero-prod")
         hero.append(couverture(pj or "XIII", 360, 170, soleil_x=.3))
@@ -338,7 +349,6 @@ class VueMode:
             col.append(ov); col.append(label(nom, "petit", "attenue", xalign=0.5, ellipsize=True)); b.set_child(col)
             b.connect("clicked", lambda _b, t=t, i=i, nom=nom, ic=ic: self.ouvrir(t, i, nom, ic)); fl.append(b)
         v.append(fl)
-        return sc
 
     def p_tableau(self, mode):
         sc, v = self.page("Tableau des outils", "Les outils rangés par étape de production. Clic droit sur une carte de « Mes apps » pour la retirer.")

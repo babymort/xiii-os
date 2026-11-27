@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Studio XIII
+Comment=Tableaux, tâches, mémos et objectifs du projet (façon Trello / Notion)
+Exec=xiii-studio %F
+Icon=xiii-studio
+Type=Application
+Categories=Office;ProjectManagement;XIII;
+Keywords=trello;kanban;taches;organiser;notion;planning;objectifs;
