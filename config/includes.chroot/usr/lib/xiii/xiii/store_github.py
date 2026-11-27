@@ -75,7 +75,10 @@ def _installer(depot, progres):
     a, typ = meilleur_fichier(rel.get("assets", []))
     if not a: raise RuntimeError("aucune version Linux dans « %s » (%s)" % (rel.get("tag_name"), ", ".join(x["name"] for x in rel.get("assets", [])[:6]) or "aucun fichier"))
     nom = info.get("name") or depot.split("/")[1]
-    tmp = os.path.join(GLib.get_tmp_dir(), a["name"])
+    # dossier temporaire propre à ce téléchargement (un fichier du même nom laissé dans /tmp par un autre compte
+    # ou par l'administrateur ne bloque plus : « Permission non accordée ») ; lisible par apt (utilisateur _apt)
+    import tempfile; d_ = tempfile.mkdtemp(prefix="xiii-store-"); os.chmod(d_, 0o755)
+    tmp = os.path.join(d_, a["name"])
     req = urllib.request.Request(a["browser_download_url"], headers={"User-Agent": "OS-XIII"})
     with urllib.request.urlopen(req, timeout=60) as r, open(tmp, "wb") as f:
         total = int(r.headers.get("Content-Length") or a.get("size") or 1); lu = 0
@@ -114,6 +117,8 @@ def _installer(depot, progres):
         if not cands: raise RuntimeError("archive installée dans %s, mais aucun programme trouvé à lancer" % dest)
         for p in cands: os.chmod(p, os.stat(p).st_mode | stat.S_IXUSR)
         e["chemin"] = dest; e["lanceur"] = lanceur(nom, cands[0], depot=depot)
+    try: os.chmod(tmp, 0o644)
+    except OSError: pass
     try: os.unlink(tmp)
     except OSError: pass
     d = suivi(); d[depot] = e; sauver_suivi(d)
