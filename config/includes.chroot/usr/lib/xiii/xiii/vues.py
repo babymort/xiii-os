@@ -337,13 +337,17 @@ class AltTab:
         bx = boite(False, 14, "panneau", "alttab"); self.cartes = []
         for n, f in enumerate(self.fen):
             a = apps.pour_fenetre(f.app_id)
-            c = boite(True, 8, "alttab-carte"); c.set_size_request(200, -1)
-            c.append(gicon_image(a.get_icon(), 48) if a else ico("app-window", 48, "c"))     # logo en haut
-            c.append(label(a.get_display_name() if a else (f.app_id or "Application"), "gras", xalign=0.5, ellipsize=True, largeur=20))
+            c = boite(True, 8, "alttab-carte"); c.set_size_request(240, -1)
+            # en haut : petit logo + nom de l'appli (comme Windows) ; dessous : l'aperçu de la fenêtre prend la place
+            h = boite(False, 8); h.append(gicon_image(a.get_icon(), 20) if a else ico("app-window", 20, "c"))
+            h.append(label(a.get_display_name() if a else (f.app_id or "Application"), "gras", "petit", hexpand=True, ellipsize=True, largeur=22)); c.append(h)
             mp = self.shell.miniatures.chemin(f) if getattr(self.shell, "miniatures", None) else None
             if mp:
-                pic = Gtk.Picture.new_for_filename(mp); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(184, 104); pic.add_css_class("miniature"); c.append(pic)
-            c.append(label(f.titre or "", "petit", "attenue", xalign=0.5, ellipsize=True, largeur=24))
+                pic = Gtk.Picture.new_for_filename(mp); pic.set_content_fit(Gtk.ContentFit.COVER); pic.set_size_request(224, 126); pic.add_css_class("miniature"); c.append(pic)
+            else:       # pas encore d'aperçu : cadre de la même taille avec le titre de la fenêtre
+                ph = boite(True, 6, "alttab-vide", valign=Gtk.Align.CENTER); ph.set_size_request(224, 126)
+                ph.append(label(f.titre or "", "attenue", xalign=0.5, wrap=True, largeur=26)); c.append(ph)
+            if mp: c.append(label(f.titre or "", "petit", "attenue", xalign=0, ellipsize=True, largeur=28))
             g = Gtk.GestureClick(); g.connect("released", lambda *_a, n=n: (setattr(self, "i", n), self.choisir())); c.add_controller(g)
             self.cartes.append(c); bx.append(c)
         sc = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC, vscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_width=True, propagate_natural_height=True)

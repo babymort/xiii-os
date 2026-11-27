@@ -323,6 +323,7 @@ window.xiii-surface {{ background: transparent; }}
 .haut-titre {{ font-weight: 600; font-size: 12.5px; }}
 .alttab {{ padding: 18px; border-radius: 20px; }}
 .alttab-carte {{ padding: 14px 10px; border-radius: 14px; border: 2px solid transparent; }}
+.alttab-vide {{ border-radius: 10px; background: alpha({p['texte']},0.05); border: 1px dashed alpha({p['texte']},0.12); padding: 10px; }}
 .alttab-carte.alttab-sel {{ background: alpha({p['accent']},0.18); border-color: {p['accent']}; }}
 .coin-bureau {{ min-width: 8px; padding: 0; margin: 4px 0 4px 6px; border-radius: 3px; background: transparent; border-left: 1px solid alpha({p['texte']},0.18); box-shadow: none; }}
 .coin-bureau:hover {{ background: alpha({p['accent']},0.35); }}
