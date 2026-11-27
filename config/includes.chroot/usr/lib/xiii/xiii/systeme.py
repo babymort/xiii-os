@@ -63,7 +63,23 @@ def sorties():
                 dict(nom="scarlett", desc="Focusrite Scarlett 2i2", vol=75, muet=False, defaut=_demo["sink"] == "scarlett")]
     d = out(["pactl", "get-default-sink"])
     return [dict(nom=s["name"], desc=s.get("description", s["name"]), vol=_vol(s), muet=s.get("mute", False),
-                 defaut=s["name"] == d) for s in _pact("sinks")]
+                 defaut=s["name"] == d, multi=s["name"] == MULTI) for s in _pact("sinks")]
+
+MULTI = "xiii_plusieurs_sorties"
+
+def sorties_multiples(noms):
+    """Joue le son sur plusieurs sorties à la fois (sortie combinée PipeWire) ; noms vide ou 1 seul = retour à une sortie normale."""
+    if DEMO: return True
+    for l in (out(["pactl", "list", "short", "modules"]) or "").splitlines():
+        if "module-combine-sink" in l and MULTI in l: sh(["pactl", "unload-module", l.split()[0]])
+    noms = [n for n in noms if n != MULTI]
+    if len(noms) < 2:
+        if noms: sortie_defaut(noms[0])
+        return True
+    rc, o, e = sh(["pactl", "load-module", "module-combine-sink", "sink_name=" + MULTI, "slaves=" + ",".join(noms),
+                   "sink_properties=device.description=Plusieurs-sorties"])
+    if rc == 0: sortie_defaut(MULTI)
+    return rc == 0
 
 def entrees():
     if DEMO:

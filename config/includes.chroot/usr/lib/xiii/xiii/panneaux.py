@@ -71,8 +71,29 @@ class Son(Panneau):
             self.b_muet.set_child(ico(icone_volume(d["vol"], d["muet"]), 18, "c" if d["muet"] else "t"))
         de = next((s for s in en if s["defaut"]), en[0] if en else None)
         if de: self.s_in.poser(de["vol"]); self.n_in.set_text("%d %%" % de["vol"])
+        multi = any(x.get("multi") and x["defaut"] for x in so)
+        so = [x for x in so if not x.get("multi")]
         for liste, items, fn in ((self.l_sorties, so, S.sortie_defaut), (self.l_entrees, en, S.entree_defaut)):
             vider(liste)
+            if liste is self.l_sorties and len(items) > 1:
+                # plusieurs sorties en même temps : cases à cocher (sortie combinée)
+                choisies = set(self.shell.cfg.get("sorties_multiples", [])) if multi else set()
+                sw = Gtk.CheckButton(label="Plusieurs sorties en même temps", active=multi); sw.add_css_class("petit")
+                def bascule(w, items=items):
+                    if w.get_active():
+                        noms = [x["nom"] for x in items][:2]
+                        config.modifier(_histo=False, sorties_multiples=noms); S.en_fond(S.sorties_multiples, lambda _: self.rafraichir(), noms)
+                    else:
+                        config.modifier(_histo=False, sorties_multiples=[]); S.en_fond(S.sorties_multiples, lambda _: self.rafraichir(), [])
+                sw.connect("toggled", bascule); liste.append(sw)
+                if multi:
+                    for it in items:
+                        c = Gtk.CheckButton(label=it["desc"], active=it["nom"] in choisies)
+                        def coche(w, n=it["nom"]):
+                            noms = [x for x in self.shell.cfg.get("sorties_multiples", []) if x != n] + ([n] if w.get_active() else [])
+                            config.modifier(_histo=False, sorties_multiples=noms); S.en_fond(S.sorties_multiples, lambda _: self.rafraichir(), noms)
+                        c.connect("toggled", coche); liste.append(c)
+                    continue
             if not items:
                 liste.append(label("Aucun périphérique", "attenue", "petit")); continue
             for it in items:
@@ -339,7 +360,7 @@ class Centre(Panneau):
                        lambda: config.modifier(theme={"sobre": "sobrec", "sobrec": "sobre"}.get(c["theme"], "sombre" if theme.palette(c)["clair"] else "clair")), "theme"),
             self.tuile(profils.courant(c)[2], "Profil", profils.courant(c)[1], profils.courant(c)[0] != "normal",
                        lambda: self.shell.menu_profils(self._t_profil), "profils"),
-            self.tuile("scan-line", "Capture", "Zone de l'écran", False, lambda: (sh.fermer(), S.detacher("sleep 0.4; xiii-capture zone"))),
+            self.tuile("scan-line", "Capture", "Zone, écran, vidéo", False, lambda: (sh.fermer(), S.detacher("sleep 0.4; xiii-outil-capture"))),
         ]
         self._t_profil = T[7]
         for t in T: self.grille.append(t)

@@ -150,13 +150,27 @@ def completer_comptes(src):
                     if not os.path.exists(d):
                         os.makedirs(os.path.dirname(d), exist_ok=True); shutil.copy2(os.path.join(r, f), d); os.chown(d, u.pw_uid, u.pw_gid)
                     elif rel == ".config/labwc/rc.xml":
-                        n = fusion_xml(os.path.join(r, f), d, "keybind", "key")
+                        n = fusion_xml(os.path.join(r, f), d, "keybind", "key") + migrer_raccourcis(d)
                         os.chown(d, u.pw_uid, u.pw_gid)
                         if n: log("%s : %d raccourci(s) ajouté(s)" % (u.pw_name, n))
                     elif rel == ".config/Thunar/uca.xml":
                         fusion_xml(os.path.join(r, f), d, "action", "unique-id", texte=True); os.chown(d, u.pw_uid, u.pw_gid)
                 except Exception as e:
                     log("Compte %s, %s : %s" % (u.pw_name, rel, e))
+
+# raccourcis dont la commande par défaut a changé : mis à jour seulement s'ils ont encore l'ancienne commande
+MIGRATIONS = {("W-S-s", "xiii-capture zone"): "xiii-outil-capture", ("Print", "xiii-capture ecran"): "xiii-outil-capture"}
+
+def migrer_raccourcis(rc):
+    import xml.etree.ElementTree as ET
+    loc = lambda t: t.split("}")[-1]; a = ET.parse(rc); n = 0
+    for e in a.getroot().iter():
+        if loc(e.tag) != "keybind": continue
+        for x in e:
+            if loc(x.tag) == "action" and (e.get("key"), x.get("command")) in MIGRATIONS:
+                x.set("command", MIGRATIONS[(e.get("key"), x.get("command"))]); n += 1
+    if n: a.write(rc, encoding="UTF-8", xml_declaration=True)
+    return n
 
 def fusion_xml(nouveau, actuel, balise, cle, texte=False):
     """Ajoute à l'actuel les éléments <balise> du nouveau fichier qui n'y sont pas (comparés par attribut ou sous-élément « cle »)."""

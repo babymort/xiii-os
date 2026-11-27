@@ -2377,6 +2377,20 @@ class Parametres(Gtk.Application):
         tic(); GLib.timeout_add_seconds(1, tic)
         c.append(reglage("refresh-cw", "Régler l'heure automatiquement", "Synchronisation par Internet (NTP)",
                          droite=interrupteur(S.ntp(), lambda on: S.en_fond(S.admin, None, ["timedatectl", "set-ntp", "true" if on else "false"]))))
+        # réglage à la main (plateau sans Internet) : la synchronisation automatique est coupée d'abord
+        man = boite(False, 8, valign=Gtk.Align.CENTER)
+        d0 = datetime.datetime.now()
+        e_date = Gtk.Entry(text=d0.strftime("%d/%m/%Y"), width_chars=10); e_h = Gtk.Entry(text=d0.strftime("%H:%M:%S"), width_chars=8)
+        def appliquer_heure():
+            try: d = datetime.datetime.strptime(e_date.get_text().strip() + " " + e_h.get_text().strip(), "%d/%m/%Y %H:%M:%S")
+            except ValueError:
+                try: d = datetime.datetime.strptime(e_date.get_text().strip() + " " + e_h.get_text().strip(), "%d/%m/%Y %H:%M")
+                except ValueError: self.toast("Format attendu : 27/11/2026 et 14:30 (ou 14:30:00)"); return
+            S.en_fond(S.admin, lambda r: (self.toast("Date et heure réglées : " + d.strftime("%d/%m/%Y %H:%M:%S")) if not isinstance(r, Exception) and r[0] else self.toast("Réglage impossible"), self.aller(cle, False)),
+                      "timedatectl set-ntp false && timedatectl set-time '%s' && (hwclock --systohc 2>/dev/null || true)" % d.strftime("%Y-%m-%d %H:%M:%S"))
+        man.append(e_date); man.append(e_h); man.append(bouton("Régler", None, "pilule", rappel=appliquer_heure))
+        c.append(reglage("calendar-clock" if os.path.exists(theme.LUCIDE + "/calendar-clock.svg") else "calendar", "Régler la date et l'heure à la main",
+                         "Coupe la synchronisation automatique (plateau sans Internet, horloge à caler sur un timecode…)", droite=man))
         fz = S.fuseaux()
         dd = deroulant([(z, z.replace("_", " ")) for z in fz], S.fuseau(), lambda v: S.en_fond(S.admin, lambda r: self.toast("Fuseau horaire : " + v), ["timedatectl", "set-timezone", v]), 300, recherche=True)
         c.append(reglage("globe", "Fuseau horaire", "", droite=dd))

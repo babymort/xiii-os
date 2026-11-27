@@ -34,8 +34,8 @@
     <keybind key="W-a"><action name="Execute" command="xiii-ctl centre" /></keybind>
     <keybind key="W-n"><action name="Execute" command="xiii-ctl volet" /></keybind>
     <keybind key="W-i"><action name="Execute" command="xiii-parametres" /></keybind>
-    <keybind key="W-S-s"><action name="Execute" command="xiii-capture zone" /></keybind>
-    <keybind key="Print"><action name="Execute" command="xiii-capture ecran" /></keybind>
+    <keybind key="W-S-s"><action name="Execute" command="xiii-outil-capture" /></keybind>
+    <keybind key="Print"><action name="Execute" command="xiii-outil-capture" /></keybind>
     <keybind key="W-Print"><action name="Execute" command="xiii-capture menu" /></keybind>
     <keybind key="W-S-r"><action name="Execute" command="xiii-capture video ecran" /></keybind>
     <keybind key="W-Left"><action name="SnapToEdge" direction="left" /></keybind>

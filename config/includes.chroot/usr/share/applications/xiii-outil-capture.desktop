@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Outil Capture
+Comment=Capture d'une zone, d'un écran ou vidéo (Impr. écran)
+Exec=xiii-outil-capture %F
+Icon=xiii-outil-capture
+Type=Application
+Categories=Utility;Graphics;XIII;
+Keywords=capture;screenshot;impr;ecran;zone;

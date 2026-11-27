@@ -58,6 +58,7 @@ class Shell(Gtk.Application):
             if not S.DEMO: S.detacher(["xiii-lecteurs", "--monter-tout"])      # NAS et clouds reconnectés
             if self.cfg.get("envoi_actif", True) and not S.DEMO: S.detacher(["xiii-envoi", "--recevoir"])     # Envoi XIII : visible des appareils proches (LocalSend)
             self.antivol()
+            if not S.DEMO and len(self.cfg.get("sorties_multiples", [])) > 1: S.en_fond(S.sorties_multiples, None, self.cfg["sorties_multiples"])
             if not S.DEMO and self.cfg.get("clavier_visuel"): S.detacher(["xiii-acces", "--clavier", "on"])
             return False
         GLib.timeout_add_seconds(12, differe)

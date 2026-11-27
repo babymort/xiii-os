@@ -1,0 +1,18 @@
+#!/bin/bash
+# OS XIII — test de la webcam (image en direct) et du micro (enregistrement de 5 s puis réécoute).
+# Lancé depuis Pilotes › Webcam › « Tester la webcam ». Fermez la fenêtre vidéo (q ou la croix) pour passer au micro.
+dev=""
+for d in /sys/class/video4linux/video*; do [ "$(cat "$d/index" 2>/dev/null)" = 0 ] && { dev=/dev/$(basename "$d"); break; }; done
+if [ -z "$dev" ]; then notify-send -a "Test webcam" -i camera-web "Aucune webcam détectée" "Vérifiez le cache de la caméra, le BIOS ou la touche caméra du clavier."; exit 1; fi
+nom=$(cat /sys/class/video4linux/$(basename "$dev")/name 2>/dev/null)
+notify-send -a "Test webcam" -i camera-web -t 4000 "Test de « $nom »" "Vous devez vous voir. Fermez la fenêtre (q) pour tester le micro."
+mpv --title="Test webcam — $nom (q pour fermer)" --profile=low-latency --untimed --no-osc --osd-level=0 --geometry=960x540 "av://v4l2:$dev" >/dev/null 2>&1
+r=$(notify-send -a "Test webcam" -i audio-input-microphone --action=micro="Tester le micro" --action=fin="Terminer" "Image : OK ?" "Testez maintenant le micro : 5 secondes d'enregistrement, puis réécoute.")
+[ "$r" = micro ] || exit 0
+f=$(mktemp --suffix=.wav)
+notify-send -a "Test webcam" -i media-record -t 5000 "Parlez maintenant…" "Enregistrement pendant 5 secondes"
+timeout 5 pw-record "$f" 2>/dev/null || timeout 5 arecord -f cd "$f" 2>/dev/null
+notify-send -a "Test webcam" -i media-playback-start -t 5000 "Réécoute" "Vous devez entendre votre voix"
+pw-play "$f" 2>/dev/null || aplay "$f" 2>/dev/null
+rm -f "$f"
+notify-send -a "Test webcam" -i camera-web "Test terminé" "Si l'image ou le son manquent : Paramètres › Son pour choisir l'entrée, ou Pilotes."

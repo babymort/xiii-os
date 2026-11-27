@@ -6,3 +6,4 @@ i=0; while pgrep -f "xiii.shell import" >/dev/null && [ $i -lt 30 ]; do sleep 0.
 pkill -9 -f "xiii.shell import" 2>/dev/null
 mkdir -p "$HOME/.cache/xiii"
 setsid xiii-shell >"$HOME/.cache/xiii/shell.log" 2>&1 < /dev/null &
+labwc --reconfigure 2>/dev/null || true

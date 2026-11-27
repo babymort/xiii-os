@@ -161,6 +161,24 @@ def pilotes():
         L.append(("Son", "Carte(s) : " + "; ".join(re.sub(r"^\d+ \[\S+\s*\]: ", "", c) for c in cartes) + "\nAucune sortie active : « Réparer le son » relance le serveur de son.", False))
     else:
         L.append(("Son", "%d sortie(s) active(s) · %s" % (len(sorties), "; ".join(re.sub(r"^\d+ \[\S+\s*\]: ", "", c) for c in cartes)), True))
+    # 2c. webcams : nom, pilote, formats ; test vidéo + micro proposé dans la carte
+    cams = []
+    for d in sorted(glob.glob("/sys/class/video4linux/video*")):
+        try:
+            idx = open(d + "/index").read().strip()
+            if idx != "0": continue                       # une webcam crée plusieurs /dev/video* : on garde le flux principal
+            nom = open(d + "/name").read().strip()
+            pil = os.path.basename(os.path.realpath(d + "/device/driver")) if os.path.exists(d + "/device/driver") else "?"
+            dev = "/dev/" + os.path.basename(d)
+            fmt = ", ".join(sorted(set(re.findall(r"'(\w+)'", sh("v4l2-ctl -d %s --list-formats 2>/dev/null" % dev)))))
+            cams.append("%s — %s (pilote %s%s)" % (dev, nom, pil, ", " + fmt if fmt else ""))
+        except OSError: pass
+    usbcam = [l for l in sh("lsusb").splitlines() if re.search(r"cam|webcam|video|uvc|logitech|integrated", l, re.I)]
+    if cams: L.append(("Webcam", "\n".join(cams), True))
+    elif usbcam:
+        L.append(("Webcam", "Caméra USB vue mais sans pilote vidéo : " + "; ".join(u.split(" ID ")[-1] for u in usbcam) + "\nRedémarrez, ou essayez un autre port USB.", False))
+    else:
+        L.append(("Webcam", "Aucune webcam détectée (cache de la caméra fermé ? désactivée dans le BIOS ou par une touche du clavier ?)", False))
     # 3. cartes graphiques : NVIDIA, AMD, Intel — pilote utilisé, accélération 3D et vidéo
     for nom, ok, conseil, paquets in graphiques():
         L.append((nom, conseil, ok)); P.update(paquets)
@@ -340,7 +358,7 @@ class App(Gtk.Application):
         def rendu(res):
             L, P = res
             self.vider(self.p_pil, ""); self.p_pil.remove(self.p_pil.get_first_child())
-            for n, v, e in L: self.p_pil.append(self.carte(n, v, e, ("Réparer le son", "xiii-reparer-son") if n == "Son" else None))
+            for n, v, e in L: self.p_pil.append(self.carte(n, v, e, ("Réparer le son", "xiii-reparer-son") if n == "Son" else ("Tester la webcam", "xiii-test-webcam") if n == "Webcam" and e else None))
             if P:
                 c = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, css_classes=["carte"])
                 c.append(Gtk.Label(label="À installer : " + ", ".join(P), css_classes=["conseil"], xalign=0, wrap=True))
