@@ -287,7 +287,7 @@ wtype -k Return; sleep 1.5
 F1=$(python3 -c "$CFG"'print(config.charger()["fond"])')
 [ "$F0" != "$F1" ] && echo "OK        anneau : fond changé ($(basename "$F1"))" >> $R || echo "ÉCHEC     anneau : le fond n'a pas changé" >> $R
 wtype -k Escape; sleep 1
-pgrep -f "xiii.fonds" >/dev/null && { echo "ÉCHEC     anneau : Échap ne ferme pas"; pkill -f xiii.fonds; } >> $R
+pgrep -f "xiii.fonds import" >/dev/null && { echo "ÉCHEC     anneau : Échap ne ferme pas"; pkill -f "xiii.fonds import"; } >> $R
 grep -q Traceback /out/fonds.log && { echo "PLANTAGE  Fonds d'écran"; grep -A6 Traceback /out/fonds.log | tail -7; } >> $R
 python3 -c "$CFG"'config.modifier(fond="'"$F0"'")'; sleep 1
 
