@@ -178,6 +178,7 @@ L.sauver([{"nom": "Cloud test", "type": "onedrive"}]); L.ident = lambda n: "xiii
 L.ajouter_hors_ligne({"nom": "Cloud test"}, "/tmp/cloud/XIII", "/tmp/local-xiii")
 l, d = L.hors_ligne()[0]; ok, m = L.synchroniser_un(l, d)
 a = os.path.exists("/tmp/local-xiii/Concert/devis.txt")
+if not a: print("ÉCHEC     hors ligne, premier téléchargement :", ok, m[-300:]); raise SystemExit
 open("/tmp/local-xiii/Concert/note.txt", "w").write("ajout local")
 l, d = L.hors_ligne()[0]; ok2, m2 = L.synchroniser_un(l, d)
 b = os.path.exists("/tmp/cloud/XIII/Concert/note.txt")

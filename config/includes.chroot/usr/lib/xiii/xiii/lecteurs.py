@@ -133,8 +133,10 @@ def synchroniser_un(l, d, avis=lambda t: None):
     r = subprocess.run(base + (["--resync"] if premiere else []), capture_output=True, text=True, timeout=6 * 3600)
     if r.returncode != 0 and not premiere and "resync" in (r.stderr + r.stdout).lower():
         r = subprocess.run(base + ["--resync"], capture_output=True, text=True, timeout=6 * 3600)     # état perdu : on refait l'inventaire (rien n'est supprimé)
-    if r.returncode != 0 and "unknown flag" in r.stderr:            # rclone plus ancien : options de base seulement
-        r = subprocess.run(["rclone", "bisync", src, dst, "--create-empty-src-dirs"] + (["--resync"] if premiere else []), capture_output=True, text=True, timeout=6 * 3600)
+    if r.returncode != 0:            # rclone plus ancien (Debian 13 : 1.60) : options de base seulement
+        r = subprocess.run(["rclone", "bisync", src, dst] + (["--resync"] if premiere else []), capture_output=True, text=True, timeout=6 * 3600)
+        if r.returncode != 0 and not premiere:
+            r = subprocess.run(["rclone", "bisync", src, dst, "--resync"], capture_output=True, text=True, timeout=6 * 3600)
     ok = r.returncode == 0
     if ok and premiere:
         L = lecteurs()
