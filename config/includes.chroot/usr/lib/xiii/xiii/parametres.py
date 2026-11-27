@@ -14,7 +14,7 @@ from .panneaux import METEO
 
 FONDS_PERSO = os.path.join(GLib.get_user_data_dir(), "xiii", "fonds")
 RC = os.path.join(GLib.get_user_config_dir(), "labwc", "rc.xml")
-CLES_THEME = {"theme", "accent", "icones_tierces", "transparence", "animations", "taille_texte", "curseur_taille", "police", "verrou_fond", "theme_perso", "contraste", "densite"}
+CLES_THEME = {"theme", "imitation_apparence", "accent", "icones_tierces", "transparence", "animations", "taille_texte", "curseur_taille", "police", "verrou_fond", "theme_perso", "contraste", "densite"}
 
 # ------------------------------------------------------------------------------------------------ rc.xml de labwc
 def rc_lire():
@@ -122,7 +122,7 @@ class Parametres(Gtk.Application):
 
     def regler(self, **kw):
         """Enregistre des réglages ; propage le thème au système si besoin."""
-        if {"theme", "accent", "theme_perso"} & set(kw) and "fond" not in kw and theme.fond_par_defaut(self.cfg.get("fond")):
+        if {"theme", "accent", "theme_perso", "imitation_apparence"} & set(kw) and "fond" not in kw and theme.fond_par_defaut(self.cfg.get("fond")):
             c2 = dict(self.cfg); c2.update(kw); kw["fond"] = theme.fond_assorti(c2)
         acc_avant = self.cfg.get("accent")
         self.cfg = config.modifier(**kw)
@@ -1257,6 +1257,16 @@ class Parametres(Gtk.Application):
             b.set_child(v); b.connect("clicked", lambda _b, k=k: self.regler(theme=k)); g.append(b)
         c.append(g)
         c.append(info(dict((k, d) for k, _, d in theme.THEMES).get(cfg["theme"], "") + ("" if not theme.SKINS.get(cfg["theme"], {}).get("acc") else " — ce thème impose sa couleur d'accent.")))
+        im = theme.imitation(cfg)
+        if im:
+            c.append(reglage("sun-moon", "Apparence", "Mode clair ou sombre, comme dans " + ("Windows 11" if im == "onze" else "macOS") + " ; Auto suit le lever et le coucher du soleil",
+                             droite=deroulant([("clair", "Clair"), ("sombre", "Sombre"), ("auto", "Auto")], cfg.get("imitation_apparence", "clair"), lambda v: self.regler(imitation_apparence=v), 160)))
+            from . import imitation as IMIT
+            ic = IMIT.icones(im, not p["clair"]); cu = IMIT.curseur(im)
+            c.append(info(("Barre des tâches centrée, menu Démarrer, réglages rapides en bas à droite, fenêtres à boutons larges. " if im == "onze" else
+                           "Barre des menus (Fichier, Édition… envoient les raccourcis à l'appli active), Dock, Launchpad (Super), Spotlight (Super + Espace), pastilles de fenêtre à gauche. ")
+                          + "Icônes : %s · curseur : %s · police : %s. " % (ic or "XIII", cu or "XIII", "Selawik" if im == "onze" else "Inter")
+                          + "Revenir à un thème XIII rend votre barre des tâches d'avant. Le nouveau curseur s'applique à la prochaine session."))
         # ---- thème perso
         c.append(groupe_titre("Thème perso"))
         tp = dict(cfg.get("theme_perso") or theme.DEPARTS[0])
@@ -2896,11 +2906,22 @@ def apercu_theme(cle, accent, cfg=None):
     def dessin(area, cr, w, h):
         def rgb(hx): hx = theme.couleur_pleine(hx, p["panneau_plein"]); return tuple(int(hx.lstrip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4))
         cr.set_source_rgb(*rgb(p["fond"])); cr.rectangle(0, 0, w, h); cr.fill()
-        cr.set_source_rgb(*rgb(p["panneau_plein"])); cr.rectangle(0, h - 16, w, 16); cr.fill()
-        cr.rectangle(0, 0, w, 9); cr.fill()
+        im = p.get("imitation")
+        if im == "onze":        # barre des tâches centrée, pas de barre en haut
+            cr.set_source_rgb(*rgb(p["panneau_plein"])); cr.rectangle(0, h - 14, w, 14); cr.fill()
+            for i in range(5):
+                cr.set_source_rgb(*rgb(accent if i == 0 else p["attenue"])); cr.rectangle(w / 2 - 26 + i * 11, h - 10, 7, 7); cr.fill()
+        elif im == "macos":     # barre des menus fine + Dock flottant
+            cr.set_source_rgb(*rgb(p["panneau_plein"])); cr.rectangle(0, 0, w, 7); cr.fill()
+            cr.rectangle(w / 2 - 36, h - 15, 72, 11); cr.fill()
+            for i, col in enumerate(("#4dabf7", "#ff6b6b", "#ffd43b", "#69db7c", "#da77f2")):
+                cr.set_source_rgb(*rgb(col)); cr.rectangle(w / 2 - 31 + i * 13, h - 13, 8, 7); cr.fill()
+        else:
+            cr.set_source_rgb(*rgb(p["panneau_plein"])); cr.rectangle(0, h - 16, w, 16); cr.fill()
+            cr.rectangle(0, 0, w, 9); cr.fill()
         cr.set_source_rgb(*rgb(p["carte"])); cr.rectangle(w * 0.28, h * 0.22, w * 0.44, h * 0.52); cr.fill()
         cr.set_source_rgb(*rgb(accent)); cr.rectangle(w * 0.33, h * 0.30, w * 0.16, 6); cr.fill()
-        cr.rectangle(w / 2 - 6, h - 12, 12, 8); cr.fill()
+        if not im: cr.rectangle(w / 2 - 6, h - 12, 12, 8); cr.fill()
         cr.set_source_rgb(*rgb(p["attenue"]))
         for i in range(3): cr.rectangle(w * 0.33, h * 0.42 + i * 9, w * 0.32, 4); cr.fill()
     da.set_draw_func(dessin)

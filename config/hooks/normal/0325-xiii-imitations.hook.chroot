@@ -1,0 +1,45 @@
+#!/bin/sh
+# xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
+# Thèmes « Façon Windows 11 » et « Façon macOS » : polices, icônes et curseurs libres équivalents.
+#   Selawik (Microsoft, SIL OFL 1.1) : remplaçant libre de Segoe UI
+#   Inter (Rasmus Andersson, SIL OFL 1.1) : proche de San Francisco
+#   Fluent icon theme + Fluent cursors, WhiteSur icon theme + WhiteSur cursors (vinceliuice, GPL 3)
+# Aucun logo, fond d'écran ni police d'Apple ou de Microsoft (non redistribuables).
+set -e
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl ca-certificates unzip >/dev/null
+T=$(mktemp -d)
+D=/usr/share/fonts/truetype/xiii-imitations; mkdir -p $D
+if curl -fsSL --retry 3 -o $T/selawik.zip https://github.com/microsoft/Selawik/releases/download/1.01/Selawik_Release.zip; then
+  unzip -o -q $T/selawik.zip -d $T/selawik && find $T/selawik -name "*.ttf" -exec cp {} $D/ \; || echo "Selawik : archive illisible"
+else echo "Selawik indisponible"; fi
+B=https://raw.githubusercontent.com/google/fonts/main/ofl/inter
+curl -fsSL --retry 3 -o "$D/Inter[opsz,wght].ttf" "$B/Inter%5Bopsz,wght%5D.ttf" || echo "Inter indisponible"
+curl -fsSL --retry 3 -o "$D/Inter-Italic[opsz,wght].ttf" "$B/Inter-Italic%5Bopsz,wght%5D.ttf" || true
+curl -fsSL "$B/OFL.txt" -o $D/OFL-Inter.txt || true
+fc-cache -f >/dev/null
+# icônes et curseurs (archives GitHub, installées dans /usr/share/icons)
+for r in Fluent-icon-theme WhiteSur-icon-theme WhiteSur-cursors; do
+  mkdir -p $T/$r
+  curl -fsSL --retry 3 "https://codeload.github.com/vinceliuice/$r/tar.gz/HEAD" | tar -xz -C $T/$r --strip-components=1 || echo "$r indisponible"
+done
+[ -x /bin/bash ] || DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends bash >/dev/null
+if [ -f $T/Fluent-icon-theme/install.sh ]; then
+  rm -rf /usr/share/icons/Fluent /usr/share/icons/Fluent-light /usr/share/icons/Fluent-dark
+  (cd $T/Fluent-icon-theme && bash install.sh -d /usr/share/icons standard) >/dev/null 2>&1 || echo "Fluent : installation en erreur"
+  if [ -d $T/Fluent-icon-theme/cursors/dist ]; then
+    rm -rf /usr/share/icons/Fluent-cursors; cp -a $T/Fluent-icon-theme/cursors/dist /usr/share/icons/Fluent-cursors
+    sed -i 's/^Name=.*/Name=Fluent Cursors/' /usr/share/icons/Fluent-cursors/index.theme 2>/dev/null || true
+  fi
+fi
+if [ -f $T/WhiteSur-icon-theme/install.sh ]; then
+  rm -rf /usr/share/icons/WhiteSur /usr/share/icons/WhiteSur-light /usr/share/icons/WhiteSur-dark
+  (cd $T/WhiteSur-icon-theme && bash install.sh -d /usr/share/icons) >/dev/null 2>&1 || echo "WhiteSur : installation en erreur"
+fi
+if [ -d $T/WhiteSur-cursors/dist ]; then
+  rm -rf /usr/share/icons/WhiteSur-cursors; cp -a $T/WhiteSur-cursors/dist /usr/share/icons/WhiteSur-cursors
+fi
+for t in Fluent Fluent-dark WhiteSur WhiteSur-dark; do [ -d /usr/share/icons/$t ] && gtk-update-icon-cache -f /usr/share/icons/$t >/dev/null 2>&1 || true; done
+mkdir -p /usr/share/doc/xiii-imitations
+for r in Fluent-icon-theme WhiteSur-icon-theme WhiteSur-cursors; do [ -f $T/$r/COPYING ] && cp $T/$r/COPYING /usr/share/doc/xiii-imitations/$r.COPYING || [ -f $T/$r/LICENSE ] && cp $T/$r/LICENSE /usr/share/doc/xiii-imitations/$r.LICENSE || true; done
+ls /usr/share/icons | grep -E "Fluent|WhiteSur" || true
+rm -rf $T

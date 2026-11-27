@@ -38,6 +38,7 @@ jobs:
           python3 /usr/lib/xiii/xiii/suite_prep.py /usr/share/xiii/suite /usr/share/applications /usr/share/icons/hicolor/scalable/apps | tail -3
           update-mime-database /usr/share/mime; update-desktop-database /usr/share/applications || true; gtk-update-icon-cache -f /usr/share/icons/hicolor || true
           python3 /usr/lib/xiii/xiii/ascii_boot.py /usr/share/plymouth/themes > /dev/null
+          sh config/hooks/normal/0325-xiii-imitations.hook.chroot | tail -3 || true
           mkdir -p /out
       - name: Captures
         run: |

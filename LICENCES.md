@@ -17,12 +17,15 @@ Application développée par Matthieu Lamotte.
 | Space Grotesk (Florian Karsten) | SIL Open Font License 1.1 | Titres. Texte de licence : `/usr/share/fonts/truetype/xiii/SpaceGrotesk-OFL.txt` |
 | IBM Plex Sans / Mono | SIL Open Font License 1.1 | Texte |
 | Noto, DejaVu (paquets Debian) | OFL 1.1 / licence libre DejaVu | Repli, émojis |
+| Selawik (Microsoft) | SIL Open Font License 1.1 | Thème « Façon Windows 11 » (remplaçant libre de Segoe UI, qui n'est pas redistribuable) |
+| Inter (Rasmus Andersson) | SIL Open Font License 1.1 | Thème « Façon macOS » (San Francisco d'Apple n'est pas redistribuable) |
 
 La police Astoria n'est plus utilisée (remplacée le 23/11/2026) : plus aucune question de droits sur les titres.
 
 ## Icônes et images
 | Élément | Licence |
 |---|---|
+| Icônes et curseurs Fluent, WhiteSur (vinceliuice) | GPL 3 — thèmes « Façon Windows 11 » et « Façon macOS ». Aucun logo, fond d'écran ni icône d'Apple ou de Microsoft : fonds dessinés par OS XIII, bouton Démarrer = icône générique à quatre carreaux |
 | Icônes Lucide | ISC |
 | Papirus (paquet Debian) | GPL-3.0 |
 | Animations de démarrage adi1090x | GPL-3.0 |

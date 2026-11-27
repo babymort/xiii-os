@@ -8,10 +8,10 @@ FICHIER = os.path.join(DOSSIER, "reglages.json")
 FONDS = "/usr/share/xiii/wallpapers"
 
 DEFAUTS = {
-    "theme": "sombre",              # thèmes de la Suite XIII : sombre | clair | auto | sobre | sobrec | w2k | xp | mac9 | cyber | term | gb | regie | soleil | rainbow | sepia | perso
+    "theme": "sombre",              # thèmes de la Suite XIII : sombre | clair | auto | sobre | sobrec | w2k | xp | mac9 | onze | macos | cyber | term | gb | regie | soleil | rainbow | sepia | perso
     "theme_perso": {"name": "Minuit bleu", "bg": "#0d1320", "panel": "#16203a", "text": "#e6ecf7", "accent": "#4fc3f7", "radius": "m", "shadow": "m", "glass": 0},
     "contraste": False,
-    "sorties_multiples": [], "coin_bureau": True, "barre_masquee": False, "barre_position": "bas", "barre_forme": "classique", "dock_masquage": True, "dock_grossissement": True, "dock_rebond": True, "barre_taille": "normale", "notif_petites": True, "ile_survol": True, "ile_minuteur": True, "ile_tally": True, "ile_media": True, "ile_meteo": True, "barre_modes_masquee": True, "haut_applis": False,
+    "sorties_multiples": [], "coin_bureau": True, "barre_masquee": False, "barre_position": "bas", "barre_forme": "classique", "dock_masquage": True, "dock_grossissement": True, "dock_rebond": True, "barre_taille": "normale", "notif_petites": True, "imitation_apparence": "clair", "avant_imitation": None, "ile_survol": True, "ile_minuteur": True, "ile_tally": True, "ile_media": True, "ile_meteo": True, "barre_modes_masquee": True, "haut_applis": False,
     "lecteur_ecran": False, "clavier_visuel": False, "soustitres_source": "pc", "soustitres_taille": 28,
     "densite": "normal",
     "accent": "#f0b378",
@@ -131,6 +131,19 @@ def modifier(_histo=True, **kw):
             t = theme.theme_effectif(dict(c, **kw))
             a = theme.accent_du_fond(f, clair=t in ("clair", "sobrec", "soleil", "sepia")) if f and not theme.fond_par_defaut(f) else None
             if a: kw["accent"] = a
+        except Exception:
+            pass
+    # Façon Windows 11 / macOS : le thème impose sa disposition (barre centrée, Dock…) ; l'ancienne revient avec un thème XIII
+    if "theme" in kw and kw["theme"] != c.get("theme"):
+        try:
+            from . import imitation as IM
+            av, ap = IM.de(c.get("theme")), IM.de(kw["theme"])
+            if ap:
+                if not av: kw.setdefault("avant_imitation", {k: c.get(k) for k in IM.CLES_DISPOSITION if k in c})
+                for k, v in IM.DISPOSITIONS[ap].items(): kw.setdefault(k, v)
+            elif av and c.get("avant_imitation"):
+                for k, v in c["avant_imitation"].items(): kw.setdefault(k, v)
+                kw["avant_imitation"] = None
         except Exception:
             pass
     avant = {k: c.get(k) for k in kw if c.get(k) != kw[k]}

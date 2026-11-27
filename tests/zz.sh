@@ -237,6 +237,37 @@ pgrep -f "xiii.shell import" >/dev/null || { echo "FERMÉE    xiii-shell pendant
 pgrep -f "xiii.shell import" >/dev/null || { xiii-shell >> /out/shell.log 2>&1 & sleep 6; }
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  barre (position / forme)"; grep -A6 Traceback /out/shell.log | tail -8; } >> $R || echo "OK        barre en bas / haut / gauche / droite, classique / flottante / dock : sans erreur" >> $R
 
+echo "== Thèmes Façon Windows 11 et Façon macOS" >> $R
+ls /usr/share/icons | grep -E "^(Fluent|WhiteSur)" | tr '\n' ' ' | sed 's/^/INFO      icônes : /' >> $R; echo >> $R
+fc-list | grep -ciE "selawik|/Inter" | sed 's/^/INFO      polices Selawik + Inter : /' >> $R
+python3 -c "$CFG"'config.modifier(barre_forme="flottante", barre_position="bas", barre_taille="petite")'; sleep 2
+for v in clair sombre; do
+  python3 -c "$CFG"'config.modifier(theme="onze", imitation_apparence="'$v'")'; sleep 4
+  mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2.5; grim -s 0.5 /out/onze-$v.png; grim /out/onze-$v-plein.png
+  gapplication action fr.xiii.Shell basculer "'demarrer'"; sleep 1.2; grim -s 0.5 /out/onze-$v-demarrer.png; gapplication action fr.xiii.Shell fermer; sleep 0.4
+  gapplication action fr.xiii.Shell basculer "'wifi'"; sleep 1.2; grim -s 0.5 /out/onze-$v-reglages-rapides.png; gapplication action fr.xiii.Shell fermer; sleep 0.4
+  gapplication action fr.xiii.Shell basculer "'volet'"; sleep 1.2; grim -s 0.5 /out/onze-$v-notifications.png; gapplication action fr.xiii.Shell fermer; sleep 0.4
+  xiii-parametres --page theme > /out/onze-p.log 2>&1 & sleep 3.5; grim -s 0.5 /out/onze-$v-parametres.png; pkill -f xiii.parametres; pkill mousepad; sleep 0.5
+done
+grep -A12 "<theme>" /root/.config/labwc/rc.xml | grep -E "name>|layout" | tr -s ' ' | sed 's/^/INFO      labwc : /' >> $R
+for v in clair sombre; do
+  python3 -c "$CFG"'config.modifier(theme="macos", imitation_apparence="'$v'")'; sleep 4
+  mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2.5; grim -s 0.5 /out/macos-$v.png; grim /out/macos-$v-plein.png
+  xiii-ctl menu-mac-3; sleep 1; grim -s 0.5 /out/macos-$v-menu-edition.png; gapplication action fr.xiii.Shell fermer; xiii-ctl menu-mac-3; sleep 0.4
+  xiii-ctl launchpad; sleep 1.5; grim -s 0.5 /out/macos-$v-launchpad.png; gapplication action fr.xiii.Shell fermer; sleep 0.5
+  xiii-ctl spotlight; sleep 1; wtype "mou"; sleep 1.2; grim -s 0.5 /out/macos-$v-spotlight.png; gapplication action fr.xiii.Shell fermer; sleep 0.4
+  gapplication action fr.xiii.Shell basculer "'centre'"; sleep 1.2; grim -s 0.5 /out/macos-$v-centre.png; gapplication action fr.xiii.Shell fermer; sleep 0.4
+  xiii-parametres --page theme > /out/macos-p.log 2>&1 & sleep 3.5; grim -s 0.5 /out/macos-$v-parametres.png; pkill -f xiii.parametres; pkill mousepad; sleep 0.5
+done
+grep -A12 "<theme>" /root/.config/labwc/rc.xml | grep -E "name>|layout" | tr -s ' ' | sed 's/^/INFO      labwc : /' >> $R
+python3 -c "$CFG"'config.modifier(theme="sombre")'; sleep 4
+python3 -c "$CFG"'c=config.charger(); print("OK        retour au thème XIII : barre d avant rendue" if (c["barre_forme"], c["barre_taille"]) == ("flottante", "petite") and not c.get("avant_imitation") else "ÉCHEC     retour au thème XIII : barre %s %s" % (c["barre_forme"], c["barre_taille"]))' >> $R
+grim -s 0.5 /out/imitation-retour.png
+python3 -c "$CFG"'config.modifier(barre_forme="classique", barre_taille="normale")'; sleep 2
+pgrep -f "xiii.shell import" >/dev/null || { echo "FERMÉE    xiii-shell pendant les thèmes Windows 11 / macOS"; grep -E "Error" /out/shell.log | tail -3; xiii-shell >> /out/shell.log 2>&1 & sleep 6; } >> $R
+grep -q Traceback /out/shell.log && { echo "PLANTAGE  thèmes Windows 11 / macOS"; grep -A8 Traceback /out/shell.log | tail -10; } >> $R || echo "OK        thèmes Façon Windows 11 et Façon macOS : sans erreur" >> $R
+for f in /out/onze-p.log /out/macos-p.log; do grep -q Traceback $f && { echo "PLANTAGE  Paramètres (thème imité)"; grep -A6 Traceback $f | tail -7; } >> $R; done
+
 echo "== Modes sans barre des tâches (applis ouvertes en tuiles)" >> $R
 mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2
 python3 -c "$CFG"'config.modifier(mode_bureau="fiction", haut_applis=True)'; sleep 4; grim -s 0.5 /out/mode-fiction-applis.png

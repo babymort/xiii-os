@@ -125,6 +125,14 @@ class Gestionnaire:
     def fermer(self, f):
         self._envoyer(f.id, 5)
 
+    def agrandir(self, f):
+        """Agrandit la fenêtre, ou la remet à sa taille si elle l'est déjà (set_maximized / unset_maximized)."""
+        self._envoyer(f.id, 1 if ETAT_MAX in f.etats else 0)
+
+    def plein_ecran(self, f):
+        if ETAT_PLEIN in f.etats: self._envoyer(f.id, 9)
+        else: self._envoyer(f.id, 8, struct.pack("<I", 0))
+
     def clic(self, f):
         """Comme Windows : active, ou réduit si déjà au premier plan."""
         if f.active and not f.reduite: self.reduire(f)

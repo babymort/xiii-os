@@ -8,6 +8,7 @@ gi.require_version("Gtk4LayerShell", "1.0")
 from gi.repository import Gtk, Gdk, GLib, Gio
 from gi.repository import Gtk4LayerShell as LS
 from . import config, theme, systeme as S, apps, notifs, panneaux as P, widgets as W, profils, vues, tray, claude
+from . import imitation_bureau as IB
 from .bureau import Bureau
 from .fenetres import Gestionnaire
 from .ui import *
@@ -151,7 +152,8 @@ class Shell(Gtk.Application):
         self.barre.set_default_size(1, HB); self.construire_barre(); self.barre.present()
         # barre du haut
         self.haut = Gtk.Window(application=self); couche(self.haut, LS.Layer.TOP, (T, Lf, R), ns="xiii-haut", exclusif="auto")
-        self.haut.set_default_size(-1, HH); self.construire_haut(); self.haut.present()
+        self.haut.set_default_size(-1, HH); self.construire_haut()
+        if self.imit() != "onze": self.haut.present()        # Façon Windows 11 : pas de barre en haut
         # panneaux
         self.panneaux = {}
         defs = {
@@ -246,6 +248,7 @@ class Shell(Gtk.Application):
                 if nom in self.panneaux:
                     pw = self.panneaux[nom][0]
                     for e, v_ in mg.items(): LS.set_margin(pw, e, v_)
+        IB.ancrer_panneaux(self, ecart, HH)
 
     def _touche(self, ctrl, keyval, code, etat):
         if keyval == Gdk.KEY_Escape:
@@ -253,7 +256,25 @@ class Shell(Gtk.Application):
         return False
 
     # ============================================================== ouverture / fermeture
+    def imit(self):
+        """« onze » (Façon Windows 11), « macos » (Façon macOS) ou None."""
+        return theme.imitation(self.cfg)
+
+    def taille_icone(self):
+        t = TAILLES_BARRE.get(self.cfg.get("barre_taille"), TAILLES_BARRE["normale"])[1]
+        return t + 12 if self.imit() == "macos" else t        # icônes du Dock plus grandes
+
     def basculer(self, nom):
+        im = self.imit()
+        if im == "onze" and nom in ("wifi", "son", "batterie", "bluetooth"): nom = "centre"      # réglages rapides de Windows 11
+        if im == "macos":
+            if nom == "demarrer": nom = "launchpad"
+            elif nom == "demarrer-recherche": nom = "spotlight"
+        if nom in ("launchpad", "spotlight") and nom not in self._defs: nom = "demarrer"
+        if nom.startswith("menu-mac-"):          # xiii-ctl menu-mac-2 : ouvre le 3e menu de la barre des menus (vérifications)
+            if getattr(self, "menus_mac", None) and nom[9:].isdigit() and int(nom[9:]) < len(self.menus_mac.titres):
+                b, fn = self.menus_mac.titres[int(nom[9:])]; self.menus_mac.ouvrir(b, fn)
+            return
         if nom == "demarrer-recherche":
             if self.ouvert != "demarrer": self.ouvrir("demarrer")
             self.menu.recherche.grab_focus(); return
@@ -297,7 +318,8 @@ class Shell(Gtk.Application):
         cls, marges, ancres = self._defs[nom]
         T, B, Lf, R = LS.Edge.TOP, LS.Edge.BOTTOM, LS.Edge.LEFT, LS.Edge.RIGHT
         w = Gtk.Window(application=self)
-        couche(w, LS.Layer.OVERLAY, ancres, marges, LS.KeyboardMode.EXCLUSIVE if nom in ("demarrer", "wifi", "presse", "emoji") else LS.KeyboardMode.ON_DEMAND, ns="xiii-" + nom)
+        couche(w, LS.Layer.OVERLAY, ancres, marges, LS.KeyboardMode.EXCLUSIVE if nom in ("demarrer", "wifi", "presse", "emoji", "launchpad", "spotlight") else LS.KeyboardMode.ON_DEMAND, ns="xiii-" + nom,
+               exclusif=-1 if nom == "launchpad" else None)
         k = Gtk.EventControllerKey(); k.connect("key-pressed", self._touche); w.add_controller(k)
         # filet de sécurité : un panneau qui perd le focus (clic dans une autre fenêtre) se ferme
         def focus(win, _p, n=nom):
@@ -417,6 +439,9 @@ class Shell(Gtk.Application):
             cbu.connect("clicked", lambda *_: (self.fermer(), self.afficher_bureau())); droite.append(cbu)
         self.cb = cb; self.droite = droite
         self.placer_barre()
+        im = self.imit()
+        if im == "onze": IB.barre_onze(self)
+        elif im == "macos": IB.barre_mac(self)
         self.barre.set_child(cb)
 
     def placer_barre(self):
@@ -430,7 +455,7 @@ class Shell(Gtk.Application):
             fin = boite(False, 4); fin.append(self.b_meteo); fin.append(self.droite); cb.set_end_widget(fin)
         else:
             self.groupe.set_margin_start(0); cb.set_start_widget(self.b_meteo); cb.set_center_widget(self.groupe); cb.set_end_widget(self.droite)
-        self.b_meteo.set_visible(self.cfg["barre_meteo"]); self.b_cherche.set_visible(self.cfg["barre_recherche"])
+        self.b_meteo.set_visible(self.cfg["barre_meteo"] and self.imit() != "macos"); self.b_cherche.set_visible(self.cfg["barre_recherche"] and self.imit() != "macos")
 
     def maj_taches(self):
         if not hasattr(self, "taches"): return
@@ -449,10 +474,17 @@ class Shell(Gtk.Application):
             cle = a.get_id() if a else ("x:" + (f.app_id or f.titre))
             groupes.setdefault(cle, []).append(f); info[cle] = a
         ordre = [p for p in self.cfg["epingles"] if apps.par_id(p)] + [k for k in groupes if k not in self.cfg["epingles"]]
+        mac = self.imit() == "macos"
+        if mac: ordre = IB.ordre_dock(ordre)
+        n = 0
         for cle in ordre:
             a = info.get(cle) or (apps.par_id(cle) if not cle.startswith("x:") else None)
             fs = groupes.get(cle, [])
-            self.taches.append(self.bouton_tache(cle, a, fs))
+            if a is None and not fs: continue
+            self.taches.append(self.bouton_tache(cle, a, fs)); n += 1
+            if mac and n == 1: self.taches.append(IB.bouton_launchpad(self))       # Fichiers, puis la tuile Applications
+        if mac and n == 0: self.taches.append(IB.bouton_launchpad(self))
+        if mac: IB.maj_corbeille(self)
         self.maj_titre()
 
     def ecouter_progres(self):
@@ -518,7 +550,7 @@ class Shell(Gtk.Application):
         actif = any(f.active for f in fs)
         if actif: b.add_css_class("actif")
         v = boite(True, 2, valign=Gtk.Align.CENTER)
-        ti = TAILLES_BARRE.get(self.cfg.get("barre_taille"), TAILLES_BARRE["normale"])[1]
+        ti = self.taille_icone()
         if a: im = gicon_image(a.get_icon(), ti)
         else: im = Gtk.Image.new_from_icon_name((fs[0].app_id if fs else "") or "application-x-executable"); im.set_pixel_size(ti)
         if not fs and time.time() < getattr(self, "_lancements", {}).get(cle, 0): b.add_css_class("rebond")     # appli en cours d'ouverture
@@ -666,7 +698,7 @@ class Shell(Gtk.Application):
         outils.append(self.bouton_survol("smartphone", "Téléphone", lambda: S.detacher("xiii-phonebox"),
                                          [("share-2", "Envoyer des fichiers (LocalSend, Transferts)", lambda: S.detacher("xiii-transferts")), ("bluetooth", "Bluetooth", lambda: self.parametres("bluetooth"))]))
         d.append(outils)
-        etat = boite(False, 2); etat.add_css_class("haut-secteur"); d.append(etat)
+        etat = boite(False, 2); etat.add_css_class("haut-secteur"); d.append(etat); self.haut_etat = etat
         def hb(nom, page, tip):
             b = Gtk.Button(); b.add_css_class("hb"); b.set_tooltip_text(tip + " — clic droit : paramètres")
             b.connect("clicked", lambda *_: self.basculer(nom)); clic_droit(b, lambda: self.parametres(page))
@@ -689,6 +721,17 @@ class Shell(Gtk.Application):
         self.boutons_panneaux.setdefault("alim", []).append(self.h_alim); self.h_alim.set_child(ico("power", 16, "c")); fin.append(self.h_alim)
         cb.set_end_widget(d); self.zone_haut = d
         self.haut.set_child(cb)
+        self.disposer_haut()
+
+    def disposer_haut(self):
+        """Façon Windows 11 : pas de barre en haut (Wi-Fi, son, batterie dans la barre des tâches).
+        Façon macOS : barre des menus (menu système, appli active, Fichier, Édition…, état, Spotlight, heure)."""
+        im = self.imit(); self.menus_mac = None
+        if im == "onze": IB.haut_onze(self)
+        elif im == "macos":
+            self.menus_mac = IB.MenusMac(self); self.menus_mac.construire()
+        else:
+            self.haut.set_visible(True)
 
     def selecteur_modes(self):
         """Modes d'utilisation (en haut au centre) : icônes, libellé du mode actif."""
@@ -892,6 +935,7 @@ class Shell(Gtk.Application):
         f = self.fenetres.active() if self.fenetres and self.fenetres.ok else None
         t = f.titre if (f and self.cfg["haut_titre"]) else ""
         if t != self.l_titre.get_text(): self.l_titre.set_text(t)
+        if getattr(self, "menus_mac", None): self.menus_mac.maj_appli()
 
     def icones_bientot(self):
         if self._icones_src: GLib.source_remove(self._icones_src)
@@ -920,6 +964,7 @@ class Shell(Gtk.Application):
         self._icones_cle = cle
         def met(b, icone, texte=None, role="t", valeur=None):
             """valeur 0..1 (signal, volume, charge) : dessinée selon le style choisi (Paramètres › Barre du haut)."""
+            if self.imit() and role == "c": role = "t"        # Windows 11 / macOS : icônes d'état monochromes
             bx = boite(False, 5, valign=Gtk.Align.CENTER)
             if valeur is not None and style == "rond":
                 bx.append(jauge_ronde(valeur, ico(icone, 11, role)))
@@ -1129,7 +1174,9 @@ class Shell(Gtk.Application):
         fmt = ("%H:%M" if self.cfg["horloge_24h"] else "%I:%M %p") + (":%S" if self.cfg["haut_secondes"] else "")
         h = n.strftime(fmt)
         if h != self.l_heure.get_text():
-            self.l_heure.set_text(h); self.l_date.set_text("%d %s %d" % (n.day, MOIS[n.month - 1], n.year))
+            self.l_heure.set_text(h)
+            self.l_date.set_text(n.strftime("%d/%m/%Y") if self.imit() == "onze" else "%d %s %d" % (n.day, MOIS[n.month - 1], n.year))
+        if getattr(self, "menus_mac", None): self.menus_mac.tic()
         if self.fenetres: self.maj_titre()
         return True
 
@@ -1195,7 +1242,8 @@ class Shell(Gtk.Application):
     # ============================================================== réglages & services
     def cfg_change(self, cfg):
         ancien = self.cfg
-        if ancien["theme"] != cfg["theme"] or ancien.get("theme_perso") != cfg.get("theme_perso") or (ancien["accent"] != cfg["accent"] and theme.fond_par_defaut(cfg["fond"])):
+        if ancien["theme"] != cfg["theme"] or ancien.get("theme_perso") != cfg.get("theme_perso") or ancien.get("imitation_apparence") != cfg.get("imitation_apparence") \
+                or (ancien["accent"] != cfg["accent"] and theme.fond_par_defaut(cfg["fond"])):
             f = theme.fond_assorti(cfg)
             if f != cfg["fond"]:
                 config.modifier(fond=f); return
@@ -1209,6 +1257,8 @@ class Shell(Gtk.Application):
             GLib.timeout_add_seconds(1, lambda: (self.antivol(), False)[1])
         self.css.load_from_string(theme.css_shell(cfg))
         theme._cache.clear()
+        if theme.imitation(ancien) != theme.imitation(cfg) or (theme.imitation(cfg) and theme.palette(ancien)["accent"] != self.p["accent"]):
+            self.construire_barre(); self.positionner_barre(); self.maj_zone()       # Démarrer, Dock, Corbeille… refaits
         if (ancien.get("barre_masquee"), ancien.get("barre_modes_masquee")) != (cfg.get("barre_masquee"), cfg.get("barre_modes_masquee")): self.visibilite_barre()
         if (ancien.get("barre_position"), ancien.get("barre_forme"), ancien.get("barre_alignement"), ancien.get("dock_masquage"), ancien.get("barre_taille")) != (cfg.get("barre_position"), cfg.get("barre_forme"), cfg.get("barre_alignement"), cfg.get("dock_masquage"), cfg.get("barre_taille")):
             self.positionner_barre()
@@ -1326,7 +1376,7 @@ class Shell(Gtk.Application):
 
     def theme_auto(self):
         """Thème Auto : passe au clair au lever du soleil, au sombre au coucher."""
-        if self.cfg.get("theme") == "auto":
+        if self.cfg.get("theme") == "auto" or (theme.imitation(self.cfg) and self.cfg.get("imitation_apparence") == "auto"):
             e = theme.theme_effectif(self.cfg)
             if e != getattr(self, "_auto", e):
                 self._auto = e; c = self.cfg
@@ -1460,15 +1510,19 @@ class MenuDemarrer:
             t.connect("toggled", lambda b, c=cle: b.get_active() and (setattr(self, "mode", c), self.chercher() if self.recherche.get_text().strip() else None))
             filt.append(t)
         self.filtres = filt; w.append(filt)
+        if onze_menu := (shell.imit() == "onze"):       # Windows 11 : les filtres n'apparaissent qu'en cherchant
+            filt.set_visible(False); self.recherche.connect("changed", lambda e: filt.set_visible(bool(e.get_text().strip())))
+            self.recherche.set_placeholder_text("Rechercher des applications, des paramètres et des documents")
         self.pile = Gtk.Stack(vexpand=True, transition_type=Gtk.StackTransitionType.SLIDE_LEFT_RIGHT if shell.cfg["animations"] else Gtk.StackTransitionType.NONE)
         w.append(self.pile)
         # --- accueil
         acc = boite(True, 10)
-        h = boite(False, 6); h.append(label("Épinglées", "gras", hexpand=True))
+        onze = shell.imit() == "onze"
+        h = boite(False, 6); h.append(label("Épinglé" if onze else "Épinglées", "gras", hexpand=True))
         h.append(bouton("Toutes les applications", "chevron-right", "fantome", taille=14, rappel=lambda: self.vue("toutes"))); acc.append(h)
         self.grille_ep = self.flow(self.COLS); acc.append(self.grille_ep)
         self.bloc_rec = boite(True, 8)
-        h2 = boite(False, 6); h2.append(label("Recommandés", "gras", hexpand=True)); self.bloc_rec.append(h2)
+        h2 = boite(False, 6); h2.append(label("Recommandé" if onze else "Recommandés", "gras", hexpand=True)); self.bloc_rec.append(h2)
         self.grille_rec = Gtk.FlowBox(max_children_per_line=2, min_children_per_line=2, selection_mode=Gtk.SelectionMode.NONE, column_spacing=6, row_spacing=4, homogeneous=True)
         self.bloc_rec.append(self.grille_rec); acc.append(self.bloc_rec)
         self.pile.add_named(acc, "accueil")

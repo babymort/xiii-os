@@ -19,6 +19,8 @@ THEMES = [("sombre", "Sombre", "Verre sombre, lueur cuivre — le thème signatu
           ("w2k", "Win 2000", "Gris classique, bleu marine, angles droits"),
           ("xp", "Win XP", "Beige Luna, bleu XP"),
           ("mac9", "Mac OS 9", "Platinum gris et violet-bleu"),
+          ("onze", "Façon Windows 11", "Barre des tâches centrée, menu Démarrer, fenêtres et icônes à la manière de Windows 11 (clair ou sombre)"),
+          ("macos", "Façon macOS", "Barre des menus, Dock, Launchpad, Spotlight et fenêtres à pastilles à la manière de macOS (clair ou sombre)"),
           ("cyber", "Cyberpunk", "Nuit violette, néons cyan et rose"),
           ("term", "Terminal", "Phosphore vert sur noir"),
           ("gb", "Game Boy", "Quatre verts, pixels"),
@@ -47,6 +49,8 @@ SKINS = {
     "rainbow": dict(fond="#1a1033", panneau="#241747", carte="#2e1f5a", carte2="#261a4d", texte="#ffffff", attenue="#bfb2e6", bord="#7d5fd6", acc="#ffd166", r=14, verre=True, arcenciel=True),
     "sepia": dict(fond="#e9dcc2", panneau="#f4ead6", carte="#fbf5e8", carte2="#eadcbf", texte="#3b2a1a", attenue="#7a6248", bord="#b49a74", acc="#8a4b14", r=4, plat=True, clair=True, police="Courier Prime"),
 }
+from . import imitation as IMIT
+SKINS.update(IMIT.SKINS)
 # thème perso : départs identiques à la suite (⚙️ › Affichage › Thème perso)
 DEPARTS = [
     dict(name="Minuit bleu", bg="#0d1320", panel="#16203a", text="#e6ecf7", accent="#4fc3f7", radius="m", shadow="m", glass=0),
@@ -153,7 +157,13 @@ def accent_du_fond(chemin, clair=False):
 def theme_effectif(cfg):
     t = cfg.get("theme", "sombre")
     if t == "auto": return "clair" if jour() else "sombre"
+    if t in IMIT.DISPOSITIONS: return IMIT.variante(t, cfg, jour)
     return t if (t in SKINS or t == "perso") else "sombre"
+
+
+def imitation(cfg):
+    """« onze », « macos » ou None : le bureau imite-t-il Windows 11 ou macOS ?"""
+    return IMIT.de(cfg.get("theme"))
 
 
 def skin_perso(cfg):
@@ -169,6 +179,7 @@ def palette(cfg):
     t = theme_effectif(cfg)
     s = skin_perso(cfg) if t == "perso" else SKINS[t]
     A = s.get("acc") or cfg.get("accent", "#f0b378")
+    if s.get("imitation") and A.lower() == "#f0b378": A = s["acc_defaut"]      # accent d'origine du système imité
     if t in ("sobre", "sobrec") and A.lower() == "#f0b378":
         A = "#ff8a3d" if t == "sobre" else "#c2570c"  # accents du thème Sobre de la suite
     clair = s.get("clair", False)
@@ -205,6 +216,8 @@ def palette(cfg):
         p["barre_fond"] = s["panneau"]
     p["barre_ligne"] = rgba(g1, .22) if verre else s["bord"]
     p["panneau_verre"] = ("linear-gradient(180deg, %s, transparent 30%%), %s" % (rgba(g2, .06 if not clair else .10), p["panneau"])) if verre else p["panneau"]
+    p["imitation"] = None
+    if s.get("imitation"): IMIT.retoucher(p, s, rgba)
     return p
 
 # --------------------------------------------------------------------------------------------- effets propres à certains thèmes
@@ -441,7 +454,7 @@ button.dispo-zone:hover {{ background: {p['accent']}; }}
 .icone-bureau:hover {{ background: rgba(255,255,255,0.10); }}
 .icone-bureau label {{ color: {'#1d1b19' if p['clair'] else '#ffffff'}; text-shadow: 0 1px 3px {'rgba(255,255,255,0.95)' if p['clair'] else 'rgba(0,0,0,0.9)'}; }}
 button.emoji {{ font-size: 22px; padding: 2px; min-width: 36px; min-height: 36px; }}
-"""
+""" + (IMIT.css_shell(p, cfg) if p.get("imitation") else "")
 
 # --------------------------------------------------------------------------------------------- CSS Paramètres
 def css_parametres(cfg):
@@ -481,7 +494,7 @@ button.vignette:hover {{ border-color: alpha({p['accent']},0.5); }}
 .journal {{ font-family: "IBM Plex Mono", monospace; font-size: 11px; background: {p['carte2']}; color: {p['attenue']}; }}
 .credit {{ font-size: 11px; color: {p['attenue']}; }}
 .info-bulle {{ background: alpha({p['accent']},0.10); border: 1px solid alpha({p['accent']},0.35); border-radius: {p['rayon_petit']}; padding: 10px 14px; }}
-"""
+""" + (IMIT.css_commun_imitation(p) + IMIT.css_parametres(p) if p.get("imitation") else "")
 
 # --------------------------------------------------------------------------------------------- icônes Lucide teintées
 _cache = {}
@@ -553,6 +566,12 @@ def fond_theme(cfg):
     t = theme_effectif(cfg)
     if t in FONDS_XIII and cfg.get("accent", "#f0b378").lower() == "#f0b378":
         return FONDS_XIII[t]
+    im = IMIT.de(t)
+    if im:      # Façon Windows 11 / macOS : fond dessiné (rubans bleus, collines au crépuscule)
+        f = os.path.join(FONDS_GENERES, "%s.png" % t)
+        if os.path.exists(f): return f
+        try: return IMIT.fond(im, not t.endswith("-sombre"), f)
+        except Exception: return FONDS_XIII.get("sombre")
     p = palette(cfg)
     cle = "%s-%s-%s-centre" % (t, p["fond"].lstrip("#"), p["accent"].lstrip("#"))
     f = os.path.join(FONDS_GENERES, cle + ".png")
@@ -596,7 +615,11 @@ def fond_assorti(cfg):
 def nom_icones(cfg):
     """Thème d'icônes : XIII (cuivre) ou copie teintée à la couleur d'accent du thème ;
     sans les icônes XIII des logiciels tiers si l'utilisateur préfère leurs logos d'origine."""
-    A = palette(cfg)["accent"].lower()
+    p_ = palette(cfg)
+    if p_.get("imitation"):
+        n = IMIT.icones(p_["imitation"], not p_["clair"])
+        if n: return n
+    A = p_["accent"].lower()
     tierces = cfg.get("icones_tierces", True)
     if A == "#f0b378" and tierces: return "XIII"
     nom = "XIII-accent" if tierces else "XIII-marques"
@@ -683,7 +706,7 @@ scrollbar slider {{ background: alpha({tx},0.28); }}
 #login_window, #restart_dialog, #shutdown_dialog {{ background: alpha({pan},0.88); border: 1px solid alpha({A},0.45); border-radius: {p['rayon']}; box-shadow: 0 0 60px alpha({A},0.18); padding: 18px; }}
 #panel_window {{ background: alpha({pan},0.88); border-bottom: 1px solid alpha({A},0.35); color: {tx}; }}
 #login_window #login_button {{ background: {A}; color: {SA}; border-radius: 999px; font-weight: bold; }}
-"""
+""" + (IMIT.css_gtk3(p) if p.get("imitation") else "")
 
 
 def appliquer_systeme(cfg):
@@ -694,6 +717,9 @@ def appliquer_systeme(cfg):
     curseur = int(cfg.get("curseur_taille", 24))
     police = "%s %d" % (p["police"], 10)
     icones = nom_icones(cfg)
+    imit = p.get("imitation")
+    cur_theme = (IMIT.curseur(imit) if imit else None) or "XIII-curseur"
+    deco_gtk, deco_gnome = IMIT.disposition_gtk(imit)
     pan = p["panneau_plein"]; att = couleur_pleine(p["attenue"], pan); bord = couleur_pleine(p["bord"], pan)
     # GTK 3 : thème complet généré
     _ecrire(f"{data}/themes/XIII-perso/gtk-3.0/gtk.css", css_gtk3(p))
@@ -704,13 +730,13 @@ gtk-theme-name={'XIII-perso' if v == '3.0' else 'Adwaita'}
 gtk-application-prefer-dark-theme={'0' if clair else '1'}
 gtk-icon-theme-name={icones}
 gtk-font-name={police}
-gtk-cursor-theme-name=XIII-curseur
+gtk-cursor-theme-name={cur_theme}
 gtk-cursor-theme-size={curseur}
 gtk-xft-dpi={dpi}
 gtk-enable-animations={anim}
 gtk-sound-theme-name=XIII
 gtk-enable-event-sounds={"true" if cfg.get("sons_systeme", True) else "false"}
-gtk-decoration-layout=menu:minimize,maximize,close
+gtk-decoration-layout={deco_gtk}
 """)
     _ecrire(f"{conf}/gtk-3.0/gtk.css", "/* OS XIII : couleurs dans ~/.local/share/themes/XIII-perso */\n")
     # GTK 4 : couleurs nommées d'Adwaita + réglages de base
@@ -753,9 +779,12 @@ selection-foreground={h(p['sur_accent'])}
     if "xiii-couleurs.ini" not in ft:
         ft = re.sub(r"\[colors\][^\[]*", "", ft).rstrip() + "\ninclude=%s\n" % os.path.join(conf, "foot", "xiii-couleurs.ini")
         _ecrire(foot, ft)
-    # fenêtres (labwc)
+    # fenêtres (labwc) : thème XIII aux couleurs du thème, ou thème complet Façon Windows 11 / macOS
     titre_fond = melange(pan, p["fond"], .5)
-    _ecrire(f"{conf}/labwc/themerc-override", f"""window.active.border.color: {A}
+    if imit:
+        IMIT.ecrire_theme_labwc(imit, p, _ecrire)
+        _ecrire(f"{conf}/labwc/themerc-override", "# Façon %s : tout est dans ~/.local/share/themes\n" % IMIT.NOMS[imit])
+    else: _ecrire(f"{conf}/labwc/themerc-override", f"""window.active.border.color: {A}
 window.inactive.border.color: {bord}
 window.active.title.bg.color: {titre_fond}
 window.inactive.title.bg.color: {titre_fond}
@@ -785,10 +814,26 @@ window.inactive.shadow.color: {'#00000022' if p['clair'] else '#00000050'}
         th = r.find("theme")
         if th is None: th = ET.SubElement(r, "theme")
         rayon = int(re.sub(r"\D", "", p['rayon']) or 0)
-        for cle, val in (("cornerRadius", str(min(12, rayon))), ("dropShadows", "no" if rayon == 0 or _leger() else "yes")):
+        rl = IMIT.rc_labwc(imit)
+        for cle, val in (("name", rl["nom"]), ("cornerRadius", rl["rayon"] or str(min(12, rayon))), ("dropShadows", "no" if rayon == 0 or _leger() else "yes")):
             e = th.find(cle)
             if e is None: e = ET.SubElement(th, cle)
             e.text = val
+        # boutons de fenêtre à gauche (macOS) ou à droite, titre centré ou non
+        tb = th.find("titlebar")
+        if tb is None: tb = ET.SubElement(th, "titlebar")
+        lay = tb.find("layout")
+        if lay is None: lay = ET.SubElement(tb, "layout")
+        lay.text = rl["layout"]
+        sh = tb.find("showTitle")
+        if sh is None: sh = ET.SubElement(tb, "showTitle")
+        sh.text = "yes"
+        for f in th.findall("font"):
+            if f.get("place") == "ActiveWindow":
+                for k_, v_ in zip(("name", "size", "weight"), rl["police"]):
+                    x = f.find(k_)
+                    if x is None: x = ET.SubElement(f, k_)
+                    x.text = v_
         t.write(rc, encoding="unicode", xml_declaration=True)
     except Exception:
         pass
@@ -814,13 +859,15 @@ show-failed-attempts
         lignes = [l for l in open(env).read().splitlines() if not l.startswith(("XCURSOR_SIZE=", "XCURSOR_THEME=", "QT_QPA_PLATFORMTHEME=", "GTK_THEME="))]
     except OSError:
         lignes = ["XKB_DEFAULT_LAYOUT=fr"]
-    lignes += ["XCURSOR_THEME=XIII-curseur", f"XCURSOR_SIZE={curseur}", "QT_QPA_PLATFORMTHEME=gtk3"]
+    lignes += [f"XCURSOR_THEME={cur_theme}", f"XCURSOR_SIZE={curseur}", "QT_QPA_PLATFORMTHEME=gtk3"]
     _ecrire(env, "\n".join(l for l in lignes if l) + "\n")
     try:
         subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-light" if clair else "prefer-dark"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", "XIII-perso"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # réduire / agrandir / fermer dans toutes les applis qui dessinent leur propre barre de titre (GTK 4, Firefox, Thunderbird…)
-        subprocess.Popen(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", "appmenu:minimize,maximize,close"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", deco_gnome], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "cursor-theme", cur_theme], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", icones], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except OSError:
         pass
     reconfigurer_labwc()
