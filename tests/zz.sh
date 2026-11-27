@@ -268,6 +268,17 @@ pgrep -f "xiii.shell import" >/dev/null || { echo "FERMÉE    xiii-shell pendant
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  thèmes Windows 11 / macOS"; grep -A8 Traceback /out/shell.log | tail -10; } >> $R || echo "OK        thèmes Façon Windows 11 et Façon macOS : sans erreur" >> $R
 for f in /out/onze-p.log /out/macos-p.log; do grep -q Traceback $f && { echo "PLANTAGE  Paramètres (thème imité)"; grep -A6 Traceback $f | tail -7; } >> $R; done
 
+echo "== Icônes XIII (changer le logo d'une appli)" >> $R
+xiii-icones --test 2>&1 | tail -1 | sed 's/^/INFO      bibliothèques : /' >> $R
+xiii-icones --app xiii-fichiers.desktop > /out/icones.log 2>&1 & sleep 4; grim -s 0.5 /out/app-icones.png
+python3 -c 'import gi; gi.require_version("Gtk","4.0"); from gi.repository import Gio; import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import icones_perso as IP
+a=Gio.DesktopAppInfo.new("xiii-fichiers.desktop"); s=IP.dessiner("tabler","folder-heart","#ffffff",2,"degrade","#e05a8a") or IP.dessiner("lucide","folder-heart","#ffffff",2,"degrade","#e05a8a"); print("OK        logo appliqué :", IP.appliquer(a, svg=s))' >> $R 2>&1
+sleep 2.5; grim -s 0.5 /out/icones-barre-perso.png
+python3 -c 'import gi; gi.require_version("Gtk","4.0"); from gi.repository import Gio; import sys,os; sys.path.insert(0,"/usr/lib/xiii"); from xiii import icones_perso as IP
+a=Gio.DesktopAppInfo.new("xiii-fichiers.desktop"); print("OK        logo vu par les applis :", a.get_icon().to_string()) if IP.personnalisee(a) else print("ÉCHEC     logo personnalisé non pris en compte")
+print("OK        logo d origine rétabli" if IP.retablir(a) and not os.path.exists(os.path.expanduser("~/.local/share/applications/xiii-fichiers.desktop")) else "ÉCHEC     retour au logo d origine")' >> $R 2>&1
+sleep 1; pkill -f "xiii.icones"; grep -q Traceback /out/icones.log && { echo "PLANTAGE  Icônes XIII"; grep -A6 Traceback /out/icones.log | tail -7; } >> $R
+
 echo "== Modes sans barre des tâches (applis ouvertes en tuiles)" >> $R
 mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2
 python3 -c "$CFG"'config.modifier(mode_bureau="fiction", haut_applis=True)'; sleep 4; grim -s 0.5 /out/mode-fiction-applis.png

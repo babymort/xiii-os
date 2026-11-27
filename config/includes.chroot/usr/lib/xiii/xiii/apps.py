@@ -67,6 +67,11 @@ def par_id(i):
         return None
 
 _index_wm = None
+def oublier():
+    """Une appli a été installée, retirée ou a changé de logo : l'index des fenêtres sera refait."""
+    global _index_wm
+    _index_wm = None
+
 def pour_fenetre(app_id):
     """Trouve l'appli .desktop d'une fenêtre (app_id Wayland / classe X11)."""
     global _index_wm

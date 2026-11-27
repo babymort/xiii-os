@@ -1,0 +1,17 @@
+#!/bin/sh
+# xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
+# Icônes XIII : bibliothèques d'icônes libres pour changer le logo des applis (Lucide est déjà dans /usr/share/xiii/lucide).
+#   Tabler Icons (MIT, ~5 500 icônes au trait) · Phosphor Icons (MIT, ~1 500 icônes, style « regular »)
+set -e
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl ca-certificates python3 >/dev/null
+T=$(mktemp -d); D=/usr/share/xiii/icones
+url() { curl -fsSL --retry 3 "https://registry.npmjs.org/$1/latest" | python3 -c 'import json,sys; print(json.load(sys.stdin)["dist"]["tarball"])'; }
+if U=$(url @tabler/icons) && curl -fsSL --retry 3 "$U" | tar -xz -C $T package/icons/outline package/LICENSE; then
+  rm -rf $D/tabler; mkdir -p $D/tabler; cp $T/package/icons/outline/*.svg $D/tabler/; cp $T/package/LICENSE $D/tabler/LICENSE
+else echo "Tabler indisponible"; fi
+rm -rf $T/package
+if U=$(url @phosphor-icons/core) && curl -fsSL --retry 3 "$U" | tar -xz -C $T package/assets/regular package/LICENSE; then
+  rm -rf $D/phosphor; mkdir -p $D/phosphor; cp $T/package/assets/regular/*.svg $D/phosphor/; cp $T/package/LICENSE $D/phosphor/LICENSE
+else echo "Phosphor indisponible"; fi
+rm -rf $T
+for b in tabler phosphor; do echo "$b : $(ls $D/$b 2>/dev/null | grep -c svg) icônes"; done

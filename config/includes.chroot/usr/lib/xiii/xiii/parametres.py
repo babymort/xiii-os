@@ -1364,6 +1364,8 @@ class Parametres(Gtk.Application):
             if hx != self.cfg["accent"]: self.regler(accent=hx, accent_auto=False)
         cb.connect("notify::rgba", couleur)
         c.append(reglage("palette", "Couleur personnalisée", "Choisissez n'importe quelle couleur", droite=cb))
+        c.append(reglage("swatch-book", "Changer le logo d'une application", "Plusieurs milliers d'icônes libres (Lucide, Tabler, Phosphor), couleur, trait et fond, ou une image",
+                         droite=bouton("Ouvrir Icônes XIII", None, "fantome", rappel=lambda: S.detacher("xiii-icones"))))
         c.append(reglage("shapes", "Icônes XIII pour les logiciels tiers", "Firefox, VLC, OBS, Resolve, LibreOffice, Steam… dessinés au trait XIII (130 icônes). Désactivez pour garder leurs logos d'origine",
                          droite=interrupteur(cfg.get("icones_tierces", True), lambda on: self.regler(icones_tierces=on))))
         c.append(reglage("pipette", "Assortir l'accent au fond d'écran", "La couleur vive dominante de votre image devient l'accent, ajustée pour rester lisible ; elle suit chaque changement de fond",

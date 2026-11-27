@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Icônes XIII
+Comment=Changer le logo de n'importe quelle application
+Exec=xiii-icones %F
+Icon=xiii-icones
+Type=Application
+Categories=Settings;DesktopSettings;XIII;
+Keywords=icone;icones;logo;icon;personnaliser;apparence;tabler;lucide;phosphor;

@@ -180,6 +180,8 @@ class Shell(Gtk.Application):
         # plusieurs écrans : écran principal, barre et mode de chaque écran
         from .ecrans import Ecrans
         self.ecrans = Ecrans(self); GLib.idle_add(lambda: (self.ecrans.maj(), False)[1])
+        # une appli installée, retirée ou dont le logo a changé (Icônes XIII) : barre des tâches et menu Démarrer à jour
+        self._moni_apps = Gio.AppInfoMonitor.get(); self._moni_apps.connect("changed", lambda *_: self.applis_changees())
 
     def aligner_menu(self):
         self.positionner_barre()
@@ -260,6 +262,16 @@ class Shell(Gtk.Application):
         return False
 
     # ============================================================== ouverture / fermeture
+    def applis_changees(self):
+        if getattr(self, "_apps_src", 0): GLib.source_remove(self._apps_src)
+        def go():
+            self._apps_src = 0; apps.oublier(); self.maj_taches()
+            if hasattr(self, "menu"):
+                try: self.menu.remplir_epingles(); self.menu.remplir_toutes()
+                except Exception: pass
+            return False
+        self._apps_src = GLib.timeout_add(500, go)
+
     def imit(self):
         """« onze » (Façon Windows 11), « macos » (Façon macOS) ou None."""
         return theme.imitation(self.cfg)
@@ -602,6 +614,7 @@ class Shell(Gtk.Application):
             if a:
                 ep = cle in self.cfg["epingles"]
                 items.append(("pin-off" if ep else "pin", "Désépingler de la barre" if ep else "Épingler à la barre", lambda: self.epingler(cle, not ep)))
+                items.append(("swatch-book", "Changer l'icône…", lambda: S.detacher(["xiii-icones", "--app", a.get_id()])))
             if fs:
                 items.append(None)
                 items.append(("x", "Fermer la fenêtre" if len(fs) == 1 else "Fermer toutes les fenêtres", lambda: [self.fenetres.fermer(f) for f in fs]))
@@ -1619,6 +1632,7 @@ class MenuDemarrer:
         popover_menu(b, [("app-window", "Ouvrir", lambda: self.lancer(a))] + dd + [
                          ("pin-off" if em else "pin", "Désépingler du menu" if em else "Épingler au menu", lambda: self.shell.epingler(cle, not em, "menu_epingles")),
                          ("pin-off" if eb else "panel-bottom", "Désépingler de la barre" if eb else "Épingler à la barre des tâches", lambda: self.shell.epingler(cle, not eb, "epingles")),
+                         ("swatch-book", "Changer l'icône…", lambda: (self.shell.fermer(), S.detacher(["xiii-icones", "--app", a.get_id()]))),
                          None, ("trash-2", "Désinstaller…", lambda: self.shell.parametres("apps"))])
 
     def lancer(self, a):
