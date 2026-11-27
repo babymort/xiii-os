@@ -207,7 +207,7 @@ python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC
 pkill -f radicale
 
 echo "== Barre des tâches : position et forme" >> $R
-for c in bande cache-ancres; do LD_PRELOAD=$(ls /usr/lib/*/libgtk4-layer-shell.so.0 | head -1) timeout 10 python3 "${GITHUB_WORKSPACE:-.}/tests/repro_layer.py" $c > /out/repro-$c.log 2>&1; echo "INFO      repro $c : $(grep -E "OK|Error|error" /out/repro-$c.log | tail -2 | tr '\n' ' ')" >> $R; done
+for c in ; do LD_PRELOAD=$(ls /usr/lib/*/libgtk4-layer-shell.so.0 | head -1) timeout 10 python3 "${GITHUB_WORKSPACE:-.}/tests/repro_layer.py" $c > /out/repro-$c.log 2>&1; echo "INFO      repro $c : $(grep -E "OK|Error|error" /out/repro-$c.log | tail -2 | tr '\n' ' ')" >> $R; done
 for pf in "gauche classique" "haut flottante" "droite dock" "bas flottante"; do set -- $pf
   python3 -c "$CFG"'config.modifier(barre_position="'$1'", barre_forme="'$2'")'; sleep 2.5; grim -s 0.5 /out/barre-$1-$2.png
   python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii')" ; gapplication action fr.xiii.Shell basculer "'demarrer'" 2>/dev/null; sleep 1; grim -s 0.5 /out/barre-$1-$2-menu.png; gapplication action fr.xiii.Shell fermer 2>/dev/null; sleep 0.5
@@ -219,6 +219,7 @@ python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="ile")'; sle
 xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-ouverte.png; xiii-ctl ile; sleep 0.5
 python3 -c "$CFG"'config.modifier(barre_position="haut")'; sleep 2.5; xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-haut-ouverte.png; xiii-ctl ile; pkill mousepad
 python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="classique")'; sleep 2
+pgrep -f "xiii.shell import" >/dev/null || { echo "FERMÉE    xiii-shell pendant les essais de la barre"; grep -E "Error|error" /out/shell.log | tail -3; } >> $R
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  barre (position / forme)"; grep -A6 Traceback /out/shell.log | tail -8; } >> $R || echo "OK        barre en bas / haut / gauche / droite, classique / flottante / dock : sans erreur" >> $R
 
 echo "== Modes sans barre des tâches (applis ouvertes en tuiles)" >> $R

@@ -46,7 +46,7 @@ class Ile:
         if haut and enf is self.rev: self.pilule.reorder_child_after(self.rev, self.compacte)
 
     def montrer(self, on):
-        if on: self.placer(); self.w.present()
+        if on: self.w.present(); self.placer()     # ré-ancrer une surface visible (jamais une surface cachée)
         else: self.w.set_visible(False)
 
     def ouvrir_bientot(self):

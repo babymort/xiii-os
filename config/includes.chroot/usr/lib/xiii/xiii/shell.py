@@ -194,6 +194,10 @@ class Shell(Gtk.Application):
         bord = {"bas": B, "haut": T, "gauche": L, "droite": R}[pos]
         cotes = (L, R) if not vert else (T, B)
         w = self.barre
+        # une surface cachée ne doit pas changer de bords d'ancrage (erreur de protocole Wayland au retour) : on l'affiche d'abord,
+        # visibilite_barre() la recache ensuite si besoin
+        if not w.get_visible() and getattr(self, "_bord_barre", bord) != bord: w.set_visible(True)
+        self._bord_barre = bord
         for e in (T, B, L, R): LS.set_anchor(w, e, e == bord or (style == "classique" and e in cotes)); LS.set_margin(w, e, 0)
         if style != "classique": LS.set_margin(w, bord, 8)
         # dock : place transparente côté écran pour que les icônes grossies au survol ne soient pas coupées
@@ -748,11 +752,15 @@ class Shell(Gtk.Application):
             if d: d.set_visible(False)
             return
         bord = {"bas": B, "haut": T, "gauche": L, "droite": R}[self.position_barre()]
+        if d is not None and getattr(self, "_bord_decl", bord) != bord:      # autre bord : nouvelle bande (pas de ré-ancrage d'une surface cachée)
+            d.destroy(); d = self._decl = None
+        self._bord_decl = bord
         if d is None:
             d = Gtk.Window(application=self); couche(d, LS.Layer.TOP, (bord,), ns="xiii-dock-bord", exclusif=0)
             d.set_child(Gtk.Box()); self._decl = d
             m = Gtk.EventControllerMotion(); m.connect("enter", lambda *_: self.montrer_dock()); d.add_controller(m)
-            m2 = Gtk.EventControllerMotion(); m2.connect("leave", lambda *_: self.cacher_dock_bientot()); m2.connect("enter", lambda *_: self._annuler_cache_dock()); self.barre.add_controller(m2)
+            if not getattr(self, "_m_dock", None):
+                m2 = Gtk.EventControllerMotion(); m2.connect("leave", lambda *_: self.cacher_dock_bientot()); m2.connect("enter", lambda *_: self._annuler_cache_dock()); self.barre.add_controller(m2); self._m_dock = m2
         vert = bord in (L, R)
         for e in (T, B, L, R): LS.set_anchor(d, e, e == bord or (e in ((T, B) if vert else (L, R))))
         d.set_default_size(3 if vert else -1, -1 if vert else 3); d.get_child().set_size_request(3 if vert else -1, -1 if vert else 3)
