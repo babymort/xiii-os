@@ -168,6 +168,14 @@ curl -s -u zz:x -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null -w
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
+echo "== Étape 3 (capture, heure, son, webcam)" >> $R
+xiii-outil-capture > /out/xiii-outil-capture.log 2>&1 & sleep 3; grim -s 0.5 /out/app-outil-capture.png
+pgrep -f "capture import main" >/dev/null && echo "OK        Outil Capture ouvert" >> $R || { echo "FERMÉE    Outil Capture"; tail -4 /out/xiii-outil-capture.log; } >> $R
+pkill -f "capture import main"; sleep 1
+grep -q Traceback /out/xiii-outil-capture.log && { echo "PLANTAGE  Outil Capture"; tail -6 /out/xiii-outil-capture.log; } >> $R
+xiii-parametres --page heure > /out/p.log 2>&1 & sleep 4; grim -s 0.5 /out/page-heure-manuelle.png; pkill -f xiii.parametres; sleep 1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import systeme as S; print("OK        sorties multiples (démo) :", S.sorties_multiples(["a","b"]))' >> $R 2>&1
+
 echo "== Cloud hors ligne (copie locale synchronisée)" >> $R
 rclone version 2>/dev/null | head -1 | sed 's/^/INFO      /' >> $R
 rclone config create xiii-cloud-test local >/dev/null 2>&1; mkdir -p /tmp/cloud/XIII/Concert; echo devis > /tmp/cloud/XIII/Concert/devis.txt
