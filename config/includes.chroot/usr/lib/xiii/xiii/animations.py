@@ -83,3 +83,33 @@ def fenetre_apercu(parent, titre, gif=None, theme=None):
     elif theme: l.suite(images_theme(theme))
     w.connect("close-request", lambda *_: (l.stop(), False)[1])
     return w
+
+
+def nom_lisible(theme):
+    """Nom à afficher pour un thème de démarrage installé (« xiii-ascii-matrice » → « Logo XIII en ASCII — Matrice »)."""
+    if not theme or theme == "xiii": return "Logo XIII (par défaut)"
+    if theme.startswith("xiii-ascii-"):
+        try:
+            from .ascii_boot import VARIANTES
+            for nom, titre, _d in VARIANTES:
+                if "xiii-ascii-" + nom == theme: return "Logo XIII en ASCII — " + titre
+        except Exception: pass
+    try:
+        for t in catalogue():
+            if t.get("dossier") == theme: return t["nom"] + " (store)"
+    except Exception: pass
+    try:
+        for l in open(os.path.join(THEMES, theme, theme + ".plymouth"), errors="replace"):
+            if l.startswith("Name="): return l.split("=", 1)[1].strip()
+    except OSError: pass
+    return theme.replace("-", " ").capitalize()
+
+
+def vignette(theme):
+    """Une image représentative du thème (pour l'afficher dans Paramètres), ou None."""
+    im = images_theme(theme)
+    if im: return im[len(im) * 2 // 3]
+    for f in ("logo.png", "watermark.png"):
+        p = os.path.join(THEMES, theme, f)
+        if os.path.exists(p): return p
+    return None

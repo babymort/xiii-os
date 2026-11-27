@@ -1319,6 +1319,9 @@ class Parametres(Gtk.Application):
         c.append(groupe_titre("Partout"))
         c.append(reglage("log-in", "Écran de connexion et démarrage", "Appliquer aussi ce thème à l'écran de connexion et à l'animation de démarrage (mot de passe administrateur)",
                          droite=bouton("Appliquer", None, "pilule", rappel=lambda: S.en_fond(theme.appliquer_connexion, lambda ok: self.toast("Écran de connexion et démarrage mis à jour" if ok is True else "Annulé"), dict(self.cfg)))))
+        anim = S.out(["plymouth-set-default-theme"]) or "xiii"
+        c.append(reglage("clapperboard", "Animation de démarrage", "Appliquée : " + A.nom_lisible(anim), clic=lambda: self.aller("demarrage"),
+                         droite=bouton("Aperçu", "play", "fantome", rappel=lambda: A.fenetre_apercu(self.win, A.nom_lisible(anim), theme=anim))))
 
     def importer_theme(self):
         d = Gtk.FileDialog(title="Importer un thème (.xiii-theme.json)")
@@ -2025,8 +2028,17 @@ class Parametres(Gtk.Application):
 
     def p_demarrage(self, c, cle):
         cur = S.out(["plymouth-set-default-theme"]) or "xiii"
-        c.append(reglage("clapperboard", "Animation actuelle", cur, droite=bouton("Changer / importer", None, "pilule", rappel=lambda: S.detacher("xiii-demarrage"))))
-        c.append(info("Importez une vidéo ou un GIF : il devient votre animation de démarrage."))
+        # animation appliquée : son nom, une image et l'aperçu en grand
+        h = boite(False, 14, "carte")
+        vg = A.vignette(cur)
+        if vg:
+            pic = Gtk.Picture.new_for_filename(vg); pic.set_content_fit(Gtk.ContentFit.CONTAIN); pic.set_size_request(200, 112); pic.add_css_class("miniature"); pic.add_css_class("apercu-noir"); h.append(pic)
+        col = boite(True, 4, valign=Gtk.Align.CENTER, hexpand=True)
+        col.append(label("Animation de démarrage appliquée", "petit", "attenue")); col.append(label(A.nom_lisible(cur), "gras"))
+        col.append(label("Elle s'affiche au prochain démarrage, avant l'écran de connexion.", "petit", "attenue", wrap=True))
+        rb = boite(False, 6); rb.append(bouton("Aperçu", "play", "pilule", rappel=lambda: A.fenetre_apercu(self.win, A.nom_lisible(cur), theme=cur)))
+        rb.append(bouton("Importer une vidéo ou un GIF…", "upload", "fantome", rappel=lambda: S.detacher("xiii-demarrage"))); col.append(rb); h.append(col)
+        c.append(h)
         from .ascii_boot import VARIANTES
         c.append(groupe_titre("Logo XIII en ASCII"))
         g = Gtk.FlowBox(max_children_per_line=3, min_children_per_line=2, selection_mode=Gtk.SelectionMode.NONE, column_spacing=10, row_spacing=10, homogeneous=True)
