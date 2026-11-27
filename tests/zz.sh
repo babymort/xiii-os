@@ -221,7 +221,7 @@ xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-ouverte.png; xiii-ctl ile; sleep 0
 python3 -c "$CFG"'config.modifier(barre_position="haut")'; sleep 2.5; xiii-ctl ile; sleep 1.2; grim -s 0.5 /out/ile-haut-ouverte.png; xiii-ctl ile; pkill mousepad
 python3 -c "$CFG"'config.modifier(barre_position="bas", barre_forme="classique")'; sleep 2
 pgrep -f "xiii.shell import" >/dev/null || { echo "FERMÉE    xiii-shell pendant les essais de la barre"; grep -E "Error 71|error" /tmp/wl.log | tail -3; } >> $R
-grep -n "error\|Error 71" /tmp/wl.log | head -5 > /out/wl-erreur.log; n=$(grep -n "Error 71\|wl_display.*error" /tmp/wl.log | head -1 | cut -d: -f1); [ -n "$n" ] && sed -n "$((n>250?n-250:1)),$((n+5))p" /tmp/wl.log | grep -v "wl_buffer\|wl_callback\|frame\|damage" >> /out/wl-erreur.log
+grep -v "wl_buffer\|wl_callback\|\.frame\|damage\|wl_pointer\|wl_surface@[0-9]*\.commit\|wl_shm" /tmp/wl.log | tail -n 300 > /out/wl-erreur.log; ls -la /tmp/wl.log >> /out/wl-erreur.log
 pkill -f "xiii.shell import"; sleep 1; xiii-shell >> /out/shell.log 2>&1 & sleep 6
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  barre (position / forme)"; grep -A6 Traceback /out/shell.log | tail -8; } >> $R || echo "OK        barre en bas / haut / gauche / droite, classique / flottante / dock : sans erreur" >> $R
 
