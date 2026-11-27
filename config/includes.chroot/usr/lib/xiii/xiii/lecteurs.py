@@ -94,6 +94,78 @@ def monter_tout(reseau=False):
             except Exception: pass
     signets()
 
+# ------------------------------------------------------------------ hors ligne (copie locale synchronisée)
+# Un dossier d'un cloud (ex. « XIII » sur OneDrive) est gardé sur l'ordinateur et synchronisé dans les deux sens
+# (rclone bisync) : les applis voient de vrais fichiers locaux, même sans Internet. Ajouts, modifications et
+# suppressions passent d'un côté à l'autre ; en cas de conflit, les deux versions sont gardées.
+ETAT_SYNC = os.path.expanduser("~/.config/xiii/hors-ligne.json")
+
+def hors_ligne():
+    """[(lecteur, {distant, local})] pour tous les dossiers gardés hors ligne."""
+    return [(l, d) for l in lecteurs() for d in l.get("hors_ligne", [])]
+
+def lister_dossiers(l, chemin=""):
+    r = subprocess.run(["rclone", "lsf", "--dirs-only", "%s:%s" % (ident(l["nom"]), chemin)], capture_output=True, text=True, timeout=120)
+    return sorted(x.rstrip("/") for x in r.stdout.splitlines() if x.strip())
+
+def ajouter_hors_ligne(l, distant_, local):
+    local = os.path.expanduser(local); os.makedirs(local, exist_ok=True)
+    L = lecteurs()
+    for x in L:
+        if x["nom"] == l["nom"]:
+            x.setdefault("hors_ligne", [])
+            if not any(d["distant"] == distant_ for d in x["hors_ligne"]): x["hors_ligne"].append({"distant": distant_, "local": local, "premiere": True})
+    sauver(L)
+
+def retirer_hors_ligne(l, distant_):
+    """Arrête la synchronisation ; les fichiers locaux restent sur l'ordinateur."""
+    L = lecteurs()
+    for x in L:
+        if x["nom"] == l["nom"]: x["hors_ligne"] = [d for d in x.get("hors_ligne", []) if d["distant"] != distant_]
+    sauver(L)
+
+def synchroniser_un(l, d, avis=lambda t: None):
+    src = "%s:%s" % (ident(l["nom"]), d["distant"]); dst = d["local"]; os.makedirs(dst, exist_ok=True)
+    base = ["rclone", "bisync", src, dst, "--create-empty-src-dirs", "--compare", "size,modtime", "--max-delete", "50",
+            "--exclude", ".~lock.*", "--exclude", "*.tmp", "--exclude", ".Trash*/**"]
+    premiere = d.get("premiere", True)
+    avis("Synchronisation de « %s »%s…" % (d["distant"], " (premier téléchargement)" if premiere else ""))
+    r = subprocess.run(base + (["--resync"] if premiere else []), capture_output=True, text=True, timeout=6 * 3600)
+    if r.returncode != 0 and not premiere and "resync" in (r.stderr + r.stdout).lower():
+        r = subprocess.run(base + ["--resync"], capture_output=True, text=True, timeout=6 * 3600)     # état perdu : on refait l'inventaire (rien n'est supprimé)
+    if r.returncode != 0 and "unknown flag" in r.stderr:            # rclone plus ancien : options de base seulement
+        r = subprocess.run(["rclone", "bisync", src, dst, "--create-empty-src-dirs"] + (["--resync"] if premiere else []), capture_output=True, text=True, timeout=6 * 3600)
+    ok = r.returncode == 0
+    if ok and premiere:
+        L = lecteurs()
+        for x in L:
+            for y in x.get("hors_ligne", []):
+                if x["nom"] == l["nom"] and y["distant"] == d["distant"]: y["premiere"] = False
+        sauver(L)
+    try: e = json.load(open(ETAT_SYNC))
+    except Exception: e = {}
+    e[d["local"]] = {"date": time.strftime("%Y-%m-%d %H:%M"), "ok": ok, "message": "" if ok else (r.stderr or r.stdout).strip()[-300:]}
+    json.dump(e, open(ETAT_SYNC, "w"), ensure_ascii=False, indent=1)
+    return ok, e[d["local"]]["message"]
+
+def synchroniser_tout(avis=lambda t: None):
+    verrou = os.path.join(GLib.get_user_runtime_dir(), "xiii-hors-ligne.lock")
+    try: fd = os.open(verrou, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        if time.time() - os.path.getmtime(verrou) < 6 * 3600: return      # une synchronisation tourne déjà
+        os.unlink(verrou); fd = os.open(verrou, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    try:
+        for l, d in hors_ligne():
+            try: synchroniser_un(l, d, avis)
+            except Exception as ex: avis("Erreur : %s" % ex)
+    finally:
+        os.close(fd); os.unlink(verrou)
+
+def etat_sync(local):
+    try: return json.load(open(ETAT_SYNC)).get(local)
+    except Exception: return None
+
+
 
 class Lecteurs(Gtk.Application):
     def __init__(self):
@@ -134,12 +206,63 @@ class Lecteurs(Gtk.Application):
             col = boite(True, 0, hexpand=True); col.append(label(l["nom"], "gras"))
             col.append(label("%s · %s · %s" % (t[1], l.get("hote") or l.get("url") or "compte en ligne", "● connecté" if m else "○ déconnecté"), "petit", "attenue", ellipsize=True)); r.append(col)
             if m: r.append(bouton("Ouvrir", "folder-open", "fantome", rappel=lambda l=l: S.detacher(["thunar", point(l)])))
+            if l["type"] in ("onedrive", "drive", "webdav", "smb", "sftp"):
+                r.append(bouton("Hors ligne…", "download", "fantome", tip="Garder un dossier sur cet ordinateur (copie synchronisée)", rappel=lambda l=l: self.hors_ligne(l)))
             r.append(bouton("Déconnecter" if m else "Connecter", None, "pilule" if not m else "plat", rappel=lambda l=l, m=m: self.basculer(l, m)))
             auto = Gtk.CheckButton(label="Auto", active=l.get("auto", True), valign=Gtk.Align.CENTER); auto.set_tooltip_text("Reconnecter à l'ouverture de session")
             auto.connect("toggled", lambda w, l=l: self.regler(l, auto=w.get_active())); r.append(auto)
             r.append(bouton(None, "trash-2", "plat", tip="Supprimer", rappel=lambda l=l: self.supprimer(l)))
             v.append(r)
         self.remplacer("mes", sc)
+
+    def hors_ligne(self, l):
+        """Choisir un dossier du cloud à garder sur l'ordinateur, voir ceux déjà gardés."""
+        w = Gtk.Window(transient_for=self.win, modal=True, title="Hors ligne — " + l["nom"], default_width=620, default_height=560)
+        v = boite(True, 10, margin_top=18, margin_bottom=18, margin_start=20, margin_end=20)
+        v.append(label("Garder sur cet ordinateur", "titre-astoria", "grand-titre"))
+        v.append(label("Le dossier est téléchargé puis synchronisé dans les deux sens toutes les 15 minutes : vos applis (projets XIII, montage…) "
+                       "voient de vrais fichiers, même sans Internet. Rien n'est supprimé du cloud au premier téléchargement.", "attenue", wrap=True))
+        deja = [d for x, d in hors_ligne() if x["nom"] == l["nom"]]
+        if deja:
+            v.append(label("Déjà gardés", "gras", margin_top=6))
+            for d in deja:
+                e = etat_sync(d["local"]) or {}
+                rr = boite(False, 8, "reglage"); c = boite(True, 0, hexpand=True)
+                c.append(label("%s  →  %s" % (d["distant"] or "(tout le compte)", d["local"].replace(os.path.expanduser("~"), "~")), "gras", ellipsize=True))
+                c.append(label(("Synchronisé le %s" % e["date"] if e.get("ok") else "Erreur : %s" % e.get("message", "")[:120]) if e else "En attente du premier téléchargement", "petit", "attenue", ellipsize=True))
+                rr.append(c)
+                rr.append(bouton("Ouvrir", None, "fantome", rappel=lambda d=d: S.detacher(["xiii-fichiers", d["local"]])))
+                rr.append(bouton("Arrêter", None, "plat", tip="Les fichiers restent sur l'ordinateur", rappel=lambda d=d: (retirer_hors_ligne(l, d["distant"]), w.close(), self.hors_ligne(l))))
+                v.append(rr)
+        v.append(label("Ajouter un dossier", "gras", margin_top=10))
+        liste = boite(True, 4); v.append(defilant(liste, 220)); liste.append(label("Lecture des dossiers du cloud…", "attenue"))
+        dest = Gtk.Entry(placeholder_text="Dossier sur cet ordinateur"); v.append(dest)
+        choix = {"d": None}
+        def remplir(L):
+            vider(liste)
+            if isinstance(L, Exception) or not L: liste.append(label("Aucun dossier trouvé (le lecteur est-il connecté ?)", "attenue")); return
+            grp = None
+            for n in L:
+                b = Gtk.CheckButton(label=n, group=grp); grp = grp or b
+                def sel(bb, n=n):
+                    if not bb.get_active(): return
+                    choix["d"] = n
+                    # le dossier des projets XIII prend sa place habituelle : ~/XIII
+                    dest.set_text("~/XIII" if n.upper() == "XIII" else "~/" + n)
+                b.connect("toggled", sel); liste.append(b)
+        S.en_fond(lambda: lister_dossiers(l), remplir)
+        def go():
+            if not choix["d"]: return
+            ajouter_hors_ligne(l, choix["d"], dest.get_text().strip() or "~/" + choix["d"]); w.close()
+            self.toast_txt("« %s » sera gardé sur l'ordinateur : premier téléchargement en cours…" % choix["d"])
+            def fin(r):
+                ok = isinstance(r, tuple) and r[0]
+                S.detacher(["notify-send", "-a", "Lecteurs réseau", "-i", "folder-download", ("« %s » est sur l'ordinateur" % choix["d"]) if ok else "Téléchargement de « %s » interrompu" % choix["d"],
+                            "" if ok else (r[1] if isinstance(r, tuple) else str(r))[:200]])
+            d = next(x for y, x in hors_ligne() if y["nom"] == l["nom"] and x["distant"] == choix["d"])
+            S.en_fond(lambda: synchroniser_un(l, d), fin)
+        b = bouton("Garder sur cet ordinateur", "download", "pilule", rappel=go); b.set_halign(Gtk.Align.END); v.append(b)
+        w.set_child(v); w.present()
 
     def basculer(self, l, m):
         if m: S.en_fond(lambda: demonter(l), lambda r: self.p_mes())
@@ -261,4 +384,6 @@ def info_boite(t):
     r = boite(False, 10, "info-bulle"); r.append(ico("info", 16, "c")); r.append(label(t, wrap=True, hexpand=True)); return r
 
 def main():
+    if "--synchroniser" in sys.argv:        # lancé par le bureau toutes les 15 min et au retour du réseau
+        synchroniser_tout(print); return
     sys.exit(Lecteurs().run(sys.argv))

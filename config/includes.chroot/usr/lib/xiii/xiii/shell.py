@@ -63,6 +63,8 @@ class Shell(Gtk.Application):
         GLib.timeout_add_seconds(12, differe)
         if self.cfg.get("lecteur_ecran") and not S.DEMO: S.detacher(["xiii-acces", "--lecteur", "on"])     # le lecteur d'écran, lui, n'attend pas
         GLib.timeout_add_seconds(90, self.precharger)
+        # dossiers des clouds gardés hors ligne (Lecteurs réseau › Hors ligne) : synchronisés toutes les 15 min
+        if not S.DEMO: GLib.timeout_add_seconds(900, lambda: (S.detacher(["xiii-lecteurs", "--synchroniser"]), True)[1]); GLib.timeout_add_seconds(45, lambda: (S.detacher(["xiii-lecteurs", "--synchroniser"]), False)[1])
         GLib.timeout_add_seconds(30, lambda: (self.liberer_memoire(), False)[1]); GLib.timeout_add_seconds(600, self.liberer_memoire)
         GLib.idle_add(self.noter_pret)
         self.surveiller_batterie()
@@ -895,7 +897,7 @@ class Shell(Gtk.Application):
         def agir():
             self._reseau_src = 0
             if S.DEMO: return False
-            S.detacher(["xiii-lecteurs", "--monter-tout", "--reseau"])
+            S.detacher(["xiii-lecteurs", "--monter-tout", "--reseau"]); S.detacher(["xiii-lecteurs", "--synchroniser"])
             if self.cfg.get("envoi_actif", True): S.detacher(["xiii-envoi", "--recevoir"])     # sans effet s'il tourne déjà (port pris)
             return False
         def change(m, dispo):

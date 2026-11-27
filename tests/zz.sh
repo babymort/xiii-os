@@ -168,6 +168,22 @@ curl -s -u zz:x -X MKCALENDAR http://127.0.0.1:5232/zz/tournage/ -o /dev/null -w
 python3 "${GITHUB_WORKSPACE:-.}/tests/caldav_test.py" >> $R 2>&1 || echo "ÉCHEC     test CalDAV (voir zz.txt)" >> $R
 pkill -f radicale
 
+echo "== Cloud hors ligne (copie locale synchronisée)" >> $R
+rclone version 2>/dev/null | head -1 | sed 's/^/INFO      /' >> $R
+rclone config create xiii-cloud-test local >/dev/null 2>&1; mkdir -p /tmp/cloud/XIII/Concert; echo devis > /tmp/cloud/XIII/Concert/devis.txt
+python3 - >> $R 2>&1 <<'P'
+import sys, os, json; sys.path.insert(0, "/usr/lib/xiii")
+from xiii import lecteurs as L
+L.sauver([{"nom": "Cloud test", "type": "onedrive"}]); L.ident = lambda n: "xiii-cloud-test"
+L.ajouter_hors_ligne({"nom": "Cloud test"}, "/tmp/cloud/XIII", "/tmp/local-xiii")
+l, d = L.hors_ligne()[0]; ok, m = L.synchroniser_un(l, d)
+a = os.path.exists("/tmp/local-xiii/Concert/devis.txt")
+open("/tmp/local-xiii/Concert/note.txt", "w").write("ajout local")
+l, d = L.hors_ligne()[0]; ok2, m2 = L.synchroniser_un(l, d)
+b = os.path.exists("/tmp/cloud/XIII/Concert/note.txt")
+print(("OK        " if ok and a and ok2 and b else "ÉCHEC     ") + "hors ligne : téléchargé %s, renvoyé vers le cloud %s %s" % (a, b, (m or m2)[:200]))
+P
+
 echo "== Mise à jour d'OS XIII (depuis GitHub, comme Paramètres › Mises à jour)" >> $R
 echo "# ancienne version" >> /usr/lib/xiii/xiii/modes.py; printf '{"version": "ancienne", "branche": "beta", "commit": "4087913"}' > /usr/share/xiii/VERSION.json
 v=$(python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import maj; r=maj.verifier("beta"); print(r["dispo"], r["distant"], len(r["nouveautes"]))' 2>&1)
