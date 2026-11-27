@@ -153,7 +153,7 @@ class Ecrans:
 
     def surfaces_principales(self):
         sh = self.sh; L = []
-        for a in ("barre", "haut"):
+        for a in ("barre", "haut", "bulles"):       # les bulles de notification aussi, sur l'écran principal
             if hasattr(sh, a): L.append(getattr(sh, a))
         if hasattr(sh, "vue_mode"): L.append(sh.vue_mode.w)
         if hasattr(sh, "bureau"): L.append(sh.bureau.w)
