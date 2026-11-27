@@ -50,7 +50,7 @@ class Diffusion:
                 if self.path.startswith("/flux.mjpg"): return self.flux()
                 if self.path.startswith("/image.jpg"):
                     img = d.image or b""
-                    self.send_response(200 if img else 503); self.send_header("Content-Type", "image/jpeg"); self.send_header("Content-Length", str(len(img)))
+                    self.send_response(200 if img else 503); self.send_header("Content-Type", "image/png" if img.startswith(b"\x89PNG") else "image/jpeg"); self.send_header("Content-Length", str(len(img)))
                     self.send_header("Cache-Control", "no-store"); self.end_headers(); self.wfile.write(img); return
                 b = PAGE.replace("{NOM}", d.nom).encode()
                 self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.send_header("Content-Length", str(len(b)))
@@ -70,7 +70,8 @@ class Diffusion:
                             if d.n == vu: d.cond.wait(1)
                             img, vu = d.image, d.n
                         if not img: continue
-                        self.wfile.write(b"--xiii\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n" % len(img) + img + b"\r\n")
+                        mime = b"image/png" if img.startswith(b"\x89PNG") else b"image/jpeg"
+                        self.wfile.write(b"--xiii\r\nContent-Type: " + mime + b"\r\nContent-Length: %d\r\n\r\n" % len(img) + img + b"\r\n")
                 except (BrokenPipeError, ConnectionResetError, OSError):
                     pass
                 finally:
@@ -109,13 +110,16 @@ class Diffusion:
         self.grim()
 
     def une_image(self):
-        cmd = ["grim", "-t", "jpeg", "-q", "70"]
+        # grim de Debian est compilé sans JPEG : PNG (les navigateurs l'affichent aussi dans le flux)
+        cmd = ["grim", "-t", "png", "-l", "1"] if getattr(self, "grim_png", False) else ["grim", "-t", "jpeg", "-q", "70"]
         if self.sortie: cmd += ["-o", self.sortie]
         if self.geometrie: cmd += ["-g", self.geometrie]
         try:
             r = subprocess.run(cmd + ["-"], capture_output=True, timeout=5)
-            if r.stdout.startswith(b"\xff\xd8"): self.publier(r.stdout); return True
+            if r.stdout.startswith(b"\xff\xd8") or r.stdout.startswith(b"\x89PNG"): self.publier(r.stdout); return True
             self.erreur_grim = (r.stderr or b"").decode(errors="replace").strip()[:200]
+            if "jpeg" in self.erreur_grim.lower() and not getattr(self, "grim_png", False):
+                self.grim_png = True; return self.une_image()
         except Exception as e:
             self.erreur_grim = str(e)
         return False

@@ -294,7 +294,7 @@ python3 -c "$CFG"'config.modifier(fond="'"$F0"'")'; sleep 1
 echo "== Diffuser l'écran (navigateur du réseau)" >> $R
 xiii-diffuser --serveur --duree 12 > /out/diffusion.log 2>&1 & sleep 5
 curl -s -m 3 http://127.0.0.1:8791/ | grep -q "flux.mjpg" && echo "OK        diffusion : page servie" >> $R || echo "ÉCHEC     diffusion : page absente" >> $R
-curl -s -m 4 http://127.0.0.1:8791/flux.mjpg -o /tmp/flux.bin; n=$(grep -c "Content-Type: image/jpeg" /tmp/flux.bin 2>/dev/null)
+curl -s -m 4 http://127.0.0.1:8791/flux.mjpg -o /tmp/flux.bin; n=$(grep -ac "Content-Type: image/" /tmp/flux.bin 2>/dev/null)
 [ "${n:-0}" -gt 2 ] && echo "OK        diffusion : $n images reçues en 4 s par un navigateur" >> $R || echo "ÉCHEC     diffusion : ${n:-0} image reçue" >> $R
 curl -s -m 3 http://127.0.0.1:8791/image.jpg -o /out/diffusion-image.jpg
 sleep 8; cat /out/diffusion.log | grep -E "moteur|Traceback" | sed 's/^/INFO      /' >> $R
