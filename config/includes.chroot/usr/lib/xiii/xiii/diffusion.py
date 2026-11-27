@@ -103,11 +103,25 @@ class Diffusion:
 
     # ------------------------------------------------------------ capture
     def capturer(self):
+        # une première image tout de suite (wf-recorder n'envoie une image que quand l'écran change)
+        self.une_image()
         if shutil.which("wf-recorder") and self.wf_recorder(): return
         self.grim()
 
+    def une_image(self):
+        cmd = ["grim", "-t", "jpeg", "-q", "70"]
+        if self.sortie: cmd += ["-o", self.sortie]
+        if self.geometrie: cmd += ["-g", self.geometrie]
+        try:
+            r = subprocess.run(cmd + ["-"], capture_output=True, timeout=5)
+            if r.stdout.startswith(b"\xff\xd8"): self.publier(r.stdout); return True
+            self.erreur_grim = (r.stderr or b"").decode(errors="replace").strip()[:200]
+        except Exception as e:
+            self.erreur_grim = str(e)
+        return False
+
     def wf_recorder(self):
-        """Flux MJPEG de wf-recorder (images découpées sur les marqueurs JPEG). Faux si rien n'arrive en 4 s."""
+        """Flux MJPEG de wf-recorder (images découpées sur les marqueurs JPEG). Faux s'il s'arrête sans avoir rien donné."""
         cmd = ["wf-recorder", "-y", "-c", "mjpeg", "-m", "mpjpeg", "-r", str(self.ips), "-x", "yuvj420p",
                "-F", "scale=%d:-2" % self.largeur, "-f", "/dev/stdout"]
         if self.sortie: cmd += ["-o", self.sortie]
@@ -120,7 +134,6 @@ class Diffusion:
         self.moteur = "wf-recorder"; t0 = time.time(); buf = b""; recu = False
         fd = self.proc.stdout.fileno()
         while self.actif:
-            if not recu and time.time() - t0 > 4: break
             if not select.select([fd], [], [], 1)[0]:
                 if self.proc.poll() is not None: break
                 continue
@@ -148,14 +161,7 @@ class Diffusion:
         pause = 1 / max(2, min(self.ips, 10))
         while self.actif:
             t = time.time()
-            cmd = ["grim", "-t", "jpeg", "-q", "70", "-s", "0.66"]
-            if self.sortie: cmd += ["-o", self.sortie]
-            if self.geometrie: cmd += ["-g", self.geometrie]
-            try:
-                img = subprocess.run(cmd + ["-"], capture_output=True, timeout=5).stdout
-                if img.startswith(b"\xff\xd8"): self.publier(img)
-            except Exception:
-                time.sleep(1)
+            if not self.une_image(): time.sleep(1)
             time.sleep(max(0, pause - (time.time() - t)))
 
 
@@ -171,6 +177,6 @@ def main():
                 time.sleep(1)
         except KeyboardInterrupt:
             pass
-        print("moteur", d.moteur, "images", d.n, flush=True); d.arreter(); return
+        print("moteur", d.moteur, "images", d.n, getattr(d, "erreur_grim", ""), flush=True); d.arreter(); return
     from .diffuser import main as appli
     appli()
