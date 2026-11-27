@@ -531,7 +531,9 @@ class Studio:
         aj.append(e); aj.append(pr); aj.append(dt); aj.append(bouton("Ajouter", "plus", "pilule", rappel=ajout)); v.append(aj)
         onglets = boite(False, 6)
         for k, n in (("aujourdhui", "Aujourd'hui"), ("semaine", "Cette semaine"), ("mois", "Ce mois"), ("calendrier", "Semaine en calendrier"), ("terminees", "Terminées"), ("toutes", "Toutes")):
-            b = Gtk.ToggleButton(label=n, active=self.vue_taches == k); b.connect("toggled", lambda b, k=k: b.get_active() and (setattr(self, "vue_taches", k), GLib.idle_add(lambda: (self.remplir("taches"), False)[1])))
+            b = Gtk.ToggleButton(label=n, active=self.vue_taches == k)
+            if onglets.get_first_child(): b.set_group(onglets.get_first_child())
+            b.connect("toggled", lambda b, k=k: b.get_active() and (setattr(self, "vue_taches", k), GLib.idle_add(lambda: (self.remplir("taches"), False)[1])))
             onglets.append(b)
         v.append(onglets)
         T = self.d.taches(); a = aujourdhui()
