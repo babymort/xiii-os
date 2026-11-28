@@ -162,6 +162,7 @@ def fenetre(x, fichiers):
         def fini(self, err):
             GLib.source_remove(self._src)
             if err:
+                if "No such file" in err and "flatpak" in err: err = "Flatpak manque sur ce PC (faites une mise à jour d'OS XIII)"
                 self.pb.set_fraction(0); self.l.set_text("Installation impossible : %s. Vérifiez la connexion Internet, puis relancez." % err)
                 t, _, v = src.partition(":")
                 if t == "github":
