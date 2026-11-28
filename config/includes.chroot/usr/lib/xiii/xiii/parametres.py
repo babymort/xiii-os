@@ -1375,6 +1375,8 @@ class Parametres(Gtk.Application):
         c.append(reglage("sparkles", "Effets de transparence (glassglow)", "Verre teinté, lueur ambre, action principale en pilule lumineuse",
                          droite=interrupteur(cfg["transparence"], lambda on: self.regler(transparence=on))))
         c.append(reglage("wand-sparkles", "Animations", "Ouverture des menus et panneaux, indicateur glissant de la barre des tâches", droite=interrupteur(cfg["animations"], lambda on: self.regler(animations=on))))
+        c.append(reglage("droplets", "Flou derrière la barre et les panneaux (effet Mica)", "Le fond d'écran flouté transparaît sous la barre des tâches, la barre du haut et les panneaux, comme Windows 11. "
+                         "Désactivé par défaut et sans effet en mode léger (vieux PC)", droite=interrupteur(cfg.get("flou_panneaux", False), lambda on: self.regler(flou_panneaux=on))))
         c.append(reglage("rows-3" if os.path.exists(theme.LUCIDE + "/rows-3.svg") else "list", "Densité", "Espacement des listes et réglages",
                          droite=deroulant([("compact", "Compacte"), ("normal", "Normale"), ("aere", "Aérée")], cfg.get("densite", "normal"), lambda v: self.regler(densite=v), 160)))
         c.append(reglage("type", "Taille et police du texte", "Space Grotesk pour les titres, IBM Plex pour le texte", clic=lambda: self.aller("texte")))
@@ -1512,6 +1514,9 @@ class Parametres(Gtk.Application):
                 c.append(reglage(ic, t, d, droite=interrupteur(cfg.get(k, True), lambda on, k=k: self.regler(**{k: on}))))
         c.append(reglage("maximize-2", "Taille", "Hauteur de la barre et taille des icônes d'applications (toutes les formes, Dock compris)",
                          droite=deroulant([("petite", "Petite"), ("normale", "Normale"), ("grande", "Grande")], cfg.get("barre_taille", "normale"), lambda v: self.regler(barre_taille=v), 180)))
+        if cfg.get("barre_forme") not in ("dock", "ile") and not cfg.get("barre_masquee"):
+            c.append(reglage("eye", "Masquer automatiquement la barre des tâches", "Elle apparaît quand la souris touche le bord de l'écran (comme Windows et macOS)",
+                             droite=interrupteur(cfg.get("barre_auto", False), lambda on: self.regler(barre_auto=on))))
         c.append(groupe_titre("Afficher la barre des tâches"))
         c.append(reglage("eye-off", "Cacher complètement la barre des tâches", "Applis par Super + Espace, Alt + Tab, ou leurs icônes dans la barre du haut (option ci-dessous)",
                          droite=interrupteur(cfg.get("barre_masquee", False), lambda on: self.regler(barre_masquee=on, **({"haut_applis": True} if on else {})))))
@@ -1520,6 +1525,9 @@ class Parametres(Gtk.Application):
         c.append(reglage("panel-top", "Applis ouvertes dans la barre du haut", "Petites icônes à gauche de Rechercher : un clic réduit ou rouvre la fenêtre",
                          droite=interrupteur(cfg.get("haut_applis", False), lambda on: self.regler(haut_applis=on))))
         c.append(groupe_titre("Éléments de la barre des tâches"))
+        c.append(reglage("clapperboard", "Barre Tournage", "En profil Tournage : timecode, caméra au programme (Tally XIII), niveau du micro, place sur les cartes et batterie dans la barre",
+                         droite=interrupteur(cfg.get("barre_tournage", True), lambda on: self.regler(barre_tournage=on))))
+        c.append(info("Glissez une icône de la barre (ou du menu Démarrer) sur une autre pour changer l'ordre des applis épinglées."))
         c.append(reglage("search", "Recherche", "Bouton de recherche à côté de Démarrer", droite=interrupteur(cfg["barre_recherche"], lambda on: self.regler(barre_recherche=on))))
         c.append(reglage("cloud-sun", "Météo", "Température et ciel à gauche de la barre", droite=interrupteur(cfg["barre_meteo"], lambda on: self.regler(barre_meteo=on))))
         c.append(reglage("bell-dot", "Pastille de notifications", "", droite=interrupteur(cfg["barre_badge"], lambda on: self.regler(barre_badge=on))))

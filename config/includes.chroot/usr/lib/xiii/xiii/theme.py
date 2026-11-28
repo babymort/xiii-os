@@ -454,7 +454,7 @@ button.dispo-zone:hover {{ background: {p['accent']}; }}
 .icone-bureau:hover {{ background: rgba(255,255,255,0.10); }}
 .icone-bureau label {{ color: {'#1d1b19' if p['clair'] else '#ffffff'}; text-shadow: 0 1px 3px {'rgba(255,255,255,0.95)' if p['clair'] else 'rgba(0,0,0,0.9)'}; }}
 button.emoji {{ font-size: 22px; padding: 2px; min-width: 36px; min-height: 36px; }}
-""" + (IMIT.css_shell(p, cfg) if p.get("imitation") else "")
+""" + __import__("xiii.barre_tournage", fromlist=["CSS"]).CSS.format(rouge="#e5534b", acc=p["accent_texte"]) + (IMIT.css_shell(p, cfg) if p.get("imitation") else "")
 
 # --------------------------------------------------------------------------------------------- CSS Paramètres
 def css_parametres(cfg):

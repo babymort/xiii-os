@@ -302,6 +302,16 @@ tail -2 /tmp/xiii-diffusion-wf-recorder.log 2>/dev/null | tr -d '\r' | cut -c1-1
 xiii-diffuser > /out/diffuser.log 2>&1 & sleep 3; grim -s 0.5 /out/app-diffuser.png; pkill -f "xiii.diffusion"
 grep -q Traceback /out/diffuser.log && { echo "PLANTAGE  Diffuser XIII"; grep -A6 Traceback /out/diffuser.log | tail -7; } >> $R
 
+echo "== Effet Mica, barre masquée automatiquement, barre Tournage" >> $R
+python3 -c "$CFG"'config.modifier(flou_panneaux=True)'; sleep 3; grim -s 0.5 /out/mica-barre.png
+gapplication action fr.xiii.Shell basculer "'demarrer'"; sleep 1.5; grim -s 0.5 /out/mica-demarrer.png; gapplication action fr.xiii.Shell fermer; sleep 0.5
+python3 -c "$CFG"'config.modifier(flou_panneaux=False, barre_auto=True)'; sleep 2.5; grim -s 0.5 /out/barre-auto-cachee.png
+xiii-ctl dock; sleep 1; grim -s 0.5 /out/barre-auto-montree.png
+python3 -c "$CFG"'config.modifier(barre_auto=False, profil="tournage", mode_tournage=True)'; sleep 3.5; grim -s 0.5 /out/barre-tournage.png
+python3 -c "$CFG"'config.modifier(profil="normal", mode_tournage=False)'; sleep 2
+pgrep -f "xiii.shell import" >/dev/null || { echo "FERMÉE    xiii-shell (Mica, masquage, Tournage)"; xiii-shell >> /out/shell.log 2>&1 & sleep 6; } >> $R
+grep -q Traceback /out/shell.log && { echo "PLANTAGE  Mica / masquage / Tournage"; grep -A8 Traceback /out/shell.log | tail -10; } >> $R || echo "OK        effet Mica, barre masquée automatiquement, barre Tournage : sans erreur" >> $R
+
 echo "== Modes sans barre des tâches (applis ouvertes en tuiles)" >> $R
 mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2
 python3 -c "$CFG"'config.modifier(mode_bureau="fiction", haut_applis=True)'; sleep 4; grim -s 0.5 /out/mode-fiction-applis.png

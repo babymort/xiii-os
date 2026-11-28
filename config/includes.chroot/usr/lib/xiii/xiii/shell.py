@@ -17,6 +17,17 @@ HB, HH = 48, 32   # hauteurs barre des tâches / barre du haut (HB suit le régl
 TAILLES_BARRE = {"petite": (40, 22), "normale": (48, 26), "grande": (58, 32)}     # hauteur de la barre, taille des icônes d'applis
 MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
 
+def glisser_deposer(b, cle, deposer):
+    """Bouton déplaçable (glisser) et cible de dépôt : deposer(cle_source) quand une autre appli est lâchée dessus."""
+    src = Gtk.DragSource(actions=Gdk.DragAction.MOVE)
+    src.connect("prepare", lambda *_: Gdk.ContentProvider.new_for_value(cle))
+    src.connect("drag-begin", lambda s_, d_: s_.set_icon(Gtk.WidgetPaintable.new(s_.get_widget()), s_.get_widget().get_width() // 2, s_.get_widget().get_height() // 2))   # pas de « b » : pas de cycle
+    b.add_controller(src)
+    dt = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
+    dt.connect("drop", lambda t, v, x, y: (GLib.idle_add(lambda: (deposer(v), False)[1]), True)[1] if v != cle else False)
+    b.add_controller(dt)
+
+
 def couche(win, niveau, ancres, marges=None, clavier=LS.KeyboardMode.NONE, ns="xiii", exclusif=None):
     LS.init_for_window(win)
     LS.set_namespace(win, ns)
@@ -178,6 +189,8 @@ class Shell(Gtk.Application):
         from .modes import VueMode
         self.vue_mode = VueMode(self); self.appliquer_mode(self.cfg.get("mode_bureau", "classique"), premier=True)
         # plusieurs écrans : écran principal, barre et mode de chaque écran
+        from .mica import Mica
+        self.mica = Mica(self)
         from .ecrans import Ecrans
         self.ecrans = Ecrans(self); GLib.idle_add(lambda: (self.ecrans.maj(), False)[1])
         # une appli installée, retirée ou dont le logo a changé (Icônes XIII) : barre des tâches et menu Démarrer à jour
@@ -214,7 +227,7 @@ class Shell(Gtk.Application):
         ex = 16 if style == "dock" and self.cfg.get("dock_grossissement", True) else 0
         self.cb.set_margin_top(ex if pos == "bas" else 0); self.cb.set_margin_bottom(ex if pos == "haut" else 0)
         self.cb.set_margin_end(ex if pos == "gauche" else 0); self.cb.set_margin_start(ex if pos == "droite" else 0)
-        if style == "dock" and self.cfg.get("dock_masquage", True): LS.set_exclusive_zone(w, 0)      # se cache : ne réserve pas de place
+        if self.dock_auto(): LS.set_exclusive_zone(w, 0)      # se cache : ne réserve pas de place
         else: LS.auto_exclusive_zone_enable(w)
         for x in ("barre-flottante", "barre-dock", "barre-verticale", "barre-petite", "barre-grande"): w.remove_css_class(x)
         if self.cfg.get("barre_taille") in ("petite", "grande"): w.add_css_class("barre-" + self.cfg["barre_taille"])
@@ -255,6 +268,7 @@ class Shell(Gtk.Application):
                     for e, v_ in mg.items(): LS.set_margin(pw, e, v_)
         IB.ancrer_panneaux(self, ecart, HH)
         if getattr(self, "ecrans", None): self.ecrans.replacer()
+        if getattr(self, "mica", None): self.mica.tout()
 
     def _touche(self, ctrl, keyval, code, etat):
         if keyval == Gdk.KEY_Escape:
@@ -378,6 +392,7 @@ class Shell(Gtk.Application):
         else:
             w.set_opacity(1); w.present()
         for b in self.boutons_panneaux.get(nom, []): b.add_css_class("ouvert")
+        if getattr(self, "mica", None) and self.mica.actif(): self.mica.appliquer("panneau", w, obj.widget)
 
     def fondu(self, w, duree=140):
         """Ouverture des panneaux en fondu (comme les panneaux de la suite) ; désactivée par « Animations »."""
@@ -447,6 +462,10 @@ class Shell(Gtk.Application):
         self.b_cloche.connect("clicked", lambda *_: self.basculer("volet"))
         clic_droit(self.b_cloche, lambda: self.parametres("notifications"))
         self.boutons_panneaux["volet"] = [self.b_heure, self.b_cloche]
+        # barre Tournage (profil Tournage) : timecode, tally, micro, cartes, batterie
+        from .barre_tournage import BarreTournage
+        if getattr(self, "b_tournage", None): self.b_tournage.arreter()
+        self.b_tournage = BarreTournage(self); self.b_tournage.widget.set_visible(False); droite.append(self.b_tournage.widget)
         self.zone_notif = boite(False, 0); droite.append(self.zone_notif)
         droite.append(self.b_heure); droite.append(self.b_cloche)
         # tout au bout à droite : fine bande « Afficher le bureau » (comme Windows) ; 2e clic = les fenêtres reviennent
@@ -454,7 +473,7 @@ class Shell(Gtk.Application):
             cbu = Gtk.Button(); cbu.add_css_class("coin-bureau"); cbu.set_size_request(8, -1); cbu.set_tooltip_text("Afficher le bureau (Super + D)")
             cbu.connect("clicked", lambda *_: (self.fermer(), self.afficher_bureau())); droite.append(cbu)
         self.cb = cb; self.droite = droite
-        self.placer_barre()
+        self.placer_barre(); self.maj_barre_tournage()
         im = self.imit()
         if im == "onze": IB.barre_onze(self)
         elif im == "macos": IB.barre_mac(self)
@@ -552,6 +571,24 @@ class Shell(Gtk.Application):
             if (x.app or "").lower() in noms or de in noms or (de and any(de.endswith("." + k) or k.endswith("." + de) for k in noms)): n += 1
         return n
 
+    def maj_barre_tournage(self):
+        from . import barre_tournage as BT
+        b = getattr(self, "b_tournage", None)
+        if b is None: return
+        on = BT.actif(self.cfg) and self.imit() != "macos" and self.position_barre() in ("bas", "haut")
+        b.widget.set_visible(on)
+        (b.demarrer if on else b.arreter)()
+
+    def reordonner(self, liste, src, cible, menu=False):
+        """Glisser-déposer : l'appli « src » prend la place de « cible » (et s'épingle si elle ne l'était pas)."""
+        L = list(self.cfg[liste])
+        if src == cible or src.startswith("x:"): return
+        if src in L: L.remove(src)
+        L.insert(L.index(cible) if cible in L else len(L), src)
+        self.cfg = config.modifier(**{liste: L})
+        if menu and hasattr(self, "menu"): self.menu.remplir_epingles()
+        else: self.maj_taches()
+
     def lancer_depuis_barre(self, cle, a, b=None):
         """Lance l'appli ; son icône rebondit (Dock, Île) jusqu'à l'ouverture de sa fenêtre, 8 s au plus."""
         apps.lancer(a)
@@ -609,6 +646,8 @@ class Shell(Gtk.Application):
         etat_ap = {}
         b.connect("clicked", clic)
         if a: clic_milieu(b, lambda: self.lancer_depuis_barre(cle, a, b))
+        # glisser une appli sur une autre : nouvel ordre des applis épinglées (une appli ouverte non épinglée s'épingle)
+        if a is not None: glisser_deposer(b, cle, lambda src, cle=cle: self.reordonner("epingles", src, cle))
         def menu():
             items = [("app-window", nom[:40], lambda: apps.lancer(a) if a else None)] if a else []
             if a:
@@ -844,7 +883,10 @@ class Shell(Gtk.Application):
             if ile: self.ile.maj()
 
     def dock_auto(self):
-        return self.cfg.get("barre_forme") == "dock" and self.cfg.get("dock_masquage", True) and not self.cfg.get("barre_masquee")
+        """Barre qui se cache toute seule : le Dock (réglage du Dock) ou n'importe quelle forme (« Masquer automatiquement »)."""
+        if self.cfg.get("barre_masquee") or self.cfg.get("barre_forme") == "ile": return False
+        if self.cfg.get("barre_forme") == "dock": return self.cfg.get("dock_masquage", True)
+        return bool(self.cfg.get("barre_auto", False))
 
     def declencheur_dock(self, actif):
         """Dock qui se cache tout seul : une bande de 3 px au bord de l'écran le fait apparaître au passage de la souris ;
@@ -1295,9 +1337,12 @@ class Shell(Gtk.Application):
         if theme.imitation(ancien) != theme.imitation(cfg) or (theme.imitation(cfg) and theme.palette(ancien)["accent"] != self.p["accent"]):
             self.construire_barre(); self.positionner_barre(); self.maj_zone()       # Démarrer, Dock, Corbeille… refaits
         if (ancien.get("barre_masquee"), ancien.get("barre_modes_masquee")) != (cfg.get("barre_masquee"), cfg.get("barre_modes_masquee")): self.visibilite_barre()
-        if (ancien.get("barre_position"), ancien.get("barre_forme"), ancien.get("barre_alignement"), ancien.get("dock_masquage"), ancien.get("barre_taille")) != (cfg.get("barre_position"), cfg.get("barre_forme"), cfg.get("barre_alignement"), cfg.get("dock_masquage"), cfg.get("barre_taille")):
+        if (ancien.get("barre_position"), ancien.get("barre_forme"), ancien.get("barre_alignement"), ancien.get("dock_masquage"), ancien.get("barre_taille"), ancien.get("barre_auto")) != (cfg.get("barre_position"), cfg.get("barre_forme"), cfg.get("barre_alignement"), cfg.get("dock_masquage"), cfg.get("barre_taille"), cfg.get("barre_auto")):
             self.positionner_barre()
             if ancien.get("barre_taille") != cfg.get("barre_taille"): self.maj_taches()
+        if any(ancien.get(k) != cfg.get(k) for k in ("profil", "mode_tournage", "barre_tournage", "barre_position")): self.maj_barre_tournage()
+        if getattr(self, "mica", None) and any(ancien.get(k) != cfg.get(k) for k in ("flou_panneaux", "fond", "theme", "imitation_apparence", "accent", "vieux_pc")):
+            GLib.timeout_add(400, lambda: (self.mica.tout(), False)[1])
         if getattr(self, "ecrans", None) and any(ancien.get(k) != cfg.get(k) for k in ("ecran_principal", "barre_tous_ecrans", "modes_ecrans", "barre_applis_ecrans", "barre_masquee", "barre_modes_masquee", "theme", "barre_taille")):
             self.ecrans.maj()
         if hasattr(self, "ile") and any(ancien.get(k) != cfg.get(k) for k in ("ile_survol", "ile_minuteur", "ile_tally", "ile_media", "ile_meteo")): self.ile.maj()
@@ -1623,6 +1668,8 @@ class MenuDemarrer:
         b.set_child(v); b.set_tooltip_text(a.get_description() or a.get_display_name())
         b.connect("clicked", lambda *_: self.lancer(a))
         clic_droit_w(b, lambda w, a=a: self.menu_app(w, a))
+        if liste == "menu_epingles" and a.get_id() in self.shell.cfg["menu_epingles"]:
+            glisser_deposer(b, a.get_id(), lambda src, cle=a.get_id(): self.shell.reordonner("menu_epingles", src, cle, menu=True))
         return b
 
     def menu_app(self, b, a):
