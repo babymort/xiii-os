@@ -123,6 +123,17 @@ python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import con
 xiii-fichiers /root/Rushes > /out/f-galerie.log 2>&1 & sleep 6; grim -s 0.5 /out/fichiers-galerie.png; verifier "Fichiers › Galerie" "xiii.fichiers" /out/f-galerie.log; pkill -f xiii.fichiers; sleep 0.5
 xiii-fichiers --infos /root/Rushes/A001/A001_C001.mov > /out/f-infos.log 2>&1 & sleep 6; grim -s 0.5 /out/fichiers-infos.png; verifier "Fichiers › Informations" "xiii.fichiers" /out/f-infos.log; pkill -f xiii.fichiers; sleep 0.5
 xiii-fichiers --corbeille /root > /out/f-corb.log 2>&1 & sleep 4; grim -s 0.5 /out/fichiers-corbeille.png; verifier "Fichiers › Corbeille" "xiii.fichiers" /out/f-corb.log; pkill -f xiii.fichiers
+# Fichiers : onglets, volet d'aperçu, état du cloud (OneDrive factice : un dossier en ligne, un dossier gardé hors ligne)
+mkdir -p "/root/Cloud/OneDrive/Projets" "/root/Cloud/OneDrive/Factures" "/root/Hors ligne/OneDrive/Projets"; echo "Bonjour" > "/root/Cloud/OneDrive/Projets/note.txt"; echo "Plan de tournage" > "/root/Hors ligne/OneDrive/Projets/plan.txt"
+mkdir -p /root/.config/xiii; [ -f /root/.config/xiii/lecteurs.json ] && cp /root/.config/xiii/lecteurs.json /tmp/lecteurs.bak
+echo '[{"nom": "OneDrive", "type": "onedrive", "hors_ligne": [{"distant": "Projets", "local": "/root/Hors ligne/OneDrive/Projets", "premiere": false}]}]' > /root/.config/xiii/lecteurs.json
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import lecteurs as L
+a=L.etat_cloud("/root/Cloud/OneDrive/Factures"); b=L.etat_cloud("/root/Cloud/OneDrive/Projets"); c=L.etat_cloud("/root/Hors ligne/OneDrive/Projets/plan.txt"); d=L.etat_cloud("/root/Bureau")
+print("OK        état du cloud : en ligne / gardé hors ligne / copie locale / ailleurs" if (a and a[0]=="cloud") and (b and b[0]=="horsligne") and (c and c[0]=="horsligne") and d is None else "ÉCHEC     état du cloud : %r %r %r %r" % (a and a[0], b and b[0], c and c[0], d))' >> $R 2>&1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(_histo=False, fichiers_apercu=True, fichiers_vue="windows")'
+xiii-fichiers /root/Cloud/OneDrive > /out/f-cloud.log 2>&1 & sleep 5; grim -s 0.5 /out/fichiers-cloud-apercu.png; verifier "Fichiers › état du cloud + volet d'aperçu" "xiii.fichiers" /out/f-cloud.log; pkill -f xiii.fichiers; sleep 0.5
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; config.modifier(_histo=False, fichiers_apercu=False)'
+[ -f /tmp/lecteurs.bak ] && cp /tmp/lecteurs.bak /root/.config/xiii/lecteurs.json || rm -f /root/.config/xiii/lecteurs.json
 python3 -c "import sys; sys.path.insert(0,'/usr/lib/xiii'); from xiii import config; config.modifier(_histo=False, fichiers_vue='windows')"
 echo "== Mode Production (barre latérale + tableau)" >> $R
 CFG='import sys,time; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; '

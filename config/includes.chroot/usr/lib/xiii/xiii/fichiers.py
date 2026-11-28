@@ -8,7 +8,7 @@ import os, sys, re, shutil, threading, time, datetime, subprocess, json
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib, Gio, GObject, Pango
-from . import config, systeme as S, apps, medias, copie, etiquettes as ET, corbeille as CB
+from . import config, systeme as S, apps, medias, copie, etiquettes as ET, corbeille as CB, lecteurs as LEC
 from .ui import *
 from .appli import preparer
 
@@ -134,7 +134,11 @@ class Fichiers(Gtk.Application):
             .carte-galerie { padding: 6px; border-radius: 10px; }
             gridview > child:selected { background: alpha(@accent_bg_color, .22); border-radius: 10px; }
             .etiquette { min-width: 10px; min-height: 10px; border-radius: 999px; }
-            .poignee-colonne { background: alpha(currentColor, .04); } .poignee-colonne:hover { background: alpha(@accent_bg_color, .5); }""")
+            .poignee-colonne { background: alpha(currentColor, .04); } .poignee-colonne:hover { background: alpha(@accent_bg_color, .5); }
+            .volet-apercu { border-left: 1px solid alpha(currentColor, .1); padding: 16px; }
+            .texte-apercu { font-family: "IBM Plex Mono", monospace; font-size: 11px; background: alpha(currentColor, .05); border-radius: 8px; padding: 8px; }
+            .etat-cloud { border-radius: 8px; padding: 6px 10px; background: alpha(currentColor, .05); }
+            .ok-cloud { color: #6fdc8c; }""")
         self.win = Gtk.ApplicationWindow(application=self, title="Fichiers"); self.win.set_default_size(1200, 760)
         racine = boite(False, 0)
         # ---- volet gauche (onglets, comme la Suite XIII)
@@ -165,9 +169,18 @@ class Fichiers(Gtk.Application):
         h.append(bouton(None, "folder-plus", "plat", tip="Nouveau dossier (Ctrl+Maj+N)", rappel=self.nouveau_dossier))
         h.append(bouton(None, "plus", "plat", tip="Nouvel onglet (Ctrl+T)", rappel=lambda: self.nouvel_onglet(self.dossier)))
         h.append(bouton(None, "columns-2", "plat", tip="Double volet (F3)", rappel=self.basculer_double))
+        self.b_apercu = Gtk.ToggleButton(active=bool(config.charger().get("fichiers_apercu", False))); self.b_apercu.add_css_class("plat")
+        self.b_apercu.set_child(ico("panel-right", 16)); self.b_apercu.set_tooltip_text("Volet d'aperçu (Alt + P)")
+        self.b_apercu.connect("toggled", lambda b: self.basculer_apercu(b.get_active())); h.append(self.b_apercu)
         h.append(bouton(None, "ellipsis-vertical", "plat", tip="Plus", rappel=None)); h.get_last_child().connect("clicked", lambda b: popover_menu(b, self.menu_plus()))
         d.append(h); d.append(Gtk.Separator())
-        self.pile = Gtk.Stack(vexpand=True, transition_type=Gtk.StackTransitionType.CROSSFADE); d.append(self.pile)
+        self.pile = Gtk.Stack(vexpand=True, hexpand=True, transition_type=Gtk.StackTransitionType.CROSSFADE)
+        # volet d'aperçu à droite (comme l'Explorateur de Windows 11, Alt + P) : aperçu, infos, état du cloud
+        hb = boite(False, 0, vexpand=True); hb.append(self.pile)
+        self.rev_apercu = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_LEFT, reveal_child=bool(config.charger().get("fichiers_apercu", False)))
+        self.volet_apercu = boite(True, 10, "volet-apercu"); self.volet_apercu.set_size_request(320, -1)
+        sa = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER); sa.set_child(self.volet_apercu); self.rev_apercu.set_child(sa)
+        hb.append(self.rev_apercu); d.append(hb)
         self.zone_copies = boite(True, 4, margin_start=10, margin_end=10); self.zone_copies.set_visible(False); d.append(self.zone_copies)
         self.file = copie.File(lambda t=None: GLib.idle_add(self.maj_copies, t)); self._src_copies = 0
         self.etat = label("", "petit", "attenue", margin_start=12, margin_bottom=6, margin_top=4); d.append(self.etat)
@@ -261,7 +274,7 @@ class Fichiers(Gtk.Application):
 
     # =================================================================== onglets
     def maj_onglets(self):
-        vider(self.barre_onglets); self.barre_onglets.set_visible(len(self.onglets) > 1)
+        vider(self.barre_onglets); self.barre_onglets.set_visible(True)        # comme l'Explorateur de Windows 11 : toujours là
         for i, o in enumerate(self.onglets):
             b = Gtk.Button(); b.add_css_class("onglet-fichiers")
             if i == self.i_onglet: b.add_css_class("actif")
@@ -396,6 +409,13 @@ class Fichiers(Gtk.Application):
             if e: bx.append(pastille_couleur(e))
         nom = col("Nom", nom_et_etiquette,
                   lambda a, b: (a.get_display_name().lower() > b.get_display_name().lower()) - (a.get_display_name().lower() < b.get_display_name().lower()), True)
+        def etat(bx, i):
+            e = LEC.etat_cloud(fichier_de(i).get_path())
+            if e:
+                ic, role = {"cloud": ("cloud", "d"), "horsligne": ("circle-check", "#6fdc8c"), "sync": ("refresh-cw", "c")}[e[0]]
+                bx.append(ico(ic, 15, role)); bx.set_tooltip_text(e[1])
+            else: bx.set_tooltip_text(None)
+        col("État", etat, lambda a, b: 0, larg=56)
         col("Modifié", lambda bx, i: bx.append(label(date_txt(i), "attenue", "petit")),
             lambda a, b: ((a.get_modification_date_time() or GLib.DateTime.new_now_utc()).to_unix() > (b.get_modification_date_time() or GLib.DateTime.new_now_utc()).to_unix()) - ((a.get_modification_date_time() or GLib.DateTime.new_now_utc()).to_unix() < (b.get_modification_date_time() or GLib.DateTime.new_now_utc()).to_unix()), larg=160)
         col("Type", lambda bx, i: bx.append(label(type_txt(i), "attenue", "petit", ellipsize=True)), lambda a, b: (type_txt(a) > type_txt(b)) - (type_txt(a) < type_txt(b)), larg=180)
@@ -405,6 +425,7 @@ class Fichiers(Gtk.Application):
         self.tri = Gtk.SortListModel.new(filtree, ms)
         self.mod_windows = Gtk.MultiSelection.new(self.tri); self.cv.set_model(self.mod_windows)
         self.tri_base, self.sel_base = self.tri, self.mod_windows
+        self.mod_windows.connect("selection-changed", lambda *_: self.apercu_bientot())
         self.cv.sort_by_column(nom, Gtk.SortType.ASCENDING)
         self.cv.connect("activate", lambda cv, pos: self.ouvrir(fichier_de(self.tri.get_item(pos)).get_path()))
         g = Gtk.GestureClick(button=3); g.connect("pressed", self.clic_droit_windows); self.cv.add_controller(g)
@@ -559,11 +580,29 @@ class Fichiers(Gtk.Application):
         self.mac_boite.append(pg)
 
     def apercu_mac(self, p):
-        v = boite(True, 10, margin_start=16, margin_end=16, margin_top=16); v.set_size_request(300, -1)
+        self.mac_boite.append(self.fiche_apercu(p))
+
+    def fiche_apercu(self, p, depuis_volet=False):
+        """Aperçu d'un fichier ou d'un dossier : image ou miniature vidéo, début d'un texte, 1re page d'un PDF, infos, état du cloud."""
+        v = boite(True, 10, margin_start=0 if depuis_volet else 16, margin_end=0 if depuis_volet else 16, margin_top=0 if depuis_volet else 16); v.set_size_request(290, -1)
+        if os.path.isdir(p):
+            v.append(gicon_image(Gio.ThemedIcon.new("folder"), 96)); v.append(label(os.path.basename(p) or p, "gras", wrap=True, xalign=0.5))
+            try:
+                n = len([x for x in os.listdir(p) if not x.startswith(".")]); v.append(label("%d élément(s)" % n, "petit", "attenue", xalign=0.5))
+            except OSError: pass
+            self._etat_cloud(v, p); return v
         ct = Gio.content_type_guess(p, None)[0] or ""
         if medias.est_media(p):
             pic = Gtk.Picture(); pic.set_size_request(260, 200); pic.set_content_fit(Gtk.ContentFit.CONTAIN); v.append(pic)
             S.en_fond(medias.miniature, lambda m: pic.set_filename(m) if isinstance(m, str) else pic.set_paintable(None), p, 512)
+        elif p.lower().endswith(".pdf") and shutil.which("pdftoppm"):
+            pic = Gtk.Picture(); pic.set_size_request(260, 300); pic.set_content_fit(Gtk.ContentFit.CONTAIN); v.append(pic)
+            def page1(p=p):
+                import tempfile, hashlib
+                f = os.path.join(tempfile.gettempdir(), "xiii-pdf-" + hashlib.sha1(p.encode()).hexdigest()[:12])
+                if not os.path.exists(f + ".png"): subprocess.run(["pdftoppm", "-png", "-f", "1", "-singlefile", "-scale-to", "520", p, f], capture_output=True, timeout=20)
+                return f + ".png" if os.path.exists(f + ".png") else None
+            S.en_fond(page1, lambda m: pic.set_filename(m) if isinstance(m, str) else pic.set_visible(False))
         else:
             v.append(gicon_image(apps.icone_fichier(p), 96))
         v.append(label(os.path.basename(p), "gras", wrap=True, xalign=0.5))
@@ -576,9 +615,22 @@ class Fichiers(Gtk.Application):
                 for i, (k, val) in enumerate((L if isinstance(L, list) else [])[:8]):
                     g.attach(label(k, "petit", "attenue", xalign=1), 0, i, 1, 1); g.attach(label(str(val), "petit", xalign=0, ellipsize=True, largeur=26), 1, i, 1, 1)
             S.en_fond(medias.infos, rempl, p)
+        if (ct.startswith("text/") or medias.ext(p) in (".srt", ".md", ".json", ".csv", ".xml", ".edl", ".ale", ".py", ".sh", ".log")) and os.path.getsize(p) < 4 << 20:
+            try:
+                txt = "".join(open(p, encoding="utf-8", errors="replace").readlines()[:40])[:3000]
+                t = label(txt, "texte-apercu", wrap=True, selectable=True); v.append(t)
+            except OSError: pass
+        self._etat_cloud(v, p)
         r = boite(False, 6, halign=Gtk.Align.CENTER)
         r.append(bouton("Ouvrir", "external-link", "pilule", rappel=lambda: self.ouvrir(p))); r.append(bouton("Aperçu", "eye", "fantome", rappel=lambda: S.detacher(["xiii-apercu", p])))
-        v.append(r); self.mac_boite.append(v)
+        v.append(r)
+        return v
+
+    def _etat_cloud(self, v, p):
+        e = LEC.etat_cloud(p)
+        if not e: return
+        ic, role = {"cloud": ("cloud", "d"), "horsligne": ("circle-check", "#6fdc8c"), "sync": ("refresh-cw", "c")}[e[0]]
+        b = boite(False, 8, "etat-cloud"); b.append(ico(ic, 16, role)); b.append(label(e[1], "petit", wrap=True, hexpand=True)); v.append(b)
 
     # =================================================================== vue Arbre (généalogique)
     def construire_arbre(self):
@@ -656,6 +708,11 @@ class Fichiers(Gtk.Application):
             items += [("folder-input", "Extraire…", lambda: S.detacher(["xiii-archives", p]))]
         if len(L) == 1 and p.lower().endswith(".deb"):
             items += [("package", "Installer ce logiciel", lambda: S.detacher(["xiii-paquets", p]))]
+        e = LEC.etat_cloud(p) if len(L) == 1 and os.path.isdir(p) else None
+        if e and e[0] == "cloud":
+            items += [None, ("download", "Toujours garder sur cet appareil", lambda: self.garder_hors_ligne(e))]
+        elif e and e[0] in ("horsligne", "sync") and any(d["distant"] == e[3] for d in e[2].get("hors_ligne", [])):
+            items += [None, ("cloud-off" if os.path.exists("/usr/share/xiii/lucide/cloud-off.svg") else "cloud", "Libérer de l'espace (n'est plus synchronisé)", lambda: self.liberer(e))]
         items += [("tag", "Étiquette de couleur…", lambda: self.menu_etiquette(L))]
         items += [("text-cursor-input", "Renommer %d éléments… (F2)" % len(L) if len(L) > 1 else "Renommer (F2)", lambda: self.renommer_lot(L) if len(L) > 1 else self.renommer(p)), ("archive", "Compresser (.zip)", lambda: self.compresser(L)),
                   ("smartphone", "Envoyer à un appareil proche", lambda: S.detacher(["xiii-envoi"] + L)),
@@ -668,6 +725,46 @@ class Fichiers(Gtk.Application):
         if len(L) == 1 and L[0].lower().endswith((".pdf", ".docx", ".odt", ".pptx", ".odp", ".txt", ".md", ".srt")):
             items.append(("sparkles", "Résumer avec l'IA", lambda: S.detacher(["xiii-voix", "--resumer", L[0]])))
         return items
+
+    # =================================================================== cloud : hors ligne / libérer de l'espace
+    def garder_hors_ligne(self, e):
+        _, _, l, dist = e; loc = LEC.dossier_hors_ligne_par_defaut(l, dist)
+        LEC.ajouter_hors_ligne(l, dist, loc); LEC._cache_etat["t"] = 0
+        self.etat.set_text("« %s » sera gardé sur cet appareil (%s) : téléchargement en cours…" % (dist or l["nom"], loc.replace(os.path.expanduser("~"), "~")))
+        threading.Thread(target=lambda: (LEC.synchroniser_tout(), GLib.idle_add(self.recharger)), daemon=True).start()
+
+    def liberer(self, e):
+        _, _, l, dist = e
+        def ok():
+            LEC.retirer_hors_ligne(l, dist); LEC._cache_etat["t"] = 0; self.recharger()
+            self.etat.set_text("« %s » n'est plus synchronisé : les fichiers restent dans le cloud (la copie locale est à supprimer à la main si besoin)." % (dist or l["nom"]))
+        confirmer_f(self.win, "Libérer de l'espace ?", "« %s » ne sera plus synchronisé. Les fichiers restent dans le cloud ; la copie sur cet ordinateur n'est plus mise à jour." % (dist or l["nom"]), "Arrêter la synchronisation", ok)
+
+    # =================================================================== volet d'aperçu
+    def basculer_apercu(self, on):
+        self.rev_apercu.set_reveal_child(on); config.modifier(_histo=False, fichiers_apercu=on)
+        if on: self.maj_apercu()
+
+    def apercu_bientot(self):
+        if not self.rev_apercu.get_reveal_child(): return
+        if getattr(self, "_src_ap", 0): GLib.source_remove(self._src_ap)
+        def go():
+            self._src_ap = 0; self.maj_apercu(); return False
+        self._src_ap = GLib.timeout_add(120, go)
+
+    def maj_apercu(self):
+        vider(self.volet_apercu)
+        sel = self.selection() if self.vue in ("windows", "galerie") else []
+        if len(sel) > 1:
+            tot = 0
+            for q in sel:
+                try: tot += os.path.getsize(q) if os.path.isfile(q) else 0
+                except OSError: pass
+            self.volet_apercu.append(ico("files" if os.path.exists("/usr/share/xiii/lucide/files.svg") else "copy", 64, "c"))
+            self.volet_apercu.append(label("%d éléments sélectionnés" % len(sel), "gras", xalign=0.5))
+            self.volet_apercu.append(label("%s (fichiers)" % S.humain(tot), "petit", "attenue", xalign=0.5)); return
+        p = sel[0] if sel else self.dossier
+        self.volet_apercu.append(self.fiche_apercu(p, depuis_volet=True))
 
     def menu_etiquette(self, L):
         d = Gtk.Window(transient_for=self.win, modal=True, title="Étiquette", default_width=300)
@@ -1018,6 +1115,7 @@ class Fichiers(Gtk.Application):
             if alt and kv == Gdk.KEY_Left or kv == Gdk.KEY_BackSpace and not focus_saisie: self.precedent(); return True
             if alt and kv == Gdk.KEY_Right: self.suivant(); return True
             if alt and kv == Gdk.KEY_Up: self.parent(); return True
+            if alt and kv in (Gdk.KEY_p, Gdk.KEY_P): self.b_apercu.set_active(not self.b_apercu.get_active()); return True
             if kv == Gdk.KEY_Escape and self.saisie.get_visible(): self.fin_saisie(); return True
             return False
         k.connect("key-pressed", touche); self.win.add_controller(k)

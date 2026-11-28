@@ -168,6 +168,44 @@ def etat_sync(local):
     except Exception: return None
 
 
+_cache_etat = {"t": 0, "L": []}
+def etat_cloud(chemin):
+    """État d'un fichier ou dossier par rapport aux clouds (comme l'Explorateur de Windows avec OneDrive) :
+    ("cloud", texte, lecteur, distant) dans un cloud monté, en ligne seulement ;
+    ("horsligne", texte, lecteur, distant) dans un dossier gardé hors ligne (ou sa source dans le cloud) ;
+    ("sync", texte, …) synchronisation en cours ; None ailleurs."""
+    if not chemin: return None
+    if time.time() - _cache_etat["t"] > 10:
+        try: _cache_etat["L"] = lecteurs()
+        except Exception: _cache_etat["L"] = []
+        _cache_etat["t"] = time.time()
+    chemin = os.path.abspath(chemin)
+    en_cours = os.path.exists(os.path.join(GLib.get_user_runtime_dir(), "xiii-hors-ligne.lock"))
+    for l in _cache_etat["L"]:
+        for d in l.get("hors_ligne", []):
+            loc = os.path.abspath(os.path.expanduser(d["local"]))
+            if chemin == loc or chemin.startswith(loc + os.sep):
+                rel = os.path.relpath(chemin, loc)
+                dist = d["distant"] if rel == "." else "/".join(x for x in (d["distant"], rel) if x)
+                if en_cours or d.get("premiere"): return ("sync", "Synchronisation en cours avec %s" % l["nom"], l, dist)
+                e = etat_sync(d["local"]) or {}
+                return ("horsligne", "Disponible hors ligne · copie de %s%s" % (l["nom"], (" · synchronisé le " + e["date"]) if e.get("date") else ""), l, dist)
+    for l in _cache_etat["L"]:
+        pt = os.path.abspath(point(l))
+        if chemin == pt or chemin.startswith(pt + os.sep):
+            rel = os.path.relpath(chemin, pt); dist = "" if rel == "." else rel
+            for d in l.get("hors_ligne", []):
+                if dist == d["distant"] or dist.startswith(d["distant"].rstrip("/") + "/") or not d["distant"]:
+                    return ("horsligne", "Aussi gardé hors ligne dans %s" % d["local"].replace(os.path.expanduser("~"), "~"), l, dist)
+            return ("cloud", ("Dans le cloud (%s) : ouvert depuis Internet, rien sur l'ordinateur" if l.get("type") in ("onedrive", "drive") else
+                              "Sur le réseau (%s) : rien sur l'ordinateur") % l["nom"], l, dist)
+    return None
+
+
+def dossier_hors_ligne_par_defaut(l, distant_):
+    return os.path.join(os.path.expanduser("~/Hors ligne"), l["nom"].replace("/", "-"), distant_ or "")
+
+
 
 class Lecteurs(Gtk.Application):
     def __init__(self):
