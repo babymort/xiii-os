@@ -1,0 +1,8 @@
+dbus-daemon[8435]: [session uid=0 pid=8435 pidfd=5] Activating service name='ca.desrt.dconf' requested by ':1.2' (uid=0 pid=8474 comm="gsettings set org.gnome.desktop.interface gtk-them" label="docker-default (enforce)")
+dbus-daemon[8435]: [session uid=0 pid=8435 pidfd=5] Successfully activated service 'ca.desrt.dconf'
+/usr/lib/xiii/xiii/theme.py:5: PyGIWarning: Gdk was imported without specifying a version first. Use gi.require_version('Gdk', '4.0') before import to ensure that the right version gets loaded.
+  from gi.repository import GLib, Gdk, GdkPixbuf
+/usr/lib/xiii/xiii/theme.py:5: PyGIWarning: Gdk was imported without specifying a version first. Use gi.require_version('Gdk', '4.0') before import to ensure that the right version gets loaded.
+  from gi.repository import GLib, Gdk, GdkPixbuf
+/usr/lib/xiii/xiii/theme.py:5: PyGIWarning: Gdk was imported without specifying a version first. Use gi.require_version('Gdk', '4.0') before import to ensure that the right version gets loaded.
+  from gi.repository import GLib, Gdk, GdkPixbuf

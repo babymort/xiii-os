@@ -1,0 +1,4 @@
+
+(xiii-bilan:8964): Gtk-WARNING **: 10:22:44.101: Theme parser error: <data>:3:70-71: Junk at end of value for font-weight
+
+(xiii-bilan:8964): Gtk-WARNING **: 10:22:44.103: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
