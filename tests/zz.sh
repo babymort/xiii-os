@@ -406,17 +406,20 @@ echo "$(($(date +%s) - 65)) gif" > ${XDG_RUNTIME_DIR:-/tmp}/xiii-enregistrement;
 python3 - >> $R 2>&1 <<'PY'
 import sys, json, time, subprocess, urllib.request; sys.path.insert(0, "/usr/lib/xiii")
 from xiii.presse_telephone import Serveur
-sv = Serveur(port=8790); sv.demarrer(); base = "http://127.0.0.1:%d" % sv.port
-try: urllib.request.urlopen(base + "/etat?k=faux", timeout=3); refus = False
-except Exception as e: refus = "403" in str(e)
-urllib.request.urlopen(urllib.request.Request(base + "/envoyer?k=" + sv.cle, data="Bonjour du téléphone".encode(), method="POST"), timeout=5)
-time.sleep(0.5); pc = subprocess.run(["wl-paste", "--no-newline"], capture_output=True, text=True, timeout=3).stdout
-subprocess.run(["wl-copy"], input=b"Texte du PC", timeout=3); time.sleep(0.5)
-et = json.loads(urllib.request.urlopen(base + "/etat?k=" + sv.cle, timeout=5).read())
-page = urllib.request.urlopen(base + "/?k=" + sv.cle, timeout=5).read().decode()
-sv.arreter()
-ok = refus and pc == "Bonjour du téléphone" and et["texte"] == "Texte du PC" and "Envoyer au PC" in page
-print(("OK        " if ok else "ÉCHEC     ") + "presse-papiers avec le téléphone : clé exigée %s, téléphone → PC « %s », PC → téléphone « %s »" % (refus, pc, et.get("texte")))
+try:
+  sv = Serveur(port=8790)  ; sv.demarrer(); base = "http://127.0.0.1:%d" % sv.port
+  try: urllib.request.urlopen(base + "/etat?k=faux", timeout=3); refus = False
+  except Exception as e: refus = "403" in str(e)
+  urllib.request.urlopen(urllib.request.Request(base + "/envoyer?k=" + sv.cle, data="Bonjour du téléphone".encode(), method="POST"), timeout=5)
+  time.sleep(0.5); pc = subprocess.run(["wl-paste", "--no-newline"], capture_output=True, text=True, timeout=3).stdout
+  subprocess.run(["wl-copy"], input=b"Texte du PC", timeout=3); time.sleep(0.5)
+  et = json.loads(urllib.request.urlopen(base + "/etat?k=" + sv.cle, timeout=5).read())
+  page = urllib.request.urlopen(base + "/?k=" + sv.cle, timeout=5).read().decode()
+  sv.arreter()
+  ok = refus and pc == "Bonjour du téléphone" and et["texte"] == "Texte du PC" and "Envoyer au PC" in page
+  print(("OK        " if ok else "ÉCHEC     ") + "presse-papiers avec le téléphone : clé exigée %s, téléphone → PC « %s », PC → téléphone « %s »" % (refus, pc, et.get("texte")))
+except Exception as e:
+  print("ÉCHEC     presse-papiers avec le téléphone : %s" % e)
 PY
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  barre (après bureaux / enregistrement)"; grep -A8 Traceback /out/shell.log | tail -9; } >> $R
 

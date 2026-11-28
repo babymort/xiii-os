@@ -101,6 +101,12 @@ class Serveur:
                 self.send_header("Cache-Control", "no-store"); self.end_headers(); self.wfile.write(corps)
 
             def do_GET(self):
+                try: self._get()
+                except Exception as e:
+                    try: self.send_error(500, str(e)[:120])
+                    except Exception: pass
+
+            def _get(self):
                 if not self.autorise(): return
                 ch = urllib.parse.urlparse(self.path).path
                 if ch == "/etat":
@@ -114,6 +120,12 @@ class Serveur:
                 self.repondre(PAGE.replace("{NOM}", html.escape(sv.nom)).encode(), "text/html; charset=utf-8")
 
             def do_POST(self):
+                try: self._post()
+                except Exception as e:
+                    try: self.send_error(500, str(e)[:120])
+                    except Exception: pass
+
+            def _post(self):
                 if not self.autorise(): return
                 ch = urllib.parse.urlparse(self.path).path
                 n = int(self.headers.get("Content-Length") or 0)
