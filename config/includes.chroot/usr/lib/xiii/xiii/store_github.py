@@ -97,9 +97,13 @@ def _installer(depot, progres):
         os.chmod(dest, os.stat(dest).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
         e["chemin"] = dest; e["lanceur"] = lanceur(nom, dest, depot=depot)
     elif typ in ("flatpakref", "flatpak"):
+        liste = lambda: set(subprocess.run(["flatpak", "list", "--user", "--app", "--columns=application"], capture_output=True, text=True).stdout.split())
+        avant = liste()
         r = subprocess.run(["flatpak", "install", "--user", "-y", "--noninteractive", tmp], capture_output=True, text=True)
         if r.returncode: raise RuntimeError(r.stderr.strip()[-200:])
         e["flatpak"] = True
+        nv = sorted(liste() - avant)
+        if nv: e["flatpak_id"] = nv[0]
     else:
         dest = os.path.join(OPT, depot.replace("/", "_")); shutil.rmtree(dest, ignore_errors=True); os.makedirs(dest)
         if a["name"].lower().endswith(".zip"): zipfile.ZipFile(tmp).extractall(dest)

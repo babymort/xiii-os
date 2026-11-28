@@ -80,6 +80,15 @@ CATALOGUE = {
     ],
 }
 
+# pack conseillé (icônes déjà dans le menu, téléchargés au premier lancement)
+try:
+    from .pack import PACK as _PACK
+    CATALOGUE = {"Pack conseillé XIII": [(p[0], p[1], p[2], p[3], p[4], p[8]) for p in _PACK], **CATALOGUE}
+except Exception:
+    pass
+
+ICONES_CAT = (["star"] if "Pack conseillé XIII" in CATALOGUE else []) + ["share-2", "network", "clapperboard", "monitor", "mouse", "gamepad-2", "globe"]
+
 def tous():
     return [x for L in CATALOGUE.values() for x in L]
 
@@ -93,7 +102,7 @@ def installe(src):
         if t == "github":
             from .store_github import suivi
             nom = v.split("/")[1].lower()
-            return v in suivi() or any(nom in p.lower() for p in os.listdir("/usr/share/applications"))
+            return v in suivi() or any(nom in p.lower() for p in os.listdir("/usr/share/applications") if not p.startswith("xiii-pack-"))      # pas les raccourcis du pack
         if src == "plexserver": return os.path.exists("/usr/lib/plexmediaserver")
         if src == "steam": return bool(shutil.which("steam"))
         if src == "companion":
@@ -185,7 +194,7 @@ class Centre(Gtk.Application):
         self.volet.ajouter("partout", "search", "Rechercher partout", rappel=lambda: self.p_partout(""))
         self.volet.ajouter("packs", "package-plus" if os.path.exists("/usr/share/xiii/lucide/package-plus.svg") else "package", "Packs métiers", rappel=self.p_packs)
         for i, cat in enumerate(CATALOGUE):
-            self.volet.ajouter("c%d" % i, ["share-2", "network", "clapperboard", "monitor", "mouse", "gamepad-2", "globe"][i], cat, rappel=lambda c=cat, i=i: self.p_cat(c, "c%d" % i), section="Sélection XIII" if i == 0 else None)
+            self.volet.ajouter("c%d" % i, ICONES_CAT[i % len(ICONES_CAT)], cat, rappel=lambda c=cat, i=i: self.p_cat(c, "c%d" % i), section="Sélection XIII" if i == 0 else None)
         self.volet.ajouter("github", "package", "Store GitHub", rappel=lambda: S.detacher("xiii-store-github"), section="Plus")
         self.volet.ajouter("resolve", "film", "DaVinci Resolve", rappel=lambda: S.detacher(["xiii-resolve"]))
         self.volet.ajouter("maj", "refresh-cw", "Mises à jour", rappel=self.p_maj)

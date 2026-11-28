@@ -312,6 +312,13 @@ python3 -c "$CFG"'config.modifier(profil="normal", mode_tournage=False)'; sleep 
 pgrep -f "xiii.shell import" >/dev/null || { echo "FERMÉE    xiii-shell (Mica, masquage, Tournage)"; xiii-shell >> /out/shell.log 2>&1 & sleep 6; } >> $R
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  Mica / masquage / Tournage"; grep -A8 Traceback /out/shell.log | tail -10; } >> $R || echo "OK        effet Mica, barre masquée automatiquement, barre Tournage : sans erreur" >> $R
 
+echo "== Pack conseillé (icônes dans le menu, téléchargement au premier lancement)" >> $R
+n=$(ls /usr/share/applications/xiii-pack-*.desktop 2>/dev/null | wc -l); m=$(ls /usr/share/icons/hicolor/*/apps/xiii-pack-* 2>/dev/null | wc -l)
+[ "$n" -ge 20 ] && [ "$m" -ge 20 ] && echo "OK        pack : $n raccourcis et $m icônes" >> $R || echo "ÉCHEC     pack : $n raccourcis, $m icônes" >> $R
+gapplication action fr.xiii.Shell basculer "'demarrer-toutes'"; sleep 1.2; wtype "o"; sleep 1.5; grim -s 0.5 /out/pack-menu.png; gapplication action fr.xiii.Shell fermer; sleep 0.5
+xiii-pack czkawka > /out/pack.log 2>&1 & sleep 6; grim -s 0.5 /out/pack-premier-lancement.png; pkill -f "xiii.pack import"
+grep -q Traceback /out/pack.log && { echo "PLANTAGE  premier lancement d'un logiciel du pack"; grep -A6 Traceback /out/pack.log | tail -7; } >> $R || echo "OK        premier lancement : fenêtre d'installation sans erreur" >> $R
+
 echo "== Modes sans barre des tâches (applis ouvertes en tuiles)" >> $R
 mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2
 python3 -c "$CFG"'config.modifier(mode_bureau="fiction", haut_applis=True)'; sleep 4; grim -s 0.5 /out/mode-fiction-applis.png
