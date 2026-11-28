@@ -10,6 +10,8 @@ from . import config
 
 FICHIER = os.path.join(config.DOSSIER, "horloge.json")
 SON = "/usr/share/sounds/XIII/stereo/alarm-clock-elapsed.wav"
+JOURS_LONGS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
 JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
 VILLES = [("Paris", "Europe/Paris"), ("Londres", "Europe/London"), ("New York", "America/New_York"), ("Los Angeles", "America/Los_Angeles"),
           ("Montréal", "America/Toronto"), ("Tokyo", "Asia/Tokyo"), ("Pékin", "Asia/Shanghai"), ("Dubaï", "Asia/Dubai"), ("Sydney", "Australia/Sydney"),
@@ -150,7 +152,7 @@ class Horloge(Gtk.Application):
     def maj_villes(self):
         n = datetime.datetime.now().astimezone()
         self.l_heure.set_text(n.strftime("%H:%M:%S"))
-        self.l_jour.set_text(n.strftime("%A %d %B %Y").capitalize())
+        self.l_jour.set_text("%s %d %s %d" % (JOURS_LONGS[n.weekday()], n.day, MOIS[n.month - 1], n.year))
         for z, h, ec in self.l_villes:
             t = n.astimezone(z); dh = (t.utcoffset() - n.utcoffset()).total_seconds() / 3600
             jour = "aujourd'hui" if t.date() == n.date() else ("demain" if t.date() > n.date() else "hier")
