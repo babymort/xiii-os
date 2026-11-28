@@ -47,19 +47,21 @@
     <keybind key="W-Right"><action name="SnapToEdge" direction="right" /></keybind>
     <keybind key="W-Down"><action name="Iconify" /></keybind>
     <keybind key="W-A-S-1"><action name="SendToDesktop" to="1" follow="no" /></keybind>
-    <keybind key="W-A-1"><action name="GoToDesktop" to="1" /></keybind>
+    <keybind key="W-A-1"><action name="GoToDesktop" to="1" /><action name="Execute" command="xiii-ctl bureau-est-1" /></keybind>
     <keybind key="W-A-S-2"><action name="SendToDesktop" to="2" follow="no" /></keybind>
-    <keybind key="W-A-2"><action name="GoToDesktop" to="2" /></keybind>
+    <keybind key="W-A-2"><action name="GoToDesktop" to="2" /><action name="Execute" command="xiii-ctl bureau-est-2" /></keybind>
     <keybind key="W-A-S-3"><action name="SendToDesktop" to="3" follow="no" /></keybind>
-    <keybind key="W-A-3"><action name="GoToDesktop" to="3" /></keybind>
+    <keybind key="W-A-3"><action name="GoToDesktop" to="3" /><action name="Execute" command="xiii-ctl bureau-est-3" /></keybind>
     <keybind key="W-A-S-4"><action name="SendToDesktop" to="4" follow="no" /></keybind>
-    <keybind key="W-A-4"><action name="GoToDesktop" to="4" /></keybind>
+    <keybind key="W-A-4"><action name="GoToDesktop" to="4" /><action name="Execute" command="xiii-ctl bureau-est-4" /></keybind>
     <keybind key="W-A-S-5"><action name="SendToDesktop" to="5" follow="no" /></keybind>
-    <keybind key="W-A-5"><action name="GoToDesktop" to="5" /></keybind>
+    <keybind key="W-A-5"><action name="GoToDesktop" to="5" /><action name="Execute" command="xiii-ctl bureau-est-5" /></keybind>
     <keybind key="W-A-S-6"><action name="SendToDesktop" to="6" follow="no" /></keybind>
-    <keybind key="W-A-6"><action name="GoToDesktop" to="6" /></keybind>
-    <keybind key="C-W-Left"><action name="GoToDesktop" to="left" wrap="yes" /></keybind>
-    <keybind key="C-W-Right"><action name="GoToDesktop" to="right" wrap="yes" /></keybind>
+    <keybind key="W-A-6"><action name="GoToDesktop" to="6" /><action name="Execute" command="xiii-ctl bureau-est-6" /></keybind>
+    <keybind key="C-W-Left"><action name="GoToDesktop" to="left" wrap="yes" /><action name="Execute" command="xiii-ctl bureau-est-left" /></keybind>
+    <keybind key="C-W-d"><action name="Execute" command="xiii-ctl bureau-nouveau" /></keybind>
+    <keybind key="C-W-F4"><action name="Execute" command="xiii-ctl bureau-retirer" /></keybind>
+    <keybind key="C-W-Right"><action name="GoToDesktop" to="right" wrap="yes" /><action name="Execute" command="xiii-ctl bureau-est-right" /></keybind>
     <keybind key="W-A-F1"><action name="SnapToRegion" region="gauche" /></keybind>
     <keybind key="W-A-F2"><action name="SnapToRegion" region="droite" /></keybind>
     <keybind key="W-A-F3"><action name="SnapToRegion" region="haut-gauche" /></keybind>

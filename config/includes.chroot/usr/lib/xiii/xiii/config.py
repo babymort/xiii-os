@@ -45,7 +45,7 @@ DEFAUTS = {
     "haut_secondes": False,
     "haut_pourcentage": True,
     "horloge_24h": True,
-    "ne_pas_deranger": False, "concentration": None, "concentration_fin": 0, "concentration_modes": {}, "concentration_saute": [], "launchpad_dossiers": [], "tray_ordre": [], "tray_visibles": [], "concentration_session_mode": "travail", "conc_nuit": False,
+    "ne_pas_deranger": False, "concentration": None, "concentration_fin": 0, "concentration_modes": {}, "concentration_saute": [], "launchpad_dossiers": [], "tray_ordre": [], "tray_visibles": [], "fonds_bureaux": {}, "concentration_session_mode": "travail", "conc_nuit": False,
     # saison 3 — phase B (graphisme)
     "accent_auto": False, "icones_tierces": True, "fond_anime": False,
     "sons_systeme": True, "sons_volume": 70,

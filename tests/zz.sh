@@ -22,7 +22,7 @@ verifier() {  # nom, motif du processus, journal
   else echo "OK        $nom" >> $R; fi
 }
 echo "== Applications" >> $R
-for a in regie prompteur mesure-audio mires lut multiview recuperer premiers-pas archives paquets acquisition bilan blackmagic console debit demarrage fichiers ia lecteurs logiciels qrwifi retour scanip somme store-github suite synthese taches tally timecode transferts windows bienvenue phonebox horloge assistance; do
+for a in regie prompteur mesure-audio mires lut multiview recuperer premiers-pas archives paquets acquisition bilan blackmagic console debit demarrage fichiers ia lecteurs logiciels qrwifi retour scanip somme store-github suite synthese taches tally timecode transferts windows bienvenue phonebox horloge assistance presse-telephone; do
   command -v xiii-$a >/dev/null || { echo "ABSENTE   xiii-$a" >> $R; continue; }
   xiii-$a > /out/app-$a.log 2>&1 &
   sleep 5; grim -s 0.5 /out/app-$a.png
@@ -378,6 +378,47 @@ python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import con
 python3 -c 'import xml.etree.ElementTree as E; E.parse("/etc/skel/.config/labwc/rc.xml")' 2>/dev/null && grep -q 'title="Picture-in-Picture"' /etc/skel/.config/labwc/rc.xml && grep -q "xiii-ctl epingle" /etc/skel/.config/labwc/rc.xml \
   && echo "OK        rc.xml : règles des vignettes vidéo + Ctrl+Super+T signalé à la barre" >> $R || echo "ÉCHEC     rc.xml (vignettes / épingle)" >> $R
 grep -q Traceback /out/shell.log && { echo "PLANTAGE  barre (après concentration)"; grep -A8 Traceback /out/shell.log | tail -9; } >> $R
+
+echo "== Bureaux virtuels, captures avancées, presse-papiers avec le téléphone" >> $R
+B0=$(python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import bureaux; print(bureaux.lire()[0])')
+xiii-ctl bureau-nouveau; sleep 1.5
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import bureaux; bureaux.renommer(1, "Montage")'
+xiii-ctl bureau-est-2; sleep 0.5; xiii-ctl vue; sleep 1.5; grim -s 0.5 /out/bureaux-vue.png; wtype -k Escape; sleep 0.4
+python3 - "$B0" >> $R 2>&1 <<'PY'
+import sys; sys.path.insert(0, "/usr/lib/xiii"); from xiii import bureaux
+n, noms = bureaux.lire(); b0 = int(sys.argv[1])
+ok = n == b0 + 1 and noms[0] == "Montage" and bureaux.courant() == 2
+print(("OK        " if ok else "ÉCHEC     ") + "bureaux virtuels : %d → %d bureaux %s, bureau affiché %d" % (b0, n, noms, bureaux.courant()))
+PY
+xiii-ctl bureau-retirer; sleep 1
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import bureaux; n=bureaux.lire()[0]; print(("OK        bureau retiré (%d), retour au bureau %d" if bureaux.courant() <= n else "ÉCHEC     bureau retiré : %d bureaux, courant %d") % (n, bureaux.courant()))' >> $R
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import bureaux; bureaux.renommer(1, "Bureau 1")'
+# reconnaissance de caractères et QR code (outils utilisés par xiii-capture texte / qr)
+python3 -c 'from PIL import Image, ImageDraw, ImageFont; im=Image.new("RGB",(900,120),"white"); d=ImageDraw.Draw(im); d.text((20,30),"Réunion de production à 14 heures",fill="black",font=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",44)); im.save("/tmp/ocr.png")'
+o=$(tesseract /tmp/ocr.png - -l fra+eng --psm 6 2>/dev/null | tr -s ' \n' ' ')
+echo "$o" | grep -qi "production" && echo "OK        copier le texte d'une zone : « $(echo $o | head -c 60) »" >> $R || echo "ÉCHEC     reconnaissance de caractères : « $o »" >> $R
+qrencode -o /tmp/qr.png -s 6 "https://os-xiii.fr/test"; q=$(zbarimg -q --raw /tmp/qr.png 2>/dev/null)
+[ "$q" = "https://os-xiii.fr/test" ] && echo "OK        lire un QR code à l'écran : $q" >> $R || echo "ÉCHEC     lecture du QR code : « $q »" >> $R
+ffmpeg -loglevel error -y -f lavfi -i testsrc=duration=1:size=320x240:rate=10 -pix_fmt yuv420p /tmp/rec.mp4 && \
+ffmpeg -loglevel error -y -i /tmp/rec.mp4 -vf "fps=12,scale='min(960,iw)':-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" /tmp/rec.gif
+[ -s /tmp/rec.gif ] && echo "OK        enregistrement en GIF animé : conversion ($(du -k /tmp/rec.gif | cut -f1) Ko)" >> $R || echo "ÉCHEC     conversion GIF" >> $R
+echo "$(($(date +%s) - 65)) gif" > ${XDG_RUNTIME_DIR:-/tmp}/xiii-enregistrement; sleep 2.2; grim -s 0.5 /out/enregistrement-pastille.png; rm -f ${XDG_RUNTIME_DIR:-/tmp}/xiii-enregistrement
+python3 - >> $R 2>&1 <<'PY'
+import sys, json, time, subprocess, urllib.request; sys.path.insert(0, "/usr/lib/xiii")
+from xiii.presse_telephone import Serveur
+sv = Serveur(port=8790); sv.demarrer(); base = "http://127.0.0.1:%d" % sv.port
+try: urllib.request.urlopen(base + "/etat?k=faux", timeout=3); refus = False
+except Exception as e: refus = "403" in str(e)
+urllib.request.urlopen(urllib.request.Request(base + "/envoyer?k=" + sv.cle, data="Bonjour du téléphone".encode(), method="POST"), timeout=5)
+time.sleep(0.5); pc = subprocess.run(["wl-paste", "--no-newline"], capture_output=True, text=True, timeout=3).stdout
+subprocess.run(["wl-copy"], input=b"Texte du PC", timeout=3); time.sleep(0.5)
+et = json.loads(urllib.request.urlopen(base + "/etat?k=" + sv.cle, timeout=5).read())
+page = urllib.request.urlopen(base + "/?k=" + sv.cle, timeout=5).read().decode()
+sv.arreter()
+ok = refus and pc == "Bonjour du téléphone" and et["texte"] == "Texte du PC" and "Envoyer au PC" in page
+print(("OK        " if ok else "ÉCHEC     ") + "presse-papiers avec le téléphone : clé exigée %s, téléphone → PC « %s », PC → téléphone « %s »" % (refus, pc, et.get("texte")))
+PY
+grep -q Traceback /out/shell.log && { echo "PLANTAGE  barre (après bureaux / enregistrement)"; grep -A8 Traceback /out/shell.log | tail -9; } >> $R
 
 echo "== Outils du quotidien (redimensionner, listes de raccourcis, pipette)" >> $R
 mkdir -p /tmp/redim; cp /usr/share/xiii/wallpapers/xiii-sombre.png /tmp/redim/photo.png

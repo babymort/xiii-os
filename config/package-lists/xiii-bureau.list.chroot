@@ -12,6 +12,8 @@ xdg-user-dirs
 # Applications de base
 thunar
 gnome-network-displays
+# Capture : lire les QR codes et codes-barres à l'écran
+zbar-tools
 thunar-volman
 gvfs
 gvfs-backends

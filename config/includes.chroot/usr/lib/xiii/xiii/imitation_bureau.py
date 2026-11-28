@@ -211,7 +211,7 @@ class MenusMac:
         z = sh.zone_notif; par = z.get_parent()
         if par is not None: par.remove(z)
         z.set_visible(True); d.append(z)
-        for w in (sh.h_dnd, sh.h_conc, sh.h_bat, sh.h_wifi, sh.h_bt):
+        for w in (sh.h_rec, sh.h_dnd, sh.h_conc, sh.h_bat, sh.h_wifi, sh.h_bt):
             p_ = w.get_parent()
             if p_ is not None: p_.remove(w)
             d.append(w)

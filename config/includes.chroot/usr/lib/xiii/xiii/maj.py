@@ -173,6 +173,8 @@ def migrer_raccourcis(rc):
         acts = [x for x in e if loc(x.tag) == "action"]
         if e.get("key") == "C-W-t" and [x.get("name") for x in acts] == ["ToggleAlwaysOnTop"]:     # la barre signale la fenêtre épinglée
             ET.SubElement(e, "action", name="Execute", command="xiii-ctl epingle"); n += 1
+        if [x.get("name") for x in acts] == ["GoToDesktop"] and acts[0].get("to"):           # la barre suit le bureau affiché
+            ET.SubElement(e, "action", name="Execute", command="xiii-ctl bureau-est-" + acts[0].get("to")); n += 1
     if n: a.write(rc, encoding="UTF-8", xml_declaration=True)
     return n
 

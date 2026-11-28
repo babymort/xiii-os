@@ -10,7 +10,8 @@ from . import config
 from .ui import boite, label, ico
 
 MODES = [("zone", "scan", "Zone"), ("moniteur", "monitor", "Un écran"), ("ecran", "maximize", "Écran entier")]
-VIDEO = [("video zone", "square-dashed", "Vidéo d'une zone"), ("video ecran", "video", "Vidéo de l'écran")]
+VIDEO = [("video zone", "square-dashed", "Vidéo d'une zone"), ("video ecran", "video", "Vidéo de l'écran"), ("video zone gif", "film", "GIF animé")]
+EXTRAS = [("texte", "scan-text", "Copier le texte"), ("qr", "qr-code", "Lire un QR code")]
 
 
 def main():
@@ -19,7 +20,7 @@ def main():
 
     def lancer(w, cmd):
         w.close()
-        args = cmd.split() + (["son"] if etat["son"] and cmd.startswith("video") else [])
+        args = cmd.split() + (["son"] if etat["son"] and cmd.startswith("video") and not cmd.endswith("gif") else [])
         d = etat["delai"]
         GLib.timeout_add(250, lambda: (subprocess.Popen(["sh", "-c", ("sleep %d; " % d if d else "") + "exec xiii-capture " + " ".join(args)]), app.quit(), False)[2])
 
@@ -38,6 +39,8 @@ def main():
         for cmd, ic, txt in MODES: b.append(btn(ic, txt, cmd))
         b.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
         for cmd, ic, txt in VIDEO: b.append(btn(ic, txt, cmd))
+        b.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
+        for cmd, ic, txt in EXTRAS: b.append(btn(ic, txt, cmd))
         son = Gtk.ToggleButton(); son.set_child(ico("mic", 18)); son.set_tooltip_text("Avec le son (vidéo)")
         son.connect("toggled", lambda t: etat.__setitem__("son", t.get_active())); b.append(son)
         b.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))

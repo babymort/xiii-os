@@ -1,9 +1,12 @@
 #!/bin/bash
 # OS XIII — captures d'écran et enregistrement vidéo
 #   xiii-capture zone | ecran | moniteur | delai | menu
-#   xiii-capture video [zone|ecran] [son]   (2e appel : arrête l'enregistrement en cours)
+#   xiii-capture video [zone|ecran] [son|gif]   (2e appel : arrête l'enregistrement en cours ; gif : converti en GIF animé à l'arrêt)
+#   xiii-capture texte     copier le texte d'une zone de l'écran (reconnaissance de caractères, hors ligne : tesseract)
+#   xiii-capture qr        lire un QR code ou un code-barres à l'écran (zbarimg)
 I="$(xdg-user-dir PICTURES 2>/dev/null || echo ~/Images)/Captures"; V="$(xdg-user-dir VIDEOS 2>/dev/null || echo ~/Vidéos)/Captures"
 mkdir -p "$I" "$V"
+EN="${XDG_RUNTIME_DIR:-/tmp}/xiii-enregistrement"     # présent pendant un enregistrement : la barre affiche ● et la durée
 son() { command -v pw-play >/dev/null && [ -f /usr/share/sounds/XIII/stereo/screen-capture.wav ] && pw-play --volume 0.5 /usr/share/sounds/XIII/stereo/screen-capture.wav >/dev/null 2>&1 & }
 image() {   # $1 = géométrie (vide = tout)
   F="$I/capture-$(date +%Y-%m-%d-%H%M%S).png"
@@ -15,8 +18,15 @@ image() {   # $1 = géométrie (vide = tout)
 }
 video() {
   if pgrep -x wf-recorder >/dev/null; then
+    GIF=$(grep -c gif "$EN" 2>/dev/null)
     pkill -INT -x wf-recorder; sleep 1
-    F=$(ls -t "$V"/*.mp4 2>/dev/null | head -1)
+    F=$(ls -t "$V"/*.mp4 2>/dev/null | head -1); rm -f "$EN"
+    if [ "$GIF" = 1 ] && [ -f "$F" ]; then
+      notify-send -a "Capture" -i image-x-generic -t 3000 "Conversion en GIF…" "$(basename "$F")"
+      G="${F%.mp4}"; G="${G%-gif}.gif"
+      ffmpeg -loglevel error -y -i "$F" -vf "fps=12,scale='min(960,iw)':-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" "$G" && rm -f "$F" && F="$G"
+      wl-copy --type image/gif < "$F" 2>/dev/null
+    fi
     r=$(notify-send -a "Capture" -i video-x-generic -h string:sound-name:complete --action=voir="Regarder" --action=dossier="Ouvrir le dossier" "Enregistrement terminé" "$(basename "$F")")
     case "$r" in voir) xdg-open "$F" ;; dossier) xiii-fichiers "$V" ;; esac; exit 0
   fi
@@ -24,9 +34,35 @@ video() {
   F="$V/video-$(date +%Y-%m-%d-%H%M%S).mp4"; G=""; A=()
   [ "$1" = zone ] && { G=$(slurp -d -b 1a1a1a88 -c f0b378 -w 2) || exit 0; }
   [ "$2" = son ] && A=(--audio)
+  [ "$2" = gif ] && F="${F%.mp4}-gif.mp4"
+  echo "$(date +%s) $2" > "$EN"
   notify-send -a "Capture" -i media-record -t 2500 "Enregistrement de l'écran" "Pour arrêter : Super + Maj + R, ou relancer « Enregistrer l'écran »"
   sleep 1
-  if [ -n "$G" ]; then exec wf-recorder "${A[@]}" -g "$G" -f "$F" >/dev/null 2>&1; else exec wf-recorder "${A[@]}" -f "$F" >/dev/null 2>&1; fi
+  if [ -n "$G" ]; then wf-recorder "${A[@]}" -g "$G" -f "$F" >/dev/null 2>&1; else wf-recorder "${A[@]}" -f "$F" >/dev/null 2>&1; fi
+  rm -f "$EN"; exit 0
+}
+texte() {
+  command -v tesseract >/dev/null || { notify-send -a "Capture" -i dialog-error "Copier le texte" "La reconnaissance de caractères (tesseract) n'est pas installée"; exit 1; }
+  G=$(slurp -d -b 1a1a1a88 -c f0b378 -w 2) || exit 0
+  T=$(mktemp --suffix=.png); grim -g "$G" -s 2 "$T"
+  L=fra+eng; tesseract --list-langs 2>/dev/null | grep -qx fra || L=eng
+  X=$(tesseract "$T" - -l $L --psm 6 2>/dev/null | sed -e 's/[[:space:]]*$//' | sed -e '/./,$!d'); rm -f "$T"
+  if [ -z "$X" ]; then notify-send -a "Capture" -i dialog-warning "Aucun texte reconnu" "Essayez une zone plus grande ou plus nette"; exit 1; fi
+  printf '%s' "$X" | wl-copy
+  notify-send -a "Capture" -i edit-copy -h string:sound-name:complete "Texte copié ($(printf '%s' "$X" | wc -w) mots)" "$(printf '%s' "$X" | head -c 160)"
+}
+qr() {
+  command -v zbarimg >/dev/null || { notify-send -a "Capture" -i dialog-error "Lire un QR code" "zbarimg (zbar-tools) n'est pas installé"; exit 1; }
+  G=$(slurp -d -b 1a1a1a88 -c f0b378 -w 2) || exit 0
+  T=$(mktemp --suffix=.png); grim -g "$G" -s 2 "$T"
+  X=$(zbarimg -q --raw "$T" 2>/dev/null | head -5); rm -f "$T"
+  [ -z "$X" ] && { notify-send -a "Capture" -i dialog-warning "Aucun code trouvé" "Entourez le QR code ou le code-barres"; exit 1; }
+  printf '%s' "$X" | wl-copy
+  case "$X" in
+    http://*|https://*) r=$(notify-send -a "Capture" -i qr-code --action=ouvrir="Ouvrir" "QR code lu (copié)" "$X"); [ "$r" = ouvrir ] && xdg-open "$X" ;;
+    WIFI:*) notify-send -a "Capture" -i network-wireless "QR code Wi-Fi lu (copié)" "$(printf '%s' "$X" | sed -E 's/.*S:([^;]*);.*/Réseau : \1/')" ;;
+    *) notify-send -a "Capture" -i qr-code "Code lu (copié)" "$X" ;;
+  esac
 }
 case "$1" in
   zone) G=$(slurp -d -b 1a1a1a88 -c f0b378 -w 2) || exit 0; image "$G" ;;
@@ -34,14 +70,17 @@ case "$1" in
   moniteur) G=$(slurp -o -b 1a1a1a55 -c f0b378) || exit 0; image "$G" ;;
   delai) notify-send -a "Capture" -t 2500 "Capture dans 5 secondes…" "Préparez l'écran"; sleep 5; image "" ;;
   video) video "$2" "$3" ;;
+  texte) texte ;;
+  qr) qr ;;
   menu)
     if pgrep -x wf-recorder >/dev/null; then video; fi
     c=$(printf '%s\n' "Zone de l'écran" "Écran entier" "Un écran au choix (plusieurs moniteurs)" "Écran entier dans 5 secondes" \
-        "Enregistrer une zone en vidéo" "Enregistrer l'écran en vidéo" "Enregistrer l'écran en vidéo avec le son" "Ouvrir le dossier des captures" \
-        | fuzzel --dmenu --lines 8 --width 44 --prompt 'Capture › ')
+        "Copier le texte d'une zone" "Lire un QR code" "Enregistrer une zone en vidéo" "Enregistrer une zone en GIF animé" "Enregistrer l'écran en vidéo" \
+        "Enregistrer l'écran en vidéo avec le son" "Ouvrir le dossier des captures" \
+        | fuzzel --dmenu --lines 11 --width 44 --prompt 'Capture › ')
     case "$c" in
       "Zone de l'écran") exec "$0" zone ;; "Écran entier") sleep 0.3; exec "$0" ecran ;; "Un écran au choix"*) exec "$0" moniteur ;;
-      "Écran entier dans 5"*) exec "$0" delai ;; "Enregistrer une zone"*) exec "$0" video zone ;; "Enregistrer l'écran en vidéo avec le son") exec "$0" video ecran son ;;
+      "Écran entier dans 5"*) exec "$0" delai ;; "Copier le texte"*) exec "$0" texte ;; "Lire un QR"*) exec "$0" qr ;; "Enregistrer une zone en GIF"*) exec "$0" video zone gif ;; "Enregistrer une zone"*) exec "$0" video zone ;; "Enregistrer l'écran en vidéo avec le son") exec "$0" video ecran son ;;
       "Enregistrer l'écran en vidéo") exec "$0" video ecran ;; "Ouvrir le dossier"*) exec xiii-fichiers "$I" ;;
     esac ;;
 esac

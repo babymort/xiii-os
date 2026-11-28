@@ -126,6 +126,7 @@ class Shell(Gtk.Application):
             return False
         if not S.DEMO: GLib.timeout_add_seconds(25, _fiab)
         GLib.timeout_add_seconds(5, self.surveiller_dnd)
+        from . import bureaux as BX; self.bureau_courant = BX.courant()
         self.ecouter_gestes()
         # son d'ouverture de session (une fois)
         if not S.DEMO:
@@ -334,6 +335,18 @@ class Shell(Gtk.Application):
             elif x[:1] == ["off"]: self.regler_concentration(None)
             else: self.menu_concentration(self.h_conc if self.h_conc.get_visible() else self.h_centre)
             return
+        if nom.startswith("bureau-"):          # bureaux virtuels : bureau-est-2|left|right, bureau-nouveau, bureau-retirer
+            from . import bureaux as BX
+            if nom.startswith("bureau-est-"):
+                self.bureau_change(BX.noter(nom[11:]))
+            elif nom == "bureau-nouveau":
+                n = BX.ajouter()
+                from . import raccourcis
+                GLib.timeout_add(500, lambda: (raccourcis.declencher("GoToDesktop", {"to": str(n)}, "W-A-%d" % n), False)[1])
+                S.detacher(["notify-send", "-a", "OS XIII", "-i", "layout-dashboard", "-t", "2000", "Nouveau bureau", "Bureau %d — Ctrl+Super+← / → pour passer de l'un à l'autre" % n])
+            elif nom == "bureau-retirer":
+                BX.retirer(); self.bureau_change(BX.courant())
+            return
         if nom == "epingle":                # Ctrl+Super+T : labwc a basculé « toujours au premier plan » sur la fenêtre active ; on la signale
             fen = self.fenetres.liste() if self.fenetres and self.fenetres.ok else []
             f = next((f for f in fen if f.active), None)
@@ -488,6 +501,11 @@ class Shell(Gtk.Application):
         from .barre_tournage import BarreTournage
         if getattr(self, "b_tournage", None): self.b_tournage.arreter()
         self.b_tournage = BarreTournage(self); self.b_tournage.widget.set_visible(False); droite.append(self.b_tournage.widget)
+        # enregistrement de l'écran en cours (xiii-capture video) : pastille rouge avec la durée ; clic = arrêter
+        self.h_rec = Gtk.Button(); self.h_rec.add_css_class("tb"); self.h_rec.add_css_class("rec-pastille"); self.h_rec.set_visible(False)
+        self.h_rec.set_tooltip_text("Enregistrement de l'écran — cliquer pour arrêter (Super + Maj + R)")
+        self.h_rec.connect("clicked", lambda *_: S.detacher(["xiii-capture", "video"])); droite.append(self.h_rec)
+        if not getattr(self, "_rec_tic", None): self._rec_tic = GLib.timeout_add(1000, self.maj_enregistrement)
         self.zone_notif = boite(False, 0); droite.append(self.zone_notif)
         droite.append(self.b_heure); droite.append(self.b_cloche)
         # tout au bout à droite : fine bande « Afficher le bureau » (comme Windows) ; 2e clic = les fenêtres reviennent
@@ -1365,6 +1383,31 @@ class Shell(Gtk.Application):
         items += [("settings", "Régler les modes de concentration", lambda: self.parametres("notifications"))]
         popover_menu(parent, items)
 
+    def maj_enregistrement(self):
+        f = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "xiii-enregistrement")
+        try: t0, *mode = open(f).read().split()
+        except Exception: t0 = None
+        b = getattr(self, "h_rec", None)
+        if b is None: return True
+        if not t0:
+            if b.get_visible(): b.set_visible(False)
+            return True
+        d = max(0, int(time.time() - int(t0)) - 1)
+        bx = boite(False, 6, valign=Gtk.Align.CENTER); pt = Gtk.Box(valign=Gtk.Align.CENTER); pt.add_css_class("rec-point"); bx.append(pt)
+        bx.append(label("%s%02d:%02d" % ("GIF " if "gif" in mode else "", d // 60, d % 60), "petit", "gras")); b.set_child(bx); b.set_visible(True)
+        return True
+
+    def bureau_change(self, n):
+        """Le bureau affiché a changé : fond d'écran propre à ce bureau (s'il y en a un)."""
+        if n == getattr(self, "bureau_courant", 1): return
+        self.bureau_courant = n
+        if (self.cfg.get("fonds_bureaux") or {}): self.services()
+        if getattr(self, "vue_ouverte", False) and hasattr(self, "vue_taches"): self.vue_taches.ouvrir()
+
+    def fond_actuel(self):
+        f = (self.cfg.get("fonds_bureaux") or {}).get(str(getattr(self, "bureau_courant", 1)))
+        return f if f and os.path.exists(f) else self.cfg["fond"]
+
     def surveiller_dnd(self):
         """Ne pas déranger automatique (Paramètres › Notifications) : une fenêtre en plein écran (film, jeu, présentation),
         ou le micro / la caméra utilisés (visio, enregistrement). Les notifications urgentes passent toujours."""
@@ -1552,7 +1595,7 @@ class Shell(Gtk.Application):
             except Exception: p.kill()
 
     def services(self, premier=False):
-        c = self.cfg
+        c = dict(self.cfg); c["fond"] = self.fond_actuel()          # un fond par bureau virtuel (Vue des tâches › clic droit)
         if os.path.exists(c["fond"]):
             # fond animé (dérive lente + lueur, ou vidéo) ; sinon image fixe — une vidéo choisie comme fond est toujours animée
             if c.get("fond_anime") or c["fond"].lower().endswith((".mp4", ".webm", ".mkv", ".mov", ".m4v")):

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Presse-papiers avec le téléphone
+Comment=Copier sur le PC, coller sur le téléphone (et l'inverse), sans appli : un QR code suffit
+Exec=xiii-presse-telephone %F
+Icon=xiii-presse-telephone
+Type=Application
+Categories=Utility;Network;XIII;
+Keywords=presse-papiers;téléphone;iphone;android;copier;coller;clipboard;continuité;

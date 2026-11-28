@@ -4,7 +4,7 @@
 import os, subprocess, unicodedata, shutil
 import gi
 gi.require_version("Gtk4LayerShell", "1.0")
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib, Gio
 from gi.repository import Gtk4LayerShell as LS
 from . import apps, config, systeme as S
 from .ui import *
@@ -83,30 +83,68 @@ class VueTaches:
             c.add_controller(ds)
             g.append(c)
         self.corps.append(g)
-        n = self.nb_bureaux()
-        if n > 1 and fen:
-            rang = boite(False, 12, halign=Gtk.Align.CENTER)
-            for i in range(1, n + 1):
-                p = boite(True, 4, "panneau", "bureau-puce"); p.set_size_request(150, 70)
-                p.append(ico("layout-dashboard", 20, "c")); p.append(label("Bureau %d" % i, "gras", "petit", xalign=0.5))
-                dt = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
-                def depose(cible, val, x, y, i=i):
-                    f = next((w for w in fen if str(w.id) == val), None)
-                    if f: self.envoyer(f, i)
-                    return bool(f)
-                dt.connect("drop", depose)
-                dt.connect("enter", lambda *_a, p=p: (p.add_css_class("survol-depot"), Gdk.DragAction.MOVE)[1])
-                dt.connect("leave", lambda *_a, p=p: p.remove_css_class("survol-depot"))
-                p.add_controller(dt)
-                gp = Gtk.GestureClick(); gp.connect("released", lambda *_a, i=i: self.aller(i)); p.add_controller(gp)
-                rang.append(p)
-            self.corps.append(rang)
-        aide = label("Clic : aller à la fenêtre · glisser sur un bureau : l'y déplacer · ✕ : fermer · Échap : quitter", "attenue", "petit", xalign=0.5)
+        from . import bureaux as BX
+        n, noms = BX.lire(); cour = getattr(self.shell, "bureau_courant", 1)
+        rang = boite(False, 12, halign=Gtk.Align.CENTER)
+        for i in range(1, n + 1):
+            p = boite(True, 4, "panneau", "bureau-puce"); p.set_size_request(160, 84)
+            if i == cour: p.add_css_class("vue-active")
+            fb = (self.shell.cfg.get("fonds_bureaux") or {}).get(str(i))
+            if fb and os.path.exists(fb): p.append(vignette(fb, 120, 40))
+            else: p.append(ico("layout-dashboard", 20, "c"))
+            p.append(label(noms[i - 1], "gras", "petit", xalign=0.5, ellipsize=True, largeur=18))
+            p.set_tooltip_text("Clic : aller sur ce bureau · clic droit : renommer, fond d'écran · glisser une fenêtre ici pour l'y déplacer")
+            dt = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
+            def depose(cible, val, x, y, i=i):
+                f = next((w for w in fen if str(w.id) == val), None)
+                if f: self.envoyer(f, i)
+                return bool(f)
+            dt.connect("drop", depose)
+            dt.connect("enter", lambda *_a, p=p: (p.add_css_class("survol-depot"), Gdk.DragAction.MOVE)[1])
+            dt.connect("leave", lambda *_a, p=p: p.remove_css_class("survol-depot"))
+            p.add_controller(dt)
+            gp = Gtk.GestureClick(); gp.connect("released", lambda *_a, i=i: self.aller(i)); p.add_controller(gp)
+            clic_droit_w(p, lambda w, i=i, n=n: self.menu_bureau(w, i, n))
+            rang.append(p)
+        if n < BX.MAXI:
+            plus = Gtk.Button(); plus.add_css_class("panneau"); plus.add_css_class("bureau-puce"); plus.set_size_request(84, 84)
+            plus.set_child(ico("plus", 24, "c")); plus.set_tooltip_text("Nouveau bureau (Ctrl + Super + D)")
+            plus.connect("clicked", lambda *_: (BX.ajouter(), GLib.timeout_add(400, lambda: (self.ouvrir(), False)[1])))
+            rang.append(plus)
+        self.corps.append(rang)
+        aide = label("Clic : aller à la fenêtre · glisser sur un bureau : l'y déplacer · clic droit sur un bureau : renommer, fond · ✕ : fermer · Échap : quitter", "attenue", "petit", xalign=0.5)
         self.corps.append(aide)
         self.w.present()
 
     def fermer(self):
         self.w.set_visible(False); self.shell.vue_ouverte = False
+
+    def menu_bureau(self, w, i, n):
+        from . import bureaux as BX
+        def renommer():
+            pop = Gtk.Popover(); pop.set_parent(w); e = Gtk.Entry(text=BX.lire()[1][i - 1], width_chars=18)
+            e.connect("activate", lambda *_: (BX.renommer(i, e.get_text()), pop.popdown(), GLib.timeout_add(300, lambda: (self.ouvrir(), False)[1])))
+            pop.set_child(e); pop.connect("closed", lambda p_: GLib.idle_add(lambda: (p_.unparent(), False)[1])); pop.popup(); e.grab_focus()
+        def fond():
+            self.fermer()                          # le sélecteur de fichiers s'ouvrirait sous la Vue des tâches
+            d = Gtk.FileDialog(title="Fond d'écran du bureau %d" % i)
+            f = Gtk.FileFilter(); f.set_name("Images"); f.add_mime_type("image/*"); fl = Gio.ListStore.new(Gtk.FileFilter); fl.append(f); d.set_filters(fl)
+            try: d.set_initial_folder(Gio.File.new_for_path("/usr/share/xiii/wallpapers"))
+            except Exception: pass
+            def fini(dd, res):
+                try: g = dd.open_finish(res)
+                except Exception: return
+                F = dict(self.shell.cfg.get("fonds_bureaux") or {}); F[str(i)] = g.get_path()
+                self.shell.cfg = config.modifier(_histo=False, fonds_bureaux=F); self.shell.services()
+                S.detacher(["notify-send", "-a", "OS XIII", "-i", "image", "-t", "2500", "Fond du bureau %d" % i, os.path.basename(g.get_path())])
+            d.open(None, None, fini)
+        def sans_fond():
+            F = dict(self.shell.cfg.get("fonds_bureaux") or {}); F.pop(str(i), None)
+            self.shell.cfg = config.modifier(_histo=False, fonds_bureaux=F); self.shell.services(); self.ouvrir()
+        items = [("pencil", "Renommer", renommer), ("image", "Fond d'écran de ce bureau…", fond)]
+        if str(i) in (self.shell.cfg.get("fonds_bureaux") or {}): items.append(("image-off" if os.path.exists("/usr/share/xiii/lucide/image-off.svg") else "image", "Même fond que les autres bureaux", sans_fond))
+        if i == n and n > 1: items += [None, ("trash-2", "Retirer ce bureau (ses fenêtres passent sur le précédent)", lambda: (BX.retirer(), self.shell.bureau_change(BX.courant()), GLib.timeout_add(400, lambda: (self.ouvrir(), False)[1])))]
+        popover_menu(w, items)
 
 # ================================================================================ DISPOSITIONS (snap layouts)
 # régions définies dans rc.xml (labwc) et déclenchées par Super+Alt+F1…F12
@@ -184,6 +222,7 @@ class PressePapiers:
         self.shell = shell
         self.widget = boite(True, 10, "panneau"); self.widget.set_size_request(self.largeur, 520)
         h = boite(False, 10); h.append(ico("clipboard-list", 22, "c")); h.append(label("Presse-papiers", "panneau-titre", hexpand=True))
+        h.append(bouton(None, "smartphone", "fantome", tip="Partager avec le téléphone (QR code)", rappel=lambda: (self.shell.fermer(), S.detacher("xiii-presse-telephone"))))
         h.append(bouton("Tout effacer", None, "fantome", rappel=lambda: (S.sh(["cliphist", "wipe"]), self.rafraichir())))
         self.widget.append(h)
         self.liste = boite(True, 4); sc = defilant(self.liste); sc.set_vexpand(True); self.widget.append(sc)
