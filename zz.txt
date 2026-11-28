@@ -1,0 +1,452 @@
+== Applications
+OK        xiii-regie
+OK        xiii-prompteur
+OK        xiii-mesure-audio
+OK        xiii-mires
+OK        xiii-lut
+OK        xiii-multiview
+OK        xiii-recuperer
+OK        xiii-premiers-pas
+OK        xiii-archives
+OK        xiii-paquets
+OK        xiii-bilan
+OK        xiii-blackmagic
+OK        xiii-console
+OK        xiii-debit
+OK        xiii-demarrage
+OK        xiii-fichiers
+OK        xiii-ia
+OK        xiii-lecteurs
+OK        xiii-logiciels
+OK        xiii-qrwifi
+OK        xiii-retour
+OK        xiii-scanip
+OK        xiii-somme
+OK        xiii-store-github
+OK        xiii-suite
+OK        xiii-synthese
+OK        xiii-taches
+OK        xiii-tally
+OK        xiii-timecode
+OK        xiii-transferts
+OK        xiii-windows
+OK        xiii-bienvenue
+OK        xiii-phonebox
+OK        xiii-horloge
+OK        xiii-assistance
+OK        xiii-presse-telephone
+== Pages des Paramètres
+OK        Paramètres › accueil
+OK        Paramètres › systeme
+OK        Paramètres › ecran
+OK        Paramètres › son
+OK        Paramètres › notifications
+OK        Paramètres › alimentation
+OK        Paramètres › stockage
+OK        Paramètres › multitache
+OK        Paramètres › profils
+OK        Paramètres › historique
+OK        Paramètres › evenements
+OK        Paramètres › apropos
+OK        Paramètres › appareils
+OK        Paramètres › bluetooth
+OK        Paramètres › telephone
+OK        Paramètres › imprimantes
+OK        Paramètres › souris
+OK        Paramètres › clavier
+OK        Paramètres › raccourcis
+OK        Paramètres › webcam
+OK        Paramètres › autoplay
+OK        Paramètres › reseau
+OK        Paramètres › wifi
+OK        Paramètres › ethernet
+OK        Paramètres › vpn
+OK        Paramètres › partage
+OK        Paramètres › interfaces
+OK        Paramètres › iface
+OK        Paramètres › profilsreseau
+OK        Paramètres › tailscale
+OK        Paramètres › duo
+OK        Paramètres › perso
+OK        Paramètres › theme
+OK        Paramètres › fond
+OK        Paramètres › verrou
+OK        Paramètres › barre
+OK        Paramètres › demarrer
+OK        Paramètres › widgets
+OK        Paramètres › bureau
+OK        Paramètres › haut
+OK        Paramètres › polices
+OK        Paramètres › curseur
+OK        Paramètres › demarrage
+OK        Paramètres › applications
+OK        Paramètres › apps
+OK        Paramètres › defaut
+OK        Paramètres › autostart
+OK        Paramètres › comptes
+OK        Paramètres › compte
+OK        Paramètres › connexion
+OK        Paramètres › utilisateurs
+OK        Paramètres › heurelangue
+OK        Paramètres › heure
+OK        Paramètres › langue
+OK        Paramètres › accessibilite
+OK        Paramètres › vision
+OK        Paramètres › audition
+OK        Paramètres › saisie
+OK        Paramètres › texte
+OK        Paramètres › effets
+OK        Paramètres › securite
+OK        Paramètres › parefeu
+OK        Paramètres › antivol
+OK        Paramètres › permissions
+OK        Paramètres › confidentialite
+OK        Paramètres › jeux
+OK        Paramètres › sauvegarde
+OK        Paramètres › claude
+OK        Paramètres › maj
+OK        Paramètres › xiii
+OK        Paramètres › suite
+OK        Paramètres › ndi
+OK        Paramètres › acquisition
+OK        Paramètres › projet
+OK        Paramètres › outilsprod
+OK        Paramètres › meteo
+== Thèmes (bureau + Paramètres + menu Démarrer)
+OK        Thème verre
+OK        Thème sombre
+OK        Thème clair
+OK        Thème sobre
+OK        Thème sobrec
+OK        Thème w2k
+OK        Thème xp
+OK        Thème mac9
+OK        Thème cyber
+OK        Thème term
+OK        Thème gb
+OK        Thème regie
+OK        Thème soleil
+OK        Thème rainbow
+OK        Thème sepia
+INFO      clic en dehors : voir clic-*-avant/apres.png
+== Fichiers : vue Mac (colonnes) et Arbre
+OK       ouverture : 2 colonne(s), attendu 2
+OK       clic sur a : 3 colonne(s), attendu 3
+OK       clic sur a/b : 4 colonne(s), attendu 4
+OK       retour, clic sur z (remplace a et b) : 3 colonne(s), attendu 3
+OK       clic sur un fichier (aperçu) : 3 colonne(s), attendu 3
+OK       vue Arbre ouverte
+OK       vue Windows ouverte
+== Fiabilité (phase A)
+OK        journal des événements : 0 entrée(s)
+OK        raccourcis clavier : 84 lus, 16 sans nom
+OK        rapport de plantage écrit : 2026-11-28_103218_xiii.txt
+OK        syntaxe 41_xiii_secours
+OK        syntaxe xiii-instantanes
+OK        syntaxe xiii-demarrage-suivi
+OK        syntaxe xiii-reparer-menu
+== Phase B (graphisme)
+/usr/lib/xiii/xiii/theme.py:5: PyGIWarning: Gdk was imported without specifying a version first. Use gi.require_version('Gdk', '4.0') before import to ensure that the right version gets loaded.
+  from gi.repository import GLib, Gdk, GdkPixbuf
+OK        accent tiré du fond xiii-sombre.png : #d7a678
+OK        accent tiré du fond xiii-clair.png : #d7a578
+OK        Écran de veille flip
+OK        Écran de veille logo
+OK        fond animé lancé
+OK        Blackmagic XIII (logiciels détectés)
+OK        Blackmagic détectés : {'atem': ['ATEM Setup', 'ATEM Software Control']}
+OK        sons système : 13 fichiers
+== Phase C (ergonomie)
+OK        conversion 12 pouces en cm → 12 pouces = 30,48 cm
+OK        conversion 50 Mb/s → 50 Mb/s = 6,25 Mo/s
+OK        conversion 100 °F → 100 °F = 37,7778 °C
+OK        conversion 3 Go en Mo → 3 Go = 3000 Mo
+OK        gestes : 9 · raccourci bureau suivant : C-W-Right
+OK        syntaxe xiii-capture
+OK        syntaxe xiii-gestes
+/usr/lib/xiii/xiii/notifs.py:5: PyGIWarning: GdkPixbuf was imported without specifying a version first. Use gi.require_version('GdkPixbuf', '2.0') before import to ensure that the right version gets loaded.
+  from gi.repository import Gio, GLib, GdkPixbuf
+OK        historique des notifications : 2 entrée(s)
+== Phase D (Fichiers)
+OK        miniature vidéo : True · MXF : True
+OK        infos : Codec vidéo=H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10 · High; Résolution=1920 × 1080; Images / s=25; Échantillonnage=YUV 420 8 bits; Durée=0:03; Timecode de départ=10:00:00:00; Débit=0.3 Mb/s · 0 Go/h; Son=AAC · 44100 Hz · 1 piste(s), 1 canaux; Caméra=Pocket 6K; Conteneur=QuickTime
+OK       copie vérifiée : Terminé · 2 fichier(s) · 2 fichier(s) vérifié(s) (xxHash64)
+OK        étiquette : rouge · 1 trouvé(s)
+OK        corbeille : 1 élément(s) · /root/Rushes/plan_3.mov
+OK        Fichiers › Galerie
+OK        Fichiers › Informations
+OK        Fichiers › Corbeille
+OK        état du cloud : en ligne / gardé hors ligne / copie locale / ailleurs
+OK        Fichiers › état du cloud + volet d'aperçu
+== Mode Production (barre latérale + tableau)
+OK        mode Production capturé (accueil, organiser, mémos, tâches, objectifs, tableau, planning)
+OK        Studio XIII : import équipe ['Léa Martin', 'Hugo B.'], devis 1500.0 €
+OK        Studio XIII : 1 tableau(x), carte déplacée de « Dérushage » vers « Montage », tâche pour demain, mémo épinglé, objectif — relus du disque
+OK        Mémos XIII
+OK        Studio XIII
+== Phase G (réseau : Envoi XIII compatible LocalSend)
+OK        Envoi XIII : OK 2 fichiers envoyés à Poste ZZ (fichier identique à l'arrivée)
+OK        Envoi XIII : réception désactivée → ÉCHEC Refusé par Poste ZZ
+OK        LocalSend /info : Poste ZZ 2.1 http
+== Phase H (logiciels, Stream Deck, polices, Resolve, VM)
+OK        aperçu Stream Deck : /out/streamdeck-pages.png
+OK        Wine : setup.exe de « X32-Edit » reconnu → X32-Edit / X-Air-Edit / M32-Edit / WING-Edit existent aussi 
+OK        recherche partout « vlc » : Flathub 12, Debian 11, AppImage 3, GitHub 8
+OK        fiche VLC : 3.0.24 · 6 310 606 installations · 3 captures 
+== Calendrier : comptes en lecture / écriture (CalDAV)
+INFO      MKCALENDAR 201
+OK        CalDAV (Radicale) : 1 agenda(s), création True, modification True, suppression True
+== Barre des tâches : position et forme
+OK        barre en bas / haut / gauche / droite, classique / flottante / dock : sans erreur
+== Thèmes Façon Windows 11 et Façon macOS
+INFO      icônes : Fluent Fluent-cursors Fluent-dark Fluent-light WhiteSur WhiteSur-cursors WhiteSur-dark WhiteSur-light 
+INFO      polices Selawik + Inter : 25
+INFO      labwc :  <name>XIII-Onze</name>
+INFO      labwc :  <font place="ActiveWindow"><name>Selawik</name><size>10</size><weight>normal</weight></font>
+INFO      labwc :  <font place="MenuItem"><name>IBM Plex Sans</name><size>10</size></font>
+INFO      labwc :  <dropShadows>no</dropShadows><titlebar><layout>icon:iconify,max,close</layout><showTitle>yes</showTitle></titlebar></theme>
+INFO      labwc :  <name>XIII-Mac</name>
+INFO      labwc :  <font place="ActiveWindow"><name>Inter</name><size>10</size><weight>bold</weight></font>
+INFO      labwc :  <font place="MenuItem"><name>IBM Plex Sans</name><size>10</size></font>
+INFO      labwc :  <dropShadows>no</dropShadows><titlebar><layout>close,iconify,max:</layout><showTitle>yes</showTitle></titlebar></theme>
+OK        retour au thème XIII : barre d avant rendue
+OK        thèmes Façon Windows 11 et Façon macOS : sans erreur
+== Icônes XIII (changer le logo d'une appli)
+INFO      bibliothèques : Lucide 2359 · Tabler 5509 · Phosphor 1512 = 9380 icônes
+OK        logo appliqué : /root/.local/share/xiii/icones-perso/xiii-fichiers-aebd439f.svg
+OK        logo vu par les applis : /root/.local/share/xiii/icones-perso/xiii-fichiers-aebd439f.svg
+OK        logo d origine rétabli
+== Fonds d'écran en anneau
+OK        anneau : fond changé (cyber-0d0221-05d9e8-centre.png)
+== Diffuser l'écran (navigateur du réseau)
+OK        diffusion : page servie
+OK        diffusion : 4 images reçues en 4 s par un navigateur
+INFO      moteur wf-recorder images 1 jpeg support disabled
+INFO      wf-recorder : [Source @ 0x747028009900] Changing video frame properties on the fly is not supported by all filters.
+INFO      wf-recorder : [Source @ 0x747028009900] filter context - w: 1600 h: 900 fmt: 121 csp: gbr range: unknown, incoming frame - w: 1600 h: 900 fmt: 121 csp: unknown range: unknown
+== Effet Mica, barre masquée automatiquement, barre Tournage
+OK        effet Mica, barre masquée automatiquement, barre Tournage : sans erreur
+== Pack conseillé (icônes dans le menu, téléchargement au premier lancement)
+OK        pack : 21 raccourcis et 21 icônes
+OK        premier lancement : fenêtre d'installation sans erreur
+== Horloge, concentration, vignette, animations, menus macOS, dossiers, devises
+OK        alarmes : lundi 7 h 30 ['Réveil', 'Une fois'], 2e passage [], samedi []
+OK        concentration : horaires de nuit ['sommeil', 'sommeil', None], Travail laisse passer Slack/Steam/urgent (True, False, True)
+OK        recherche : devises ['100 USD = 92,59 EUR (BCE, 27/11)'], définition [('Nom commun', 'Mammifère carnivore félin domestiqué de taille moyenne.')]
+OK        menus macOS par appli : Firefox ['Fichier', 'Édition', 'Présentation', 'Historique', 'Marque-pages', 'Outils'], Fichiers ['Fichier', 'Édition', 'Présentation', 'Aller']
+OK        animations des fenêtres : événements ['ouvrir', 'reduire', 'fermer']
+OK        vignettes vidéo reconnues (toujours au premier plan)
+OK        Horloge › sonnerie d'alarme
+OK        concentration activée puis coupée depuis xiii-ctl
+OK        rc.xml : règles des vignettes vidéo + Ctrl+Super+T signalé à la barre
+== Bureaux virtuels, captures avancées, presse-papiers avec le téléphone
+OK        bureaux virtuels : 2 → 3 bureaux ['Montage', 'Bureau 2', 'Bureau 3'], bureau affiché 2
+OK        bureau retiré (2), retour au bureau 2
+OK        copier le texte d'une zone : « Réunion de production à 14 heures »
+OK        lire un QR code à l'écran : https://os-xiii.fr/test
+OK        enregistrement en GIF animé : conversion (68 Ko)
+OK        presse-papiers avec le téléphone : clé exigée True, téléphone → PC « Bonjour du téléphone », PC → téléphone « Texte du PC »
+== Outils du quotidien (redimensionner, listes de raccourcis, pipette)
+OK        redimensionner : 640x360 en JPEG
+OK        pipette : lecture du pixel
+/usr/lib/xiii/xiii/apps.py:4: PyGIWarning: Gdk was imported without specifying a version first. Use gi.require_version('Gdk', '4.0') before import to ensure that the right version gets loaded.
+  from gi.repository import Gio, GLib, Gdk
+OK        liste de raccourcis : fichiers récents de Mousepad (/root/Bureau/Notes.txt), 1 action(s)
+== Modes sans barre des tâches (applis ouvertes en tuiles)
+OK        modes sans barre des tâches : sans erreur
+== Étape 4 (bureau)
+OK        Alt+Tab, Afficher le bureau : sans erreur
+== Étape 3 (capture, heure, son, webcam)
+OK        Outil Capture ouvert
+OK        sorties multiples (démo) : True
+== Cloud hors ligne (copie locale synchronisée)
+INFO      rclone v1.60.1-DEV
+OK        hors ligne : téléchargé True, renvoyé vers le cloud True 
+== Mise à jour d'OS XIII (depuis GitHub, comme Paramètres › Mises à jour)
+INFO      vérification : True d262008 60
+OK        mise à jour appliquée : Fichiers d'OS XIII mis à jour : 2, version 1.0-beta.20261128.d262008
+OK        bureau relancé après la mise à jour (fenêtres gardées)
+== Version Stable (mémoire, démarrage)
+OK        pare-feu écrit à la construction de l'ISO : 72 lignes d'exceptions, actif au 1er démarrage
+INFO      fuite par panneau (Mo pour 50 ouvertures) : son:+-1 wifi:+-1 centre:+-1 volet:+-2 widgets:+-3 presse:+-1 emoji:+-1 demarrer:+-3 bluetooth:+-1 batterie:+0 alim:+0
+INFO      fuite ? panneaux ×160 : 103 → 104 → 104 Mo ; thèmes ×10 : 115 Mo, ×10 encore : 118 Mo
+INFO      mémoire du shell (PSS) : 77 Mo à 6 s, 72 Mo à 46 s (après libération), 118 Mo maintenant (après des centaines d'ouvertures et 20 changements de thème)
+== Phase M (distribution)
+OK        Clé OS XIII : 2 partitions, persistance « / union », INFO persistance : 759 Mo pour vos fichiers et réglages
+OK        Clé trop petite : image copiée sans persistance
+OK        police des titres : Space Grotesk installée
+== Phase L (accessibilité)
+OK        dictée « bonjour virgule on tourne demain point à » → 'Bonjour, on tourne demain.\nMerci!'
+OK        dictée « est-ce que tu viens point d'interrogatio » → 'Est-ce que tu viens?'
+OK        dictée « la liste deux points caméras virgule mic » → 'La liste : caméras, micros'
+OK        traduction : texte français → anglais
+OK        sous-titres en direct : 'bonjour à tous nos au matin'
+INFO      état : {"lecteur_ecran": false, "orca_installe": false, "clavier_visuel": false, "clavier_installe": false, "contraste": false, "dictee": true, "sous_titres": false}
+OK        sous-titres : second appui = fermeture
+OK        loupe : raccourcis Super + = / Super + -
+== Phase K (sécurité)
+OK        Coffre XIII : 2 entrées relues (dont 1 importée de Bitwarden), générateur « pJM2RxT9!uGw?+ddTRbF », phrase « Tournage-etoile-trepied-pellicule-tournage92 »
+OK        Sauvegarde XIII : 1 fichier(s) sauvegardé(s), retrouvé « devis-concert.pdf », restauré identique True, vérification True
+OK        Antivol : canal secret de 24 caractères, réponses : ['Réseau : ', 'Commandes : verrouiller · message <texte> · sonner']
+OK        pare-feu : 11 exceptions dont 7 ouvertes par défaut (réseau local seulement)
+== Phase J (performance)
+OK        rapport de compatibilité : 6 / 15 éléments reconnus
+OK        Envoi XIII sans GTK : True
+== Phase I (applis XIII)
+OK        voix « ouvre conduco » → {"action": "ouvrir", "arg": "conduco", "phrase": null, "filtres": null}
+OK        voix « cherche les vidéos de cette semaine » → {"action": "chercher", "arg": "les videos de cette semaine", "phrase": null, "filtres": ["", "video", 7]}
+OK        voix « mode production » → {"action": "mode", "arg": "production", "phrase": "Mode production", "filtres": null}
+OK        voix « quelle heure est-il » → {"action": "dire", "arg": null, "phrase": "Il est 10 h 46", "filtres": null}
+OK        voix « trouve le devis dupont » → {"action": "chercher", "arg": "le devis dupont", "phrase": null, "filtres": ["devis dupont", "doc", null]}
+OK        image de document créée
+OK /tmp/scan-test.pdf OCR
+OK        OCR : « DEVIS XIII Tournage Concert Dome  s o r u e 0 0 2 1 e l a p i c n i Camera pr Total 4800 e »
+INFO      lecteur : ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+INFO      lecteur : ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+INFO      lecteur : ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+== Phase E (régie, déchargement → BACKUPO + DOSSIER)
+/usr/lib/xiii/xiii/backup.py:7: PyGIWarning: Gtk was imported without specifying a version first. Use gi.require_version('Gtk', '4.0') before import to ensure that the right version gets loaded.
+  from gi.repository import Gtk, Gio, GLib
+OK        déchargement : 2 fichier(s) · 845 Ko · 2 copies vérifiées ✓
+OK        rapport PDF : Rapport de déchargement J01 CARTE_A001.pdf
+OK        deux copies vérifiées : ['OK', 'OK']
+OK        rapport BACKUPO : 2 fichiers, premier A001_C001, dernier A001_C002, DIT root
+OK        rapports aussi sur la 2e copie
+OK        rapport de la journée : Rapport de tournage 2026-11-28.pdf
+INFO      BACKUPO [xiii] import dans http://127.0.0.1:8713/backupo.html : deja
+INFO      DOSSIER [xiii] import dans http://127.0.0.1:8713/__xiii/vide.html : ok
+OK        ATEM : Connecté — ATEM Mini Pro · commandes envoyées ['CPvI', 'DCut', 'DAut', 'MAct'] · macros lues {0: 'Ouverture', 2: 'Rappels'}
+OK        mesure LUFS : 30 mesures, dernière ('-41.1', '-41.1', '-41.1') crête -38.1
+== Bureau
+OK        xiii-shell (aucune erreur Python)
+== Menu « Toutes les applications » (doublons ?)
+/usr/lib/xiii/xiii/apps.py:4: PyGIWarning: Gdk was imported without specifying a version first. Use gi.require_version('Gdk', '4.0') before import to ensure that the right version gets loaded.
+  from gi.repository import Gio, GLib, Gdk
+          Animation de démarrage  (xiii-demarrage.desktop)
+          Applications Windows  (xiii-windows.desktop)
+          Archives XIII  (xiii-archives.desktop)
+          Assistance XIII  (xiii-assistance.desktop)
+          Assistant DaVinci Resolve  (xiii-resolve.desktop)
+          Assistant de synthèse  (xiii-synthese.desktop)
+          ATEM Setup  (wine-Programs-Blackmagic Design-ATEM-ATEM Setup.desktop)
+          ATEM Software Control  (wine-Programs-Blackmagic Design-ATEM-ATEM Software Control.desktop)
+          Audacity  (xiii-pack-audacity.desktop)
+          BACKUPO XIII  (xiii-suite-backupo.desktop)
+          balenaEtcher  (xiii-pack-etcher.desktop)
+          Bilan matériel XIII  (xiii-bilan.desktop)
+          Bitfocus Companion  (xiii-pack-companion.desktop)
+          Blackmagic XIII  (xiii-blackmagic.desktop)
+          CADRO XIII  (xiii-suite-cadro.desktop)
+          CALL SHEETO XIII  (xiii-suite-callsheeto.desktop)
+          CASTO XIII  (xiii-suite-casto.desktop)
+          Centre de logiciels XIII  (xiii-logiciels.desktop)
+          Claude  (com.anthropic.Claude.desktop)
+          Claude Code  (xiii-claude-code.desktop)
+          Clé OS XIII  (xiii-cle.desktop)
+          Coffre XIII  (xiii-coffre.desktop)
+          CONDUCO XIII  (xiii-suite-conduco.desktop)
+          Console XIII  (xiii-console.desktop)
+          CONTRÔLE XIII  (xiii-suite-controle.desktop)
+          Czkawka  (xiii-pack-czkawka.desktop)
+          DECOUP TECHNICO XIII  (xiii-suite-decoup.desktop)
+          DEVISO XIII  (xiii-suite-deviso.desktop)
+          Diffuser XIII  (xiii-diffuser.desktop)
+          Disks  (org.gnome.DiskUtility.desktop)
+          DOSSIER XIII  (xiii-suite-dossier.desktop)
+          ENCODO XIII  (xiii-suite-encodo.desktop)
+          Envoi XIII  (xiii-envoi.desktop)
+          Fichiers  (xiii-fichiers.desktop)
+          Firefox ESR  (firefox-esr.desktop)
+          Fonds d'écran  (xiii-fonds.desktop)
+          GRAPHICO XIII  (xiii-suite-graphico.desktop)
+          HandBrake  (xiii-pack-handbrake.desktop)
+          Heroic  (xiii-pack-heroic.desktop)
+          Horloge XIII  (xiii-horloge.desktop)
+          IA XIII  (xiii-ia.desktop)
+          Icônes XIII  (xiii-icones.desktop)
+          Installer un logiciel (.deb)  (xiii-paquets.desktop)
+          Kdenlive  (xiii-pack-kdenlive.desktop)
+          Lecteurs réseau  (xiii-lecteurs.desktop)
+          LocalSend  (xiii-pack-localsend.desktop)
+          LosslessCut  (xiii-pack-losslesscut.desktop)
+          LUDO XIII  (xiii-suite-ludo.desktop)
+          LUMO XIII  (xiii-suite-lumo.desktop)
+          LUT XIII  (xiii-lut.desktop)
+          MATOS XIII  (xiii-suite-matos.desktop)
+          MELANGO XIII  (xiii-suite-melango.desktop)
+          Mesure audio XIII  (xiii-mesure-audio.desktop)
+          Mires XIII  (xiii-mires.desktop)
+          MODE TOURNAGE XIII  (xiii-suite-jour.desktop)
+          Moniteur système XIII  (xiii-taches.desktop)
+          MOODO XIII  (xiii-suite-moodo.desktop)
+          Mousepad  (org.xfce.mousepad.desktop)
+          mpv  (mpv.desktop)
+          Multiview NDI XIII  (xiii-multiview.desktop)
+          Mémos XIII  (xiii-memos.desktop)
+          NDI pour OBS (DistroAV)  (xiii-pack-distroav.desktop)
+          NDI XIII  (xiii-ndi.desktop)
+          OBS Studio  (xiii-pack-obs.desktop)
+          Outil Capture  (xiii-outil-capture.desktop)
+          PACKINGO XIII  (xiii-suite-packingo.desktop)
+          Paramètres  (xiii-parametres.desktop)
+          PCSX2  (xiii-pack-pcsx2.desktop)
+          PhoneBox  (xiii-phonebox.desktop)
+          Pilotes XIII  (xiii-pilotes.desktop)
+          Pipette XIII  (xiii-pipette.desktop)
+          PLANNO XIII  (xiii-suite-calendrier.desktop)
+          PLANO XIII  (xiii-suite-plano.desktop)
+          Plex  (xiii-plex.desktop)
+          Polices XIII  (xiii-polices.desktop)
+          POSTO XIII  (xiii-suite-posto.desktop)
+          PPSSPP  (xiii-pack-ppsspp.desktop)
+          Presse-papiers avec le téléphone  (xiii-presse-telephone.desktop)
+          Prompteur XIII  (xiii-prompteur.desktop)
+          QR Wi-Fi XIII  (xiii-qrwifi.desktop)
+          rclone  (xiii-pack-rclone.desktop)
+          REPERO XIII  (xiii-suite-repero.desktop)
+          RESSOURCO XIII  (xiii-suite-ressourco.desktop)
+          Retour plateau  (xiii-retour.desktop)
+          RUNO XIII  (xiii-suite-runo.desktop)
+          RustDesk  (xiii-pack-rustdesk.desktop)
+          Ryujinx (Ryubing)  (xiii-pack-ryujinx.desktop)
+          Récupérer mes fichiers  (xiii-recuperer.desktop)
+          Régie XIII  (xiii-regie.desktop)
+          Réparer OS XIII  (xiii-reparer.desktop)
+          Santé du PC  (xiii-sante.desktop)
+          Sauvegarde XIII  (xiii-sauvegarde.desktop)
+          Scanner IP XIII  (xiii-scanip.desktop)
+          SCRIPTO XIII  (xiii-suite-scripto.desktop)
+          Shotcut  (xiii-pack-shotcut.desktop)
+          SONO XIII  (xiii-suite-sono.desktop)
+          Sous-titres en direct  (xiii-soustitres.desktop)
+          SOUSTITRO XIII  (xiii-suite-soustitro.desktop)
+          Store GitHub  (xiii-store-github.desktop)
+          STORYBOARDO XIII  (xiii-suite-storyboardo.desktop)
+          Studio XIII  (xiii-studio.desktop)
+          Subtitle Edit  (xiii-pack-subtitleedit.desktop)
+          Suite XIII  (xiii-suite-accueil.desktop)
+          Sunshine  (xiii-pack-sunshine.desktop)
+          SYNO XIII  (xiii-suite-syno.desktop)
+          Tally XIII  (xiii-tally.desktop)
+          Terminal XIII  (xiii-terminal.desktop)
+          Test de débit XIII  (xiii-debit.desktop)
+          Test webcam  (xiii-webcam.desktop)
+          Timecode LTC  (xiii-timecode.desktop)
+          Transferts XIII  (xiii-transferts.desktop)
+          TRANSPORTO XIII  (xiii-suite-transporto.desktop)
+          Upscayl  (xiii-pack-upscayl.desktop)
+          Ventoy  (xiii-pack-ventoy.desktop)
+          Vignette vidéo  (xiii-vignette.desktop)
+          Vérification d'offload  (xiii-somme.desktop)
+          Windows XIII (machine virtuelle)  (xiii-vm.desktop)
+          XIII Calendrier  (xiii-calendrier.desktop)
+          XIII Enregistreur  (xiii-enregistreur.desktop)
+          XIII Lecteur  (xiii-lecteur.desktop)
+          XIII Notes  (xiii-notes.desktop)
+          XIII Photos  (xiii-photos.desktop)
+          XIII Scanner  (xiii-scanner.desktop)
+== Fin
+wl_display_dispatch: Broken pipe
+== Deux écrans (écran principal, barre et mode de chaque écran)
+INFO      écrans : HEADLESS-1 "Headless output 1" HEADLESS-2 "Headless output 2" 
+OK        deux écrans : barres, modes par écran, écran principal, sans erreur

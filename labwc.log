@@ -1,0 +1,10 @@
+dbus-daemon[11442]: [session uid=0 pid=11442 pidfd=5] Activating service name='ca.desrt.dconf' requested by ':1.2' (uid=0 pid=11469 comm="gsettings set org.gnome.desktop.interface color-sc" label="docker-default (enforce)")
+dbus-daemon[11442]: [session uid=0 pid=11442 pidfd=5] Successfully activated service 'ca.desrt.dconf'
+Xwayland glamor: GBM Wayland interfaces not available
+Failed to initialize glamor, falling back to sw
+The XKEYBOARD keymap compiler (xkbcomp) reports:
+> Warning:          Unsupported maximum keycode 708, clipping.
+>                   X11 cannot support keycodes above 255.
+> Warning:          Could not resolve keysym XF86KbdInputAssistPrevgrou
+> Warning:          Could not resolve keysym XF86KbdInputAssistNextgrou
+Errors from xkbcomp are not fatal to the X server

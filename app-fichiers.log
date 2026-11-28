@@ -1,0 +1,4 @@
+
+(-c:11979): Gtk-WARNING **: 10:24:04.394: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(-c:11979): Gtk-WARNING **: 10:24:04.431: GtkGizmo 0x1f17f420 (progress) reported min width -2, but sizes must be >= 0

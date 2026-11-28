@@ -1,0 +1,74 @@
+
+(-c:32559): Gtk-WARNING **: 10:48:31.748: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:31.748: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:31.748: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:31.748: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:31.751: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(-c:32559): Gtk-WARNING **: 10:48:41.402: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:41.402: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:41.402: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:41.402: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:41.652: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:41.652: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:41.652: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:41.652: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:41.908: Theme parser error: <data>:110:171-172: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:41.908: Theme parser error: <data>:110:171-172: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:41.908: Theme parser error: <data>:111:173-174: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:41.908: Theme parser error: <data>:111:173-174: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:46.596: Theme parser error: <data>:110:171-172: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:46.596: Theme parser error: <data>:110:171-172: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:46.596: Theme parser error: <data>:111:173-174: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:46.596: Theme parser error: <data>:111:173-174: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:46.870: Theme parser error: <data>:110:171-172: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:46.870: Theme parser error: <data>:110:171-172: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:46.870: Theme parser error: <data>:111:173-174: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:46.870: Theme parser error: <data>:111:173-174: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:47.124: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:47.124: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:47.124: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:47.124: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:50.782: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:50.782: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:50.783: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:50.783: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:56.853: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:56.853: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:32559): Gtk-WARNING **: 10:48:56.853: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:32559): Gtk-WARNING **: 10:48:56.853: Theme parser error: <data>:115:173-174: Expected '}' after declarations

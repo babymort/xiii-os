@@ -1,0 +1,20 @@
+
+(-c:17340): Gtk-WARNING **: 10:32:58.373: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(-c:17340): Gtk-WARNING **: 10:32:58.409: GtkGizmo 0x18eba460 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:17340): Gtk-WARNING **: 10:32:59.287: Trying to measure GtkWindow 0x19267230 for height of 659, but it needs at least 2124
+
+(-c:17340): Gtk-WARNING **: 10:32:59.301: Trying to measure GtkWindow 0x19267230 for height of 659, but it needs at least 2124
+
+(-c:17340): Gtk-WARNING **: 10:32:59.319: Trying to measure GtkWindow 0x19267230 for height of 659, but it needs at least 2124
+
+(-c:17340): Gtk-WARNING **: 10:32:59.336: Trying to measure GtkWindow 0x19267230 for height of 659, but it needs at least 2124
+
+(-c:17340): Gtk-WARNING **: 10:32:59.353: Trying to measure GtkWindow 0x19267230 for height of 659, but it needs at least 2124
+
+(-c:17340): Gtk-WARNING **: 10:32:59.371: Trying to measure GtkWindow 0x19267230 for height of 659, but it needs at least 2124
+
+(-c:17340): Gtk-WARNING **: 10:32:59.389: Trying to measure GtkWindow 0x19267230 for height of 659, but it needs at least 2124
+
+(-c:17340): Gtk-WARNING **: 10:32:59.406: Trying to measure GtkWindow 0x19267230 for height of 659, but it needs at least 2124

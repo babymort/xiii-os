@@ -1,0 +1,10 @@
+
+(-c:17033): Gtk-WARNING **: 10:32:23.188: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:17033): Gtk-WARNING **: 10:32:23.188: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:17033): Gtk-WARNING **: 10:32:23.188: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:17033): Gtk-WARNING **: 10:32:23.188: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:17033): Gtk-WARNING **: 10:32:23.190: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.

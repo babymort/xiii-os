@@ -1,0 +1,1184 @@
+
+(-c:11453): Gtk-WARNING **: 10:22:27.640: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:22:27.640: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:22:27.640: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:22:27.640: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:22:27.642: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(-c:11453): Gtk-WARNING **: 10:22:33.981: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:22:33.981: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:22:33.981: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:22:33.981: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:24:10.268: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:24:10.268: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:24:10.268: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:24:10.268: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:00.347: Theme parser error: <data>:125:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:00.347: Theme parser error: <data>:125:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:00.347: Theme parser error: <data>:126:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:00.347: Theme parser error: <data>:126:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:07.661: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:07.661: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:07.661: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:07.661: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:15.397: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:15.397: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:15.397: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:15.397: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:22.997: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:22.997: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:22.997: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:22.997: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:30.685: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:30.685: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:30.685: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:30.685: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:38.288: Theme parser error: <data>:115:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:38.288: Theme parser error: <data>:115:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:38.288: Theme parser error: <data>:116:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:38.288: Theme parser error: <data>:116:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:45.745: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:45.745: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:45.745: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:45.745: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:53.340: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:53.340: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:30:53.340: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:30:53.340: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:01.150: Theme parser error: <data>:115:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:01.150: Theme parser error: <data>:115:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:01.150: Theme parser error: <data>:116:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:01.150: Theme parser error: <data>:116:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:08.703: Theme parser error: <data>:116:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:08.703: Theme parser error: <data>:116:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:08.703: Theme parser error: <data>:117:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:08.703: Theme parser error: <data>:117:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:16.309: Theme parser error: <data>:116:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:16.309: Theme parser error: <data>:116:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:16.310: Theme parser error: <data>:117:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:16.310: Theme parser error: <data>:117:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:23.916: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:23.917: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:23.917: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:23.917: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:31.357: Theme parser error: <data>:115:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:31.357: Theme parser error: <data>:115:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:31.357: Theme parser error: <data>:116:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:31.357: Theme parser error: <data>:116:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:39.171: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:39.171: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:39.171: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:39.171: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:46.718: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:46.718: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:46.719: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:46.719: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:54.058: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:54.058: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:31:54.058: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:31:54.058: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:18.656: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:18.656: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:18.656: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:18.656: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:30.213: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:30.213: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:30.213: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:30.213: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:33.371: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:33.371: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:33.371: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:33.371: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:37.543: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:37.544: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:37.544: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:37.544: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:46.252: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:46.252: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:46.252: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:46.252: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:49.957: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:49.957: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:49.957: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:49.957: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:51.745: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:51.745: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:32:51.745: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:32:51.745: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:09.216: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:09.216: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:09.216: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:09.216: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:15.011: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:15.011: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:15.011: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:15.011: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:15.208: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:15.208: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:15.208: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:15.208: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:17.255: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:17.255: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:17.255: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:17.255: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.277: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.277: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.294: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.294: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.294: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.294: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.294: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.294: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.294: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.294: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.294: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.294: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.294: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.295: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.296: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.296: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.296: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.296: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.296: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.296: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.297: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:17.297: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-WARNING **: 10:33:21.413: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:21.413: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:21.413: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:21.413: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:23.481: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:23.481: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:23.481: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:23.481: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.499: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.500: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.516: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.516: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.516: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.516: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.516: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.517: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.517: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.517: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.517: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.517: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.517: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.517: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.518: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.518: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.519: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.519: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.519: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.519: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.519: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:23.519: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-WARNING **: 10:33:27.635: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:27.635: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:27.635: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:27.635: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:29.705: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:29.705: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:29.705: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:29.705: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.723: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.723: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.739: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.741: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.741: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.741: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.741: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.741: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.741: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.741: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:29.741: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-WARNING **: 10:33:33.854: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:33.854: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:33.854: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:33.854: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:35.926: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:35.926: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:35.926: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:35.926: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.944: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.944: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.960: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.960: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.960: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.960: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.960: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.960: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.960: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.960: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.960: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.960: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.960: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.961: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.962: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.962: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.962: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.962: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.962: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.962: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.963: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:35.963: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-WARNING **: 10:33:40.073: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:40.073: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:40.073: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:40.073: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:42.143: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:42.143: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:42.143: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:42.143: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.162: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.162: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.177: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.177: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.177: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.177: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.178: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.178: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.178: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.178: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.178: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.178: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.178: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.178: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.179: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.179: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.179: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.180: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.180: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.180: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.180: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:42.180: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-WARNING **: 10:33:46.293: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:46.293: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:46.293: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:46.293: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:48.363: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:48.363: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:48.363: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:48.363: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.382: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.382: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.397: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.397: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.397: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.397: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.398: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.398: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.398: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.398: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.398: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.398: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.398: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.398: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.399: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.399: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.399: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.399: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.400: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.400: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.400: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:48.400: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-WARNING **: 10:33:52.515: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:52.515: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:52.515: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:52.515: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:54.586: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:54.586: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:54.586: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:54.586: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.605: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.605: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.620: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.620: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.620: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.620: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.621: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.621: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.621: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.621: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.621: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.621: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.621: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.621: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.623: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.623: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.623: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.624: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.624: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.624: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.624: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:33:54.624: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-WARNING **: 10:33:58.736: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:58.736: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:33:58.736: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:33:58.736: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:00.804: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:00.804: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:00.804: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:00.804: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.823: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.823: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.838: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.838: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.838: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.838: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.839: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.839: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.839: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.839: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.839: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.839: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.839: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.839: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.840: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.840: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.840: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.841: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.841: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.841: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.841: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:00.841: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-WARNING **: 10:34:04.958: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:04.958: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:04.958: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:04.958: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:07.031: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:07.031: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:07.031: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:07.031: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.050: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.050: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.065: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.065: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.065: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.065: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.066: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.066: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.066: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.066: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.066: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.066: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.066: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.066: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.067: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.067: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.067: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.067: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.068: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.068: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.068: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:07.068: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-WARNING **: 10:34:11.186: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:11.186: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:11.186: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:11.186: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:13.255: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:13.255: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:13.255: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:13.255: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.274: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.275: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.290: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.292: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.292: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.292: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.292: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.292: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.292: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.292: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:34:13.293: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-WARNING **: 10:34:17.412: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:17.412: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:17.412: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:17.412: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:29.774: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:29.774: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:29.774: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:29.774: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:34.058: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:34.058: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:34:34.058: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:34:34.058: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:36.716: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:36.716: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:36.716: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:36.716: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:41.015: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:41.015: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:41.015: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:41.015: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:45.293: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:45.293: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:45.293: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:45.293: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:49.569: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:49.569: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:49.569: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:49.569: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:53.846: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:53.846: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:53.846: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:53.846: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:59.600: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:59.600: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:35:59.600: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:35:59.600: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:15.369: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:15.369: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:15.369: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:15.369: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:19.252: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:19.252: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:19.252: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:19.252: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:22.919: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:22.919: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:22.919: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:22.919: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:25.576: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:25.576: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:25.576: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:25.576: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:26.643: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:26.643: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:26.643: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:26.643: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:28.726: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:28.726: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:28.726: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:28.727: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:31.536: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:31.537: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:31.537: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:31.537: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:47.400: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:47.400: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:36:47.400: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:36:47.400: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:37:03.545: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:37:03.546: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:37:03.546: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:37:03.546: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:37:22.528: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:37:22.528: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:37:22.528: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:37:22.528: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:37:41.171: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:37:41.171: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:37:41.172: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:37:41.172: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:37:45.131: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:37:45.131: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:37:45.131: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:37:45.131: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:00.169: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:00.169: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:00.169: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:00.169: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:02.773: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:02.773: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:02.773: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:02.773: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:23.970: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:23.970: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:23.970: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:23.970: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:29.279: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:29.279: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:29.279: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:29.279: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:33.029: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:33.029: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:33.030: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:33.030: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:33.295: Theme parser error: <data>:110:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:33.295: Theme parser error: <data>:110:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:33.295: Theme parser error: <data>:111:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:33.295: Theme parser error: <data>:111:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:36.687: Theme parser error: <data>:110:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:36.687: Theme parser error: <data>:110:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:36.687: Theme parser error: <data>:111:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:36.687: Theme parser error: <data>:111:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:36.947: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:36.947: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:36.947: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:36.947: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:42.060: GtkGizmo 0x3860cfb0 (progress) reported min width -2, but sizes must be >= 0
+
+(-c:11453): Gtk-WARNING **: 10:38:52.163: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:52.163: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:52.163: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:52.163: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:55.060: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:55.060: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:38:55.060: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:38:55.060: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:07.648: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:07.648: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:07.648: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:07.648: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:07.937: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:07.937: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:07.937: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:07.937: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:08.198: Theme parser error: <data>:110:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:08.198: Theme parser error: <data>:110:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:08.198: Theme parser error: <data>:111:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:08.198: Theme parser error: <data>:111:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:11.805: Theme parser error: <data>:110:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:11.805: Theme parser error: <data>:110:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:11.805: Theme parser error: <data>:111:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:11.805: Theme parser error: <data>:111:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:12.067: Theme parser error: <data>:110:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:12.067: Theme parser error: <data>:110:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:12.067: Theme parser error: <data>:111:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:12.067: Theme parser error: <data>:111:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:12.328: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:12.328: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:12.328: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:12.328: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:13.875: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:13.875: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:13.875: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:13.875: Theme parser error: <data>:115:173-174: Expected '}' after declarations
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.900: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.900: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.915: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.915: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.916: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.916: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.916: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.916: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.916: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.916: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.916: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.916: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.916: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.916: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.917: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.917: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.918: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.918: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.918: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.918: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.918: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-CRITICAL **: 10:39:13.918: gtk_widget_add_css_class: assertion 'css_class[0] != '\0'' failed
+
+(-c:11453): Gtk-WARNING **: 10:39:18.032: Theme parser error: <data>:114:171-172: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:18.032: Theme parser error: <data>:114:171-172: Expected '}' after declarations
+
+(-c:11453): Gtk-WARNING **: 10:39:18.032: Theme parser error: <data>:115:173-174: Expected '{'
+
+(-c:11453): Gtk-WARNING **: 10:39:18.032: Theme parser error: <data>:115:173-174: Expected '}' after declarations

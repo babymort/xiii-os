@@ -1,0 +1,2 @@
+dbus-daemon[32544]: [session uid=0 pid=32544 pidfd=5] Activating service name='ca.desrt.dconf' requested by ':1.2' (uid=0 pid=32584 comm="mousepad /root/Bureau/Notes.txt" label="docker-default (enforce)")
+dbus-daemon[32544]: [session uid=0 pid=32544 pidfd=5] Successfully activated service 'ca.desrt.dconf'

@@ -1,0 +1,11 @@
+Tests visuels — comparaison avec la vérification précédente
+8 capture(s) changée(s) au-delà de 1.5 %
+
+CHANGÉE   app-console.png : 6.6 % de l'image
+CHANGÉE   app-ia.png : 9.4 % de l'image
+CHANGÉE   app-presse-telephone.png : 2.4 % de l'image
+CHANGÉE   app-regie.png : 1.7 % de l'image
+CHANGÉE   app-taches.png : 2.2 % de l'image
+CHANGÉE   app-tally.png : 4.7 % de l'image
+CHANGÉE   fonds-anneau-tourne.png : 3.2 % de l'image
+CHANGÉE   veille-flip.png : 1.8 % de l'image
