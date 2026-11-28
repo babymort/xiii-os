@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Pipette XIII
+Comment=Prendre une couleur à l'écran : code HEX copié (Super + Maj + P)
+Exec=xiii-outil pipette
+Icon=xiii-pipette
+Type=Application
+Categories=Graphics;Utility;XIII;
+Keywords=couleur;pipette;color picker;hex;rgb;

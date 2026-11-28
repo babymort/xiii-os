@@ -254,7 +254,8 @@ class MenusMac:
     def menu_fenetre(self):
         sh = self.sh; f = self.active()
         L = [("Placer dans le Dock", "", lambda: sh.fenetres.reduire(f) if f else None, bool(f)),
-             ("Réduire / agrandir", "Super ↑", lambda: sh.fenetres.agrandir(f) if f else None, bool(f)), None,
+             ("Réduire / agrandir", "Super ↑", lambda: sh.fenetres.agrandir(f) if f else None, bool(f)),
+             ("Toujours au premier plan", "Ctrl Super T", lambda: touches("-M", "ctrl", "-M", "logo", "t", "-m", "logo", "-m", "ctrl"), bool(f)), None,
              ("Disposer les fenêtres…", "", lambda: sh.basculer("dispositions")), ("Mission Control", "Super Tab", lambda: sh.basculer("vue")),
              ("Afficher le bureau", "Super D", sh.afficher_bureau), None]
         for x in (sh.fenetres.liste() if sh.fenetres and sh.fenetres.ok else [])[:12]:

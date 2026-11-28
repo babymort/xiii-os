@@ -330,6 +330,22 @@ gapplication action fr.xiii.Shell basculer "'demarrer-toutes'"; sleep 1.2; wtype
 xiii-pack czkawka > /out/pack.log 2>&1 & sleep 6; grim -s 0.5 /out/pack-premier-lancement.png; pkill -f "xiii.pack import"
 grep -q Traceback /out/pack.log && { echo "PLANTAGE  premier lancement d'un logiciel du pack"; grep -A6 Traceback /out/pack.log | tail -7; } >> $R || echo "OK        premier lancement : fenêtre d'installation sans erreur" >> $R
 
+echo "== Outils du quotidien (redimensionner, listes de raccourcis, pipette)" >> $R
+mkdir -p /tmp/redim; cp /usr/share/xiii/wallpapers/xiii-sombre.png /tmp/redim/photo.png
+xiii-outil redimensionner --largeur 640 --format jpg /tmp/redim/photo.png > /tmp/redim.log 2>&1
+python3 -c 'from PIL import Image; im=Image.open("/tmp/redim/photo (640).jpg"); print("OK        redimensionner : %dx%d en JPEG" % im.size if im.width == 640 else "ÉCHEC     redimensionner : %r" % (im.size,))' >> $R 2>&1 || echo "ÉCHEC     redimensionner : $(tail -2 /tmp/redim.log)" >> $R
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii.outils import lire_ppm; print("OK        pipette : lecture du pixel" if lire_ppm(b"P6\n1 1\n255\n\x12\x34\x56") == (18, 52, 86) else "ÉCHEC     pipette")' >> $R 2>&1
+mkdir -p /root/.local/share; cat > /root/.local/share/recently-used.xbel <<'XBEL'
+<?xml version="1.0" encoding="UTF-8"?>
+<xbel version="1.0" xmlns:bookmark="http://www.freedesktop.org/standards/desktop-bookmarks">
+<bookmark href="file:///root/Bureau/Notes.txt" added="2026-11-28T08:00:00Z" modified="2026-11-28T08:00:00Z" visited="2026-11-28T08:00:00Z">
+<info><metadata owner="http://freedesktop.org"><mime:mime-type type="text/plain"/><bookmark:applications><bookmark:application name="Mousepad" exec="&apos;mousepad %u&apos;" modified="2026-11-28T08:00:00Z" count="1"/></bookmark:applications></metadata></info></bookmark>
+</xbel>
+XBEL
+python3 -c 'import gi; gi.require_version("Gtk","4.0"); import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import apps
+a=apps.par_id("org.xfce.mousepad.desktop") or apps.pour_fenetre("mousepad"); r=apps.recents_de(a) if a else []
+print("OK        liste de raccourcis : fichiers récents de Mousepad (%s), %d action(s)" % (", ".join(r), len(a.list_actions())) if "/root/Bureau/Notes.txt" in r else "ÉCHEC     liste de raccourcis : %r" % r)' >> $R 2>&1
+
 echo "== Modes sans barre des tâches (applis ouvertes en tuiles)" >> $R
 mousepad /root/Bureau/Notes.txt >/dev/null 2>&1 & sleep 2
 python3 -c "$CFG"'config.modifier(mode_bureau="fiction", haut_applis=True)'; sleep 4; grim -s 0.5 /out/mode-fiction-applis.png

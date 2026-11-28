@@ -1,0 +1,10 @@
+[Unit]
+Description=OS XIII — protection de la batterie (seuil de charge)
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/xiii-batterie-limite --appliquer
+
+[Install]
+WantedBy=multi-user.target

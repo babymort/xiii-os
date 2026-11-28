@@ -1,0 +1,24 @@
+#!/bin/sh
+# OS XIII — protection de la batterie (administrateur) : charge arrêtée à 80 % (ou autre) sur secteur, si le PC le permet.
+#   xiii-batterie-limite 80 | off | --appliquer (au démarrage)
+F=/etc/xiii/batterie-limite
+set_seuil() {
+  for b in /sys/class/power_supply/BAT*; do
+    [ -w "$b/charge_control_end_threshold" ] || continue
+    if [ "$1" = off ]; then
+      [ -w "$b/charge_control_start_threshold" ] && echo 0 > "$b/charge_control_start_threshold" 2>/dev/null
+      echo 100 > "$b/charge_control_end_threshold"
+    else
+      echo "$1" > "$b/charge_control_end_threshold"
+      [ -w "$b/charge_control_start_threshold" ] && echo $(($1 - 5)) > "$b/charge_control_start_threshold" 2>/dev/null
+    fi
+    ok=1
+  done
+  [ -n "$ok" ]
+}
+case "$1" in
+  --appliquer) [ -f "$F" ] && set_seuil "$(cat $F)"; exit 0 ;;
+  off) set_seuil off; rm -f "$F" ;;
+  [0-9]*) [ "$1" -ge 50 ] && [ "$1" -le 100 ] || exit 2; mkdir -p /etc/xiii; set_seuil "$1" && echo "$1" > "$F" || exit 1 ;;
+  *) echo "usage : xiii-batterie-limite 80 | off | --appliquer"; exit 2 ;;
+esac

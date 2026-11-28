@@ -713,6 +713,8 @@ class Fichiers(Gtk.Application):
             items += [None, ("download", "Toujours garder sur cet appareil", lambda: self.garder_hors_ligne(e))]
         elif e and e[0] in ("horsligne", "sync") and any(d["distant"] == e[3] for d in e[2].get("hors_ligne", [])):
             items += [None, ("cloud-off" if os.path.exists("/usr/share/xiii/lucide/cloud-off.svg") else "cloud", "Libérer de l'espace (n'est plus synchronisé)", lambda: self.liberer(e))]
+        if all(re.search(r"\.(jpe?g|png|webp|tiff?|bmp|heic)$", q, re.I) for q in L):
+            items += [("image-down" if os.path.exists("/usr/share/xiii/lucide/image-down.svg") else "image", "Redimensionner %s…" % ("les %d images" % len(L) if len(L) > 1 else "l'image"), lambda: self.redimensionner(L))]
         items += [("tag", "Étiquette de couleur…", lambda: self.menu_etiquette(L))]
         items += [("text-cursor-input", "Renommer %d éléments… (F2)" % len(L) if len(L) > 1 else "Renommer (F2)", lambda: self.renommer_lot(L) if len(L) > 1 else self.renommer(p)), ("archive", "Compresser (.zip)", lambda: self.compresser(L)),
                   ("smartphone", "Envoyer à un appareil proche", lambda: S.detacher(["xiii-envoi"] + L)),
@@ -725,6 +727,29 @@ class Fichiers(Gtk.Application):
         if len(L) == 1 and L[0].lower().endswith((".pdf", ".docx", ".odt", ".pptx", ".odp", ".txt", ".md", ".srt")):
             items.append(("sparkles", "Résumer avec l'IA", lambda: S.detacher(["xiii-voix", "--resumer", L[0]])))
         return items
+
+    # =================================================================== redimensionner des images (comme PowerToys)
+    def redimensionner(self, L):
+        d = Gtk.Window(transient_for=self.win, modal=True, title="Redimensionner", default_width=440)
+        v = boite(True, 10, margin_top=18, margin_bottom=18, margin_start=20, margin_end=20); d.set_child(v)
+        v.append(label("Redimensionner %d image%s" % (len(L), "s" if len(L) > 1 else ""), "page-titre"))
+        v.append(label("Des copies sont créées à côté des originales (« nom (1920).jpg ») ; une image plus petite n'est pas agrandie.", "attenue", wrap=True))
+        TAILLES = [("Petite — 1280 px de large", 1280), ("Moyenne — 1920 px (HD)", 1920), ("Grande — 2560 px", 2560), ("4K — 3840 px", 3840), ("Vignette — 640 px", 640)]
+        dt = Gtk.DropDown.new_from_strings([t for t, _ in TAILLES]); dt.set_selected(1); v.append(dt)
+        df = Gtk.DropDown.new_from_strings(["Garder le format", "JPEG", "PNG"]); v.append(df)
+        etat = label("", "petit", "attenue", wrap=True); v.append(etat)
+        r = boite(False, 8, halign=Gtk.Align.END); v.append(r)
+        r.append(bouton("Annuler", None, "fantome", rappel=d.close))
+        def go():
+            larg = TAILLES[dt.get_selected()][1]; fmt = ["garder", "jpg", "png"][df.get_selected()]
+            etat.set_text("Redimensionnement…")
+            from .outils import redimensionner
+            def fin(res):
+                if isinstance(res, Exception): etat.set_text(str(res)); return
+                faits, err = res; d.close(); self.recharger()
+                self.etat.set_text("%d image(s) redimensionnée(s)%s" % (len(faits), (" · erreurs : " + "; ".join(err)) if err else ""))
+            S.en_fond(redimensionner, fin, L, larg, fmt)
+        r.append(bouton("Redimensionner", "check", "pilule", rappel=go)); d.present()
 
     # =================================================================== cloud : hors ligne / libérer de l'espace
     def garder_hors_ligne(self, e):

@@ -444,6 +444,17 @@ class Parametres(Gtk.Application):
             h = boite(False, 16, "hero"); h.append(ico(icone_batterie(b), 44, "c"))
             v = boite(True, 2, valign=Gtk.Align.CENTER); v.append(label("%d %%" % b["pct"], "hero-grand")); v.append(label(b["etat"].capitalize() + (" · " + b["temps"] if b["temps"] else ""), "attenue"))
             h.append(v); c.append(h)
+        import glob as _g
+        seuil = _g.glob("/sys/class/power_supply/BAT*/charge_control_end_threshold")
+        if seuil or S.DEMO:
+            try: cur = int(open(seuil[0]).read()) if seuil else 100
+            except Exception: cur = 100
+            def proteger(on):
+                S.en_fond(lambda: subprocess.run(["pkexec", "/usr/local/sbin/xiii-batterie-limite", "80" if on else "off"]).returncode == 0,
+                          lambda ok: self.toast(("Charge limitée à 80 %" if on else "Charge complète rétablie") if ok is True else "Annulé ou non pris en charge par ce PC"))
+            c.append(reglage("battery-charging" if os.path.exists(theme.LUCIDE + "/battery-charging.svg") else "battery", "Protéger la batterie",
+                             "Sur secteur, la charge s'arrête à 80 % : la batterie s'use beaucoup moins vite (comme macOS et Windows). Gardé après un redémarrage",
+                             droite=interrupteur(cur <= 85, proteger)))
         c.append(groupe_titre("Mode d'alimentation"))
         dispo = S.profils_dispo()
         if dispo:

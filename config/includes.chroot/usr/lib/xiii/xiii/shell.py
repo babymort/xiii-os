@@ -650,6 +650,18 @@ class Shell(Gtk.Application):
         if a is not None: glisser_deposer(b, cle, lambda src, cle=cle: self.reordonner("epingles", src, cle))
         def menu():
             items = [("app-window", nom[:40], lambda: apps.lancer(a) if a else None)] if a else []
+            # liste de raccourcis (comme Windows) : actions de l'appli (nouvelle fenêtre…) et ses fichiers récents
+            if a is not None and hasattr(a, "list_actions"):
+                try:
+                    for act in a.list_actions()[:5]:
+                        items.append(("chevron-right", a.get_action_name(act), lambda act=act: a.launch_action(act, None)))
+                except Exception: pass
+                try: rec = apps.recents_de(a)
+                except Exception: rec = []
+                if rec:
+                    items.append(None)
+                    for f in rec: items.append(("file", os.path.basename(f)[:40], lambda f=f: apps.lancer(a, [f])))
+                    items.append(None)
             if a:
                 ep = cle in self.cfg["epingles"]
                 items.append(("pin-off" if ep else "pin", "Désépingler de la barre" if ep else "Épingler à la barre", lambda: self.epingler(cle, not ep)))

@@ -167,6 +167,30 @@ def recents(n=6):
         if len(res) >= n: break
     return res
 
+def recents_de(a, n=6):
+    """Fichiers récents ouverts avec l'appli « a » (liste de raccourcis du clic droit, comme Windows)."""
+    p = os.path.join(GLib.get_user_data_dir(), "recently-used.xbel")
+    try: x = open(p, encoding="utf-8", errors="ignore").read()
+    except OSError: return []
+    nom = (a.get_name() or "").lower()
+    exe = os.path.basename((a.get_executable() or "")).lower()
+    L = []
+    for m in re.finditer(r'<bookmark href="([^"]+)"[^>]*?modified="([^"]+)"[^>]*>(.*?)</bookmark>', x, re.S):
+        u, quand, corps = m.groups()
+        if not u.startswith("file://"): continue
+        ok = False
+        for an, ae in re.findall(r'<bookmark:application name="([^"]*)" exec="([^"]*)"', corps):
+            ae = ae.replace("&apos;", "").replace("&quot;", "").strip("'\" ")
+            if an.lower() == nom or (exe and os.path.basename(ae.split()[0] if ae.split() else "").lower() == exe): ok = True; break
+        if not ok: continue
+        c = urllib.parse.unquote(u[7:])
+        if os.path.exists(c): L.append((quand, c))
+    L.sort(reverse=True); vus, res = set(), []
+    for _, c in L:
+        if c not in vus: vus.add(c); res.append(c)
+        if len(res) >= n: break
+    return res
+
 def icone_fichier(chemin):
     try:
         info = Gio.File.new_for_path(chemin).query_info("standard::icon", 0, None)
