@@ -68,6 +68,7 @@ class Zone:
             except Exception:
                 return
             it["titre"] = v.get("Title") or v.get("Id") or ""
+            it["sid"] = v.get("Id") or v.get("Title") or it.get("bus", "")
             it["icone"] = v.get("IconName") or None
             it["theme"] = v.get("IconThemePath") or ""
             it["menu"] = v.get("Menu")

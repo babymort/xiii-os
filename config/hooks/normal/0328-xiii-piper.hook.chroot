@@ -1,0 +1,19 @@
+#!/bin/sh
+# xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
+# Voix naturelle française hors ligne (Piper, MIT ; voix « siwis », CC BY 4.0) pour « Lire la sélection » (Super+Maj+L).
+# Édition légère : rien ici, la voix est téléchargée à la première lecture.
+ED=$(cat /etc/xiii/edition 2>/dev/null || echo complete)
+[ "$ED" = legere ] && exit 0
+D=/usr/share/xiii/piper; V=fr_FR-siwis-medium
+H=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/fr/fr_FR/siwis/medium
+mkdir -p $D
+if [ ! -x $D/piper/piper ]; then
+  curl -fsSL --retry 3 https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz | tar -xz -C $D || echo "Piper : téléchargement impossible (la voix sera téléchargée à la première lecture)"
+fi
+for e in onnx.json onnx; do
+  if [ ! -s $D/$V.$e ]; then
+    curl -fsSL --retry 3 -o $D/$V.$e.part $H/$V.$e && mv $D/$V.$e.part $D/$V.$e || echo "Piper : voix $e non téléchargée"
+  fi
+done
+[ -x $D/piper/piper ] && [ -s $D/$V.onnx ] && echo "Piper : voix naturelle installée" || true
+exit 0

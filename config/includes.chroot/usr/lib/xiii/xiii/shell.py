@@ -7,6 +7,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Gtk4LayerShell", "1.0")
 from gi.repository import Gtk, Gdk, GLib, Gio
 from gi.repository import Gtk4LayerShell as LS
+from . import concentration as CONC
 from . import config, theme, systeme as S, apps, notifs, panneaux as P, widgets as W, profils, vues, tray, claude
 from . import imitation_bureau as IB
 from .bureau import Bureau
@@ -40,6 +41,11 @@ def couche(win, niveau, ancres, marges=None, clavier=LS.KeyboardMode.NONE, ns="x
     if exclusif == "auto": LS.auto_exclusive_zone_enable(win)
     elif exclusif is not None: LS.set_exclusive_zone(win, exclusif)
     win.add_css_class("xiii-surface")
+
+
+def EST_PIP(t):
+    t = (t or "").lower()
+    return t in ("picture-in-picture", "picture in picture", "image dans l'image", "incrustation vidéo") or t.startswith("vignette xiii")
 
 
 class Shell(Gtk.Application):
@@ -321,6 +327,22 @@ class Shell(Gtk.Application):
         if nom in ("alttab", "alttab-prec"):
             if not hasattr(self, "alttab"): self.alttab = vues.AltTab(self)
             self.fermer(); self.alttab.ouvrir(1 if nom == "alttab" else -1); return
+        if nom.startswith("concentration"):     # xiii-ctl concentration-travail | concentration-off | concentration-session-25
+            x = nom.split("-")[1:]
+            if x[:1] == ["session"]: self.session_concentration(int(x[1]) if len(x) > 1 and x[1].isdigit() else 25)
+            elif x and x[0] in CONC.PAR_CLE: self.regler_concentration(x[0])
+            elif x[:1] == ["off"]: self.regler_concentration(None)
+            else: self.menu_concentration(self.h_conc if self.h_conc.get_visible() else self.h_centre)
+            return
+        if nom == "epingle":                # Ctrl+Super+T : labwc a basculé « toujours au premier plan » sur la fenêtre active ; on la signale
+            fen = self.fenetres.liste() if self.fenetres and self.fenetres.ok else []
+            f = next((f for f in fen if f.active), None)
+            if f is None: return
+            ad = self.__dict__.setdefault("au_dessus", set())
+            on = f.id not in ad; (ad.add if on else ad.discard)(f.id)
+            S.detacher(["notify-send", "-a", "OS XIII", "-i", "pin", "-h", "string:x-canonical-private-synchronous:epingle", "-t", "2500",
+                        "Toujours au premier plan" if on else "N'est plus au premier plan", (f.titre or f.app_id or "")[:80]])
+            self.maj_taches(); return
         if nom.startswith("minuteur"):      # xiii-ctl minuteur-5 (ajoute 5 min), minuteur-pause, minuteur-zero — minuteur de l'Île
             if hasattr(self, "ile"):
                 x = nom.split("-", 1)[1] if "-" in nom else "5"
@@ -502,6 +524,11 @@ class Shell(Gtk.Application):
         if hasattr(self, "vue_mode"): self.vue_mode.maj_fenetres(fen)
         if hasattr(self, "ile") and self.ile.w.get_visible(): self.ile.maj()
         self.maj_haut_applis(fen)
+        ad = self.__dict__.setdefault("au_dessus", set())
+        ids = {f.id for f in fen}; ad &= ids
+        for f in fen:          # vignettes vidéo des navigateurs : règle labwc « toujours au premier plan » (rc.xml › windowRules)
+            if f.id not in ad and f.id not in getattr(self, "_pip_vus", set()) and EST_PIP(f.titre):
+                ad.add(f.id); self.__dict__.setdefault("_pip_vus", set()).add(f.id)
         groupes = {}   # id d'appli -> [fenetres]
         info = {}
         for f in fen:
@@ -510,6 +537,14 @@ class Shell(Gtk.Application):
             groupes.setdefault(cle, []).append(f); info[cle] = a
         if getattr(self, "ecrans", None): groupes = {k: v for k, v in self.ecrans.filtre_principal(groupes).items() if v}
         ordre = [p for p in self.cfg["epingles"] if apps.par_id(p)] + [k for k in groupes if k not in self.cfg["epingles"]]
+        self._btn_taches = {}
+        if not hasattr(self, "anim_fen"):
+            from .anim_fenetres import AnimFenetres; self.anim_fen = AnimFenetres(self)
+        cles_f = {f.id: k for k, v in groupes.items() for f in v}
+        def cle_de(f, _c=cles_f):
+            if f.id in _c: return _c[f.id]
+            a_ = apps.pour_fenetre(f.app_id); return a_.get_id() if a_ else ("x:" + (f.app_id or f.titre))
+        self.anim_fen.changement(fen, lambda: self._btn_taches, cle_de)
         mac = self.imit() == "macos"
         if mac: ordre = IB.ordre_dock(ordre)
         n = 0
@@ -517,7 +552,7 @@ class Shell(Gtk.Application):
             a = info.get(cle) or (apps.par_id(cle) if not cle.startswith("x:") else None)
             fs = groupes.get(cle, [])
             if a is None and not fs: continue
-            self.taches.append(self.bouton_tache(cle, a, fs)); n += 1
+            bt = self.bouton_tache(cle, a, fs); self.taches.append(bt); self._btn_taches[cle] = bt; n += 1
             if mac and n == 1: self.taches.append(IB.bouton_launchpad(self))       # Fichiers, puis la tuile Applications
         if mac and n == 0: self.taches.append(IB.bouton_launchpad(self))
         if mac: IB.maj_corbeille(self)
@@ -626,6 +661,10 @@ class Shell(Gtk.Application):
             elif not fs: ind.add_css_class("vide")
             v.append(ind)
         nb = self.notifs_de(a, fs) if self.cfg.get("barre_badges_apps", True) else 0
+        dessus = any(f.id in getattr(self, "au_dessus", ()) for f in fs)
+        if dessus:                      # fenêtre épinglée au premier plan : cadre couleur d'accent + punaise
+            b.add_css_class("au-dessus")
+            ov0 = Gtk.Overlay(); ov0.set_child(v); pu = boite(False, 0, "epingle-badge", halign=Gtk.Align.START, valign=Gtk.Align.START); pu.append(ico("pin", 10, self.p.get("fond", "#1c1a18"))); ov0.add_overlay(pu); v = ov0
         if nb:
             ov = Gtk.Overlay(); ov.set_child(v)
             pa = label(str(nb) if nb < 10 else "9+", "badge", xalign=0.5); pa.set_halign(Gtk.Align.END); pa.set_valign(Gtk.Align.START); ov.add_overlay(pa)
@@ -633,6 +672,7 @@ class Shell(Gtk.Application):
         else:
             b.set_child(v)
         b.set_tooltip_text((fs[0].titre if len(fs) == 1 and fs[0].titre else nom + (" — %d fenêtres" % len(fs) if len(fs) > 1 else "")) + (" · %d notification%s" % (nb, "s" if nb > 1 else "") if nb else ""))
+        if dessus: b.set_tooltip_text(b.get_tooltip_text() + " · toujours au premier plan (Ctrl+Super+T)")
         def clic(*_):
             if not fs:
                 if a: self.lancer_depuis_barre(cle, a, b)
@@ -705,10 +745,47 @@ class Shell(Gtk.Application):
         pop.set_child(v); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
         return pop
 
+    def icones_zone(self, cachees=None):
+        """Icônes des applis en fond, dans l'ordre choisi (glisser pour réordonner). Façon Windows 11 : cachees=True → celles du
+        chevron « ^ », cachees=False → celles gardées dans la barre (tray_visibles)."""
+        ordre = self.cfg.get("tray_ordre") or []; vis = self.cfg.get("tray_visibles") or []
+        L = [(cle, it) for cle, it in list(self.zone.items.items()) if it.get("statut") != "Passive"]
+        L.sort(key=lambda x: ordre.index(x[1].get("sid")) if x[1].get("sid") in ordre else len(ordre))
+        if cachees is not None: L = [x for x in L if (x[1].get("sid") not in vis) == cachees]
+        return L
+
+    def bouton_zone(self, cle, it, taille):
+        b = self.zone.bouton(cle, taille); sid = it.get("sid") or cle
+        glisser_deposer(b, "tray:" + sid, lambda src, sid=sid: self.deposer_zone(src, sid))
+        return b
+
+    def deposer_zone(self, src, cible, visible=None):
+        """Icône « src » lâchée sur l'icône « cible » (ou sur la barre / la bulle : cible None, visible True/False)."""
+        if not src.startswith("tray:"): return
+        s_ = src[5:]; ordre = [x for x in (self.cfg.get("tray_ordre") or []) if x != s_]
+        tous = [it.get("sid") for _c, it in self.icones_zone()]
+        for x in tous:
+            if x and x not in ordre and x != s_: ordre.append(x)
+        ordre.insert(ordre.index(cible) if cible in ordre else len(ordre), s_)
+        kw = dict(tray_ordre=ordre)
+        vis = list(self.cfg.get("tray_visibles") or [])
+        if visible is None and cible is not None: visible = cible in vis
+        if visible is True and s_ not in vis: vis.append(s_)
+        if visible is False and s_ in vis: vis.remove(s_)
+        kw["tray_visibles"] = vis
+        self.cfg = config.modifier(_histo=False, **kw); self.maj_zone()
+
     def maj_zone(self):
         vider(self.zone_notif)
-        for cle, it in list(self.zone.items.items()):
-            if it.get("statut") != "Passive": self.zone_notif.append(self.zone.bouton(cle, 14 if self.cfg.get("notif_petites", True) else 18))
+        onze = self.imit() == "onze"
+        for cle, it in self.icones_zone(False if onze else None):
+            self.zone_notif.append(self.bouton_zone(cle, it, 14 if self.cfg.get("notif_petites", True) else 18))
+        self.zone_notif.set_visible(bool(self.zone_notif.get_first_child()) if onze else True)
+        if not getattr(self, "_zone_cible", False):          # lâcher une icône du chevron sur la barre : elle y reste visible
+            self._zone_cible = True
+            dt = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
+            dt.connect("drop", lambda t, v, x, y: (GLib.idle_add(lambda: (self.deposer_zone(v, None, True), False)[1]), True)[1] if str(v).startswith("tray:") else False)
+            self.zone_notif.add_controller(dt)
 
     def epingler(self, cle, on, liste="epingles"):
         L = list(self.cfg[liste])
@@ -774,6 +851,8 @@ class Shell(Gtk.Application):
             b.connect("clicked", lambda *_: self.basculer(nom)); clic_droit(b, lambda: self.parametres(page))
             self.boutons_panneaux.setdefault(nom, []).append(b); etat.append(b); return b
         self.h_dnd = ico("bell-off", 16, "d"); etat.append(self.h_dnd)
+        self.h_conc = Gtk.Button(); self.h_conc.add_css_class("hb"); self.h_conc.set_visible(False); etat.append(self.h_conc)
+        self.h_conc.connect("clicked", lambda b: self.menu_concentration(b)); clic_droit(self.h_conc, lambda: self.parametres("notifications"))
         self.h_wifi = hb("wifi", "reseau", "Réseau"); self.h_bt = hb("bluetooth", "bluetooth", "Bluetooth")
         self.h_son = hb("son", "son", "Son"); self.h_bat = hb("batterie", "alimentation", "Énergie")
         self.h_centre = hb("centre", "accueil", "Centre de contrôle"); self.h_centre.set_child(ico("sliders-horizontal", 16))
@@ -1078,6 +1157,7 @@ class Shell(Gtk.Application):
         met(self.h_bat, icone_batterie(bat), ("%d%%" % bat["pct"]) if (bat and self.cfg["haut_pourcentage"]) else None,
             role="c" if bat and bat["pct"] < 15 and not bat["charge"] else "t", valeur=bat["pct"] / 100 if bat else None)
         self.h_dnd.set_visible(self.cfg["ne_pas_deranger"] or bool(getattr(self, "dnd_auto", None)))
+        self.maj_icone_concentration()
         if getattr(self, "dnd_auto", None): self.h_dnd.set_tooltip_text("Ne pas déranger automatique : " + self.dnd_auto)
         self.l_tournage.set_visible(profils.courant(self.cfg)[0] != "normal")
 
@@ -1236,6 +1316,55 @@ class Shell(Gtk.Application):
         mon.connect("network-changed", change)
         self._reseau_etat = (mon.get_network_available(), "")
 
+    # ============================================================== modes de concentration
+    def regler_concentration(self, cle, duree_min=0):
+        kw = dict(concentration=cle, concentration_fin=(time.time() + 60 * duree_min) if (cle and duree_min) else 0)
+        a = CONC.actif(self.cfg)
+        if cle is None and a and a[1] == "horaires":        # couper un mode programmé : il se tait jusqu'à la fin de sa plage
+            kw["concentration_saute"] = sorted(set((self.cfg.get("concentration_saute") or []) + [a[0]]))
+        config.modifier(_histo=False, **kw); self.cfg.update(kw); self.maj_concentration()
+
+    def session_concentration(self, minutes):
+        """Session de concentration (Windows 11) : mode Travail pendant N minutes, minuteur dans l'Île, son à la fin."""
+        self.regler_concentration(self.cfg.get("concentration_session_mode", "travail"), minutes)
+        if hasattr(self, "ile") and self.cfg.get("ile_minuteur", True):
+            self.ile.minuteur_zero(); self.ile.minuteur_ajouter(60 * minutes)
+
+    def maj_concentration(self, n=None):
+        c = self.cfg
+        if c.get("concentration") and c.get("concentration_fin") and time.time() >= c["concentration_fin"]:
+            config.modifier(_histo=False, concentration=None, concentration_fin=0)
+            from . import sons; sons.jouer("complete", c, force=True)
+            S.detacher(["notify-send", "-a", "OS XIII", "-i", "focus", "-u", "critical", "Session de concentration terminée", "Bravo ! Faites une pause de 5 minutes."])
+        sa = [k for k in (c.get("concentration_saute") or []) if CONC.dans_horaires(CONC.reglages(c, k).get("horaires", {}), n or datetime.datetime.now())]
+        if sa != (c.get("concentration_saute") or []): config.modifier(_histo=False, concentration_saute=sa)
+        a = CONC.actif(self.cfg)
+        k = a[0] if a else None
+        if k != getattr(self, "_conc_avant", "?"):
+            if getattr(self, "_conc_avant", "?") != "?":
+                S.detacher(["notify-send", "-a", "OS XIII", "-i", "focus", "-h", "string:x-canonical-private-synchronous:concentration", "-t", "3000",
+                            ("Concentration : " + CONC.nom(k)) if k else "Concentration désactivée", CONC.PAR_CLE[k][3] if k else "Toutes les notifications s'affichent à nouveau"])
+            av = getattr(self, "_conc_avant", None); self._conc_avant = k
+            nuit = (CONC.reglages(c, k).get("nuit") if k else False)
+            if nuit and not c.get("lumiere_nocturne"): config.modifier(_histo=False, lumiere_nocturne=True, conc_nuit=True)
+            elif not nuit and c.get("conc_nuit"): config.modifier(_histo=False, lumiere_nocturne=False, conc_nuit=False)
+        self.maj_icone_concentration()
+
+    def maj_icone_concentration(self):
+        if not hasattr(self, "h_conc"): return
+        a = CONC.actif(self.cfg)
+        self.h_conc.set_visible(bool(a))
+        if a:
+            self.h_conc.set_child(ico(CONC.icone(a[0]), 16, "c")); self.h_conc.set_tooltip_text("Concentration : %s (%s) — clic : changer" % (CONC.nom(a[0]), a[1]))
+
+    def menu_concentration(self, parent):
+        a = CONC.actif(self.cfg); k = a[0] if a else None
+        items = [(ic, ("● " if k == c else "") + nm + " — " + desc, (lambda c=c: self.regler_concentration(c))) for c, nm, ic, desc, _ in CONC.MODES]
+        items += [None] + [("timer", "Session de concentration : %d min" % m, (lambda m=m: self.session_concentration(m))) for m in (25, 50, 90)]
+        if k: items += [None, ("bell", "Désactiver la concentration", lambda: self.regler_concentration(None))]
+        items += [("settings", "Régler les modes de concentration", lambda: self.parametres("notifications"))]
+        popover_menu(parent, items)
+
     def surveiller_dnd(self):
         """Ne pas déranger automatique (Paramètres › Notifications) : une fenêtre en plein écran (film, jeu, présentation),
         ou le micro / la caméra utilisés (visio, enregistrement). Les notifications urgentes passent toujours."""
@@ -1267,6 +1396,13 @@ class Shell(Gtk.Application):
             self.l_date.set_text(n.strftime("%d/%m/%Y") if self.imit() == "onze" else "%d %s %d" % (n.day, MOIS[n.month - 1], n.year))
         if getattr(self, "menus_mac", None): self.menus_mac.tic()
         if self.fenetres: self.maj_titre()
+        if n.minute != getattr(self, "_minute_alarme", None):          # alarmes d'Horloge XIII : la barre veille, appli fermée ou non
+            self._minute_alarme = n.minute
+            self.maj_concentration(n)
+            try:
+                from . import horloge
+                for a in horloge.alarmes_dues(n): S.detacher(["xiii-horloge", "--sonner", a.get("nom") or "Alarme"])
+            except Exception as e: print("alarmes :", e, file=sys.stderr)
         return True
 
     def maj_meteo(self):
@@ -1298,6 +1434,7 @@ class Shell(Gtk.Application):
             except Exception: pass
         if self.ouvert == "volet": self.panneaux["volet"][1].rafraichir()
         if ((self.cfg["ne_pas_deranger"] or getattr(self, "dnd_auto", None)) and n.urgence < 2) or n.app in self.cfg["notif_bloquees"]: return
+        if not CONC.laisse_passer(self.cfg, n.app, n.urgence): return          # mode de concentration : seules les applis choisies s'affichent
         if self.ouvert == "volet": return
         if getattr(self, "_visite", None) and self._visite.win.get_visible(): return
         for c in list(self._enfants(self.pile)):
@@ -1357,6 +1494,8 @@ class Shell(Gtk.Application):
             GLib.timeout_add(400, lambda: (self.mica.tout(), False)[1])
         if getattr(self, "ecrans", None) and any(ancien.get(k) != cfg.get(k) for k in ("ecran_principal", "barre_tous_ecrans", "modes_ecrans", "barre_applis_ecrans", "barre_masquee", "barre_modes_masquee", "theme", "barre_taille")):
             self.ecrans.maj()
+        if any(ancien.get(k) != cfg.get(k) for k in ("concentration", "concentration_fin", "concentration_modes")):
+            GLib.idle_add(lambda: (self.maj_concentration(), False)[1])
         if hasattr(self, "ile") and any(ancien.get(k) != cfg.get(k) for k in ("ile_survol", "ile_minuteur", "ile_tally", "ile_media", "ile_meteo")): self.ile.maj()
         self.liberer_bientot(22)
         if ancien["barre_alignement"] != cfg["barre_alignement"] or ancien["barre_meteo"] != cfg["barre_meteo"] or ancien["barre_recherche"] != cfg["barre_recherche"]:
@@ -1804,6 +1943,26 @@ class MenuDemarrer:
                 b = bouton(x, "ruler", "ligne", "plat", taille=18, rappel=lambda r=r: (Gdk.Display.get_default().get_clipboard().set_text(r.split(" ")[0]), self.shell.fermer()))
                 b.set_tooltip_text("Copier le résultat"); self.res.append(b)
             if not self._premier: self._premier = lambda r=cv[0].split(" = ")[-1]: (Gdk.Display.get_default().get_clipboard().set_text(r.split(" ")[0]), self.shell.fermer())
+        # devises (taux du jour de la BCE) et définitions (Wiktionnaire), comme la recherche de macOS / Windows
+        dv = conversions.devises(self.recherche.get_text()) if mode in ("tout", "apps") else []
+        if dv:
+            self.res.append(label("Devises", "section"))
+            for x in dv[:4]:
+                r = x.split(" = ")[-1].split(" ")[0]
+                b = bouton(x, "banknote" if os.path.exists(theme.LUCIDE + "/banknote.svg") else "euro", "ligne", "plat", taille=18,
+                           rappel=lambda r=r: (Gdk.Display.get_default().get_clipboard().set_text(r), self.shell.fermer()))
+                b.set_tooltip_text("Copier le montant"); self.res.append(b)
+        mot = conversions.mot_a_definir(self.recherche.get_text()) if mode in ("tout", "apps") else None
+        if mot:
+            texte = self.recherche.get_text()
+            D = conversions.definitions(mot, lambda: GLib.idle_add(lambda: (self.chercher() if self.recherche.get_text() == texte else None, False)[1]))
+            self.res.append(label("Définition — " + mot, "section"))
+            if D is None: self.res.append(label("Recherche dans le Wiktionnaire…", "attenue", margin_start=12))
+            elif not D: self.res.append(label("Aucune définition trouvée (hors ligne ?)", "attenue", margin_start=12))
+            for nat, d in (D or [])[:3]:
+                b = bouton(None, None, "ligne", "plat", rappel=lambda: (self.shell.fermer(), S.detacher(["xdg-open", "https://fr.wiktionary.org/wiki/" + GLib.uri_escape_string(mot, None, False)])))
+                v_ = boite(True, 2); v_.append(label(nat, "attenue", "petit")); v_.append(label(d, wrap=True, largeur=60)); b.set_child(v_)
+                b.set_tooltip_text("Ouvrir dans le Wiktionnaire"); self.res.append(b)
         # « > commande » : lancée dans le terminal
         brut_c = self.recherche.get_text().strip()
         if brut_c.startswith(">") and len(brut_c) > 1:

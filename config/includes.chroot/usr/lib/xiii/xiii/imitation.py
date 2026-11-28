@@ -205,6 +205,9 @@ window.barre-dock button.tb:hover, window.barre-dock button.tb.actif, window.bar
 .launchpad .lp-nom {{ color: #ffffff; font-size: 12.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }}
 .launchpad button.lp-app {{ background: transparent; border: none; box-shadow: none; padding: 8px; border-radius: 16px; }}
 .launchpad button.lp-app:hover {{ background: rgba(255,255,255,0.10); }}
+.launchpad .lp-dossier {{ background: rgba(255,255,255,0.22); border-radius: 18px; padding: 6px; min-width: 76px; min-height: 76px; }}
+.launchpad popover.lp-dossier-ouvert > contents {{ background: rgba(40,40,44,0.72); border-radius: 26px; border: 1px solid rgba(255,255,255,0.18); }}
+.launchpad entry.lp-nom-dossier {{ background: transparent; border: none; font-size: 20px; font-weight: 600; min-width: 200px; }}
 .launchpad entry {{ background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; color: #ffffff; min-width: 240px; min-height: 28px; }}
 .launchpad entry text {{ color: #ffffff; }}
 .lp-point {{ background: rgba(255,255,255,0.35); border-radius: 4px; min-width: 7px; min-height: 7px; padding: 0; border: none; }}

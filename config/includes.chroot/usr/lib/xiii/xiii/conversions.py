@@ -50,3 +50,115 @@ def convertir(q):
     if g == "r" and not b:      # débit vidéo : place prise par heure d'enregistrement
         out.append("%s %s ≈ %s Go par heure d'enregistrement" % (nombre(v), joli(a), nombre(base * 3600 / 1e9)))
     return out
+
+
+# ------------------------------------------------------------------ devises (taux du jour de la Banque centrale européenne)
+import os, json, time, threading, urllib.request, urllib.parse, html as _html
+CACHE = os.path.join(os.path.expanduser("~/.cache"), "xiii")
+F_DEVISES = os.path.join(CACHE, "devises.json")
+BCE = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
+ALIAS = {"€": "EUR", "euro": "EUR", "euros": "EUR", "eur": "EUR", "$": "USD", "dollar": "USD", "dollars": "USD", "usd": "USD", "£": "GBP", "livre sterling": "GBP",
+         "gbp": "GBP", "chf": "CHF", "franc suisse": "CHF", "francs suisses": "CHF", "cad": "CAD", "jpy": "JPY", "yen": "JPY", "yens": "JPY", "¥": "JPY",
+         "cny": "CNY", "yuan": "CNY", "yuans": "CNY", "aud": "AUD", "sek": "SEK", "nok": "NOK", "dkk": "DKK", "pln": "PLN", "czk": "CZK", "huf": "HUF",
+         "brl": "BRL", "mxn": "MXN", "inr": "INR", "krw": "KRW", "try": "TRY", "zar": "ZAR", "nzd": "NZD", "sgd": "SGD", "hkd": "HKD", "ron": "RON"}
+CIBLES_DEV = ["EUR", "USD", "GBP", "CHF"]
+_charge = {"t": 0}
+
+
+def taux():
+    """{code: taux pour 1 €} ; mis à jour une fois par jour en arrière-plan (vide la toute première fois, hors ligne)."""
+    try: d = json.load(open(F_DEVISES))
+    except Exception: d = {}
+    if time.time() - d.get("t", 0) > 6 * 3600 and time.time() - _charge["t"] > 60:
+        _charge["t"] = time.time(); threading.Thread(target=maj_devises, daemon=True).start()
+    return d.get("taux") or {}
+
+
+def maj_devises(xml=None):
+    try:
+        xml = xml or urllib.request.urlopen(urllib.request.Request(BCE, headers={"User-Agent": "OS-XIII"}), timeout=10).read().decode()
+        T = {c: float(r) for c, r in re.findall(r"currency=['\"](\w{3})['\"]\s+rate=['\"]([\d.]+)['\"]", xml)}
+        if not T: return False
+        T["EUR"] = 1.0; jour = (re.findall(r"time=['\"]([\d-]+)['\"]", xml) or [""])[0]
+        os.makedirs(CACHE, exist_ok=True); json.dump({"t": time.time(), "jour": jour, "taux": T}, open(F_DEVISES + ".tmp", "w")); os.replace(F_DEVISES + ".tmp", F_DEVISES)
+        return True
+    except Exception:
+        return False
+
+
+def _devise(x):
+    x = x.strip().lower()
+    return ALIAS.get(x) or (x.upper() if len(x) == 3 and x.isalpha() and x.upper() in taux() else None)
+
+
+def devises(q):
+    """« 100 usd en eur », « 50 € », « 20 dollars en livres » → ["100 USD = 92,4 EUR (BCE, 28/11)"]."""
+    t = q.strip().lower().replace(",", ".")
+    t = re.sub(r"^([€$£¥])\s*([\d.]+)", r"\2 \1", t)
+    m = re.match(r"^\s*([\d.]+)\s*([€$£¥]|[a-zéè ]+?)\s*(?:(?:en|in|to|=|→)\s*([€$£¥]|[a-zéè ]+?))?\s*$", t)
+    if not m: return []
+    try: v = float(m.group(1))
+    except ValueError: return []
+    a = _devise(m.group(2)); b = _devise(m.group(3) or "") if m.group(3) else None
+    if not a: return []
+    T = taux()
+    if not T or a not in T: return []
+    try: jour = json.load(open(F_DEVISES)).get("jour", "")
+    except Exception: jour = ""
+    j = "/".join(jour.split("-")[::-1][:2]) if jour else ""
+    cib = [b] if b and b in T else [c for c in CIBLES_DEV if c != a]
+    return ["%s %s = %s %s%s" % (nombre(v), a, "{:,.2f}".format(v / T[a] * T[c]).replace(",", " ").replace(".", ","), c, " (BCE, %s)" % j if j else "") for c in cib if c in T]
+
+
+# ------------------------------------------------------------------ définitions (Wiktionnaire, en ligne, gardées en cache)
+F_DEFS = os.path.join(CACHE, "definitions.json")
+_defs_cours = set()
+
+
+def mot_a_definir(q):
+    m = re.match(r"^\s*(?:d[ée]f(?:inition)?|d[ée]finir|que veut dire|c'est quoi|sens de)\s*(?:de |d'|du |des |la |le |les |l')?\s*([^\s?]{2,40}(?: [^\s?]{2,40})?)\s*\??\s*$", q.strip(), re.I)
+    return m.group(1).lower() if m else None
+
+
+def extraire_definitions(texte, n=3):
+    """Texte brut d'une page du Wiktionnaire → [(nature, définition)] (section Français)."""
+    i = texte.find("== Français ==")
+    if i < 0: i = texte.find("Français")
+    t = texte[i:] if i >= 0 else texte
+    j = re.search(r"\n== (?!Français)[^=\n]+ ==\n", t[5:])
+    if j: t = t[:j.start() + 5]
+    out = []; nature = ""
+    NAT = ("Nom commun", "Verbe", "Adjectif", "Adverbe", "Pronom", "Préposition", "Interjection", "Conjonction", "Nom propre", "Locution")
+    for l in t.splitlines():
+        s = l.strip()
+        if s.startswith("===") and any(x in s for x in NAT): nature = re.sub(r"\s*\d+$", "", s.strip("= ")); continue
+        if nature and s and not s.startswith(("=", "(", "Note", "Synonymes", "Dérivés")) and len(s) > 15 and not re.match(r"^[\w'-]+ \\", s) and "\\" not in s[:40]:
+            out.append((nature, s.rstrip()))
+            if len(out) >= n: break
+    return out
+
+
+def definitions(mot, rappel=None):
+    """Définitions en cache ; sinon recherche en ligne en arrière-plan puis rappel() (la recherche se relance)."""
+    try: C = json.load(open(F_DEFS))
+    except Exception: C = {}
+    if mot in C: return C[mot]
+    if mot in _defs_cours: return None
+    _defs_cours.add(mot)
+    def aller():
+        try:
+            u = "https://fr.wiktionary.org/w/api.php?" + urllib.parse.urlencode({"action": "query", "prop": "extracts", "explaintext": 1, "redirects": 1,
+                                                                                  "titles": mot, "format": "json"})
+            d = json.loads(urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "OS-XIII (Matthieu Lamotte)"}), timeout=10).read())
+            p = next(iter(d["query"]["pages"].values()))
+            r = extraire_definitions(p.get("extract", "")) if "missing" not in p else []
+            try: C2 = json.load(open(F_DEFS))
+            except Exception: C2 = {}
+            C2[mot] = r; os.makedirs(CACHE, exist_ok=True); json.dump(C2, open(F_DEFS, "w"), ensure_ascii=False)
+        except Exception:
+            pass
+        finally:
+            _defs_cours.discard(mot)
+            if rappel: rappel()
+    threading.Thread(target=aller, daemon=True).start()
+    return None

@@ -178,3 +178,14 @@ def icone_batterie(b):
 
 def sans_accents(s):
     return "".join(c for c in unicodedata.normalize("NFD", s.lower()) if unicodedata.category(c) != "Mn")
+
+
+def glisser_deposer(b, cle, deposer):
+    """Widget déplaçable (glisser) et cible de dépôt : deposer(cle_source) quand un autre élément est lâché dessus."""
+    src = Gtk.DragSource(actions=Gdk.DragAction.MOVE)
+    src.connect("prepare", lambda *_: Gdk.ContentProvider.new_for_value(cle))
+    src.connect("drag-begin", lambda s_, d_: s_.set_icon(Gtk.WidgetPaintable.new(s_.get_widget()), s_.get_widget().get_width() // 2, s_.get_widget().get_height() // 2))
+    b.add_controller(src)
+    dt = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
+    dt.connect("drop", lambda t, v, x, y: (GLib.idle_add(lambda: (deposer(v), False)[1]), True)[1] if v != cle else False)
+    b.add_controller(dt)

@@ -37,6 +37,65 @@ def ctrl(t, maj=False):
     return lambda: touches(*a)
 
 
+def rac(spec):
+    """« ctrl+shift+t », « alt+Left », « F11 » → raccourci envoyé à l'appli au premier plan."""
+    *mods, k = spec.split("+"); M = {"ctrl": "ctrl", "shift": "shift", "alt": "alt", "super": "logo"}
+    a = sum((["-M", M[m]] for m in mods), []) + (["-k", k] if len(k) > 1 else [k]) + sum((["-m", M[m]] for m in reversed(mods)), [])
+    return lambda: touches(*a)
+
+
+# menus propres aux applis courantes (les applis GTK 4 n'exportent plus leurs menus : OS XIII les décrit ici)
+# clé = morceau de l'identifiant de fenêtre ; menus = [(titre, [(texte, raccourci affiché, raccourci envoyé) | None])]
+_ED = [("Annuler", "Ctrl Z", "ctrl+z"), ("Rétablir", "Ctrl Maj Z", "ctrl+shift+z"), None, ("Couper", "Ctrl X", "ctrl+x"), ("Copier", "Ctrl C", "ctrl+c"),
+       ("Coller", "Ctrl V", "ctrl+v"), ("Tout sélectionner", "Ctrl A", "ctrl+a"), None, ("Rechercher…", "Ctrl F", "ctrl+f")]
+_ZOOM = [("Zoom avant", "Ctrl +", "ctrl+plus"), ("Zoom arrière", "Ctrl −", "ctrl+minus"), ("Taille réelle", "Ctrl 0", "ctrl+0")]
+MENUS_APPLIS = [
+    (("firefox", "librewolf", "chromium", "chrome", "brave"), [
+        ("Fichier", [("Nouvel onglet", "Ctrl T", "ctrl+t"), ("Nouvelle fenêtre", "Ctrl N", "ctrl+n"), ("Nouvelle fenêtre privée", "Ctrl Maj P", "ctrl+shift+p"),
+                     ("Ouvrir un fichier…", "Ctrl O", "ctrl+o"), None, ("Enregistrer la page sous…", "Ctrl S", "ctrl+s"), ("Imprimer…", "Ctrl P", "ctrl+p"), None,
+                     ("Fermer l'onglet", "Ctrl W", "ctrl+w")]),
+        ("Édition", _ED + [("Rechercher à nouveau", "Ctrl G", "ctrl+g")]),
+        ("Présentation", _ZOOM + [None, ("Mode lecture", "F9", "F9"), ("Recharger la page", "Ctrl R", "ctrl+r"), ("Code source de la page", "Ctrl U", "ctrl+u"),
+                                  ("Plein écran", "F11", "F11")]),
+        ("Historique", [("Précédent", "Alt ←", "alt+Left"), ("Suivant", "Alt →", "alt+Right"), ("Page d'accueil", "Alt Début", "alt+Home"), None,
+                        ("Rouvrir l'onglet fermé", "Ctrl Maj T", "ctrl+shift+t"), ("Tout l'historique", "Ctrl H", "ctrl+h"), ("Effacer l'historique récent…", "Ctrl Maj Suppr", "ctrl+shift+Delete")]),
+        ("Marque-pages", [("Marquer cette page", "Ctrl D", "ctrl+d"), ("Barre personnelle", "Ctrl Maj B", "ctrl+shift+b"), ("Gérer les marque-pages", "Ctrl Maj O", "ctrl+shift+o")]),
+        ("Outils", [("Téléchargements", "Ctrl Maj Y", "ctrl+shift+y"), ("Extensions", "Ctrl Maj A", "ctrl+shift+a"), ("Outils de développement", "F12", "F12")]),
+    ]),
+    (("fr.xiii.fichiers", "thunar", "nautilus"), [
+        ("Fichier", [("Nouvelle fenêtre", "Ctrl N", "ctrl+n"), ("Nouvel onglet", "Ctrl T", "ctrl+t"), ("Nouveau dossier", "Ctrl Maj N", "ctrl+shift+n"), None,
+                     ("Renommer", "F2", "F2"), ("Mettre à la corbeille", "Suppr", "Delete"), ("Propriétés", "Alt Entrée", "alt+Return"), None, ("Fermer l'onglet", "Ctrl W", "ctrl+w")]),
+        ("Édition", _ED),
+        ("Présentation", [("Volet d'aperçu", "Alt P", "alt+p"), ("Fichiers cachés", "Ctrl H", "ctrl+h"), None] + _ZOOM + [None, ("Actualiser", "F5", "F5")]),
+        ("Aller", [("Précédent", "Alt ←", "alt+Left"), ("Suivant", "Alt →", "alt+Right"), ("Dossier parent", "Alt ↑", "alt+Up"), ("Dossier personnel", "Alt Début", "alt+Home"),
+                   None, ("Aller au dossier…", "Ctrl L", "ctrl+l")]),
+    ]),
+    (("mousepad", "gedit", "gnome-text-editor", "org.gnome.texteditor"), [
+        ("Fichier", [("Nouveau", "Ctrl N", "ctrl+n"), ("Ouvrir…", "Ctrl O", "ctrl+o"), None, ("Enregistrer", "Ctrl S", "ctrl+s"), ("Enregistrer sous…", "Ctrl Maj S", "ctrl+shift+s"),
+                     None, ("Imprimer…", "Ctrl P", "ctrl+p"), None, ("Fermer l'onglet", "Ctrl W", "ctrl+w")]),
+        ("Édition", _ED + [("Remplacer…", "Ctrl R", "ctrl+r"), ("Aller à la ligne…", "Ctrl G", "ctrl+g")]),
+        ("Présentation", _ZOOM + [None, ("Plein écran", "F11", "F11")]),
+    ]),
+    (("foot", "fr.xiii.terminal", "terminal"), [
+        ("Shell", [("Nouvelle fenêtre", "Ctrl Maj N", "ctrl+shift+n"), None, ("Fermer la fenêtre", "Ctrl Maj W", "ctrl+shift+w")]),
+        ("Édition", [("Copier", "Ctrl Maj C", "ctrl+shift+c"), ("Coller", "Ctrl Maj V", "ctrl+shift+v"), None, ("Rechercher…", "Ctrl Maj R", "ctrl+shift+r")]),
+        ("Présentation", _ZOOM),
+    ]),
+    (("mpv", "vlc", "celluloid", "fr.xiii.vignette"), [
+        ("Lecture", [("Lecture / pause", "Espace", "space"), ("Avancer de 10 s", "→", "Right"), ("Reculer de 10 s", "←", "Left"), None,
+                     ("Plus fort", "0", "0"), ("Moins fort", "9", "9"), ("Couper le son", "M", "m")]),
+        ("Présentation", [("Plein écran", "F", "f"), ("Sous-titres suivants", "J", "j"), ("Capture de l'image", "S", "s")]),
+    ]),
+]
+
+
+def menus_de(app_id):
+    a = (app_id or "").lower()
+    for cles, menus in MENUS_APPLIS:
+        if any(k in a for k in cles): return menus
+    return None
+
+
 # ============================================================================== barre des tâches Windows 11
 def barre_onze(sh):
     """Retouche la barre construite par shell.construire_barre() : Démarrer à carreaux, champ Rechercher, chevron des icônes
@@ -51,13 +110,17 @@ def barre_onze(sh):
         pop = Gtk.Popover(has_arrow=False); pop.set_parent(ch); pop.set_position(Gtk.PositionType.TOP)
         g = Gtk.FlowBox(max_children_per_line=4, selection_mode=Gtk.SelectionMode.NONE, margin_top=4, margin_bottom=4, margin_start=4, margin_end=4)
         n = 0
-        for cle, it in list(sh.zone.items.items()):
-            if it.get("statut") != "Passive": g.append(sh.zone.bouton(cle, 16)); n += 1
-        if not n: g.append(label("Aucune icône", "attenue", "petit", margin_start=8, margin_end=8, margin_top=6, margin_bottom=6))
+        for cle, it in sh.icones_zone(True):
+            g.append(sh.bouton_zone(cle, it, 16)); n += 1
+        if not n: g.append(label("Aucune icône cachée", "attenue", "petit", margin_start=8, margin_end=8, margin_top=6, margin_bottom=6))
+        # glisser une icône de la barre dans la bulle : elle se cache ; glisser dans la bulle pour réordonner
+        dt = Gtk.DropTarget.new(str, Gdk.DragAction.MOVE)
+        dt.connect("drop", lambda t, v, x, y: (GLib.idle_add(lambda: (sh.deposer_zone(v, None, False), pop.popdown(), False)[-1]), True)[1] if str(v).startswith("tray:") else False)
+        g.add_controller(dt)
+        g.set_tooltip_text("Glissez une icône vers la barre pour la garder visible")
         pop.set_child(g); pop.connect("closed", lambda p: GLib.idle_add(lambda: (p.unparent(), False)[1])); pop.popup()
     ch.connect("clicked", bulle)
-    sh.zone_notif.set_visible(False)
-    sh.droite.insert_child_after(ch, sh.zone_notif); sh.b_chevron = ch
+    sh.droite.insert_child_after(ch, sh.zone_notif); sh.b_chevron = ch; sh.maj_zone()
     sh.l_heure.set_xalign(1); sh.l_date.set_xalign(1)
 
 
@@ -141,16 +204,14 @@ class MenusMac:
         self.titre(lg, self.menu_systeme); g.append(lg)
         self.b_appli = Gtk.Button(); self.b_appli.add_css_class("hb"); self.b_appli.add_css_class("mac-appli")
         self.l_appli = label("Fichiers"); self.b_appli.set_child(self.l_appli); self.titre(self.b_appli, self.menu_appli); g.append(self.b_appli)
-        for nom, fn in (("Fichier", self.menu_fichier), ("Édition", self.menu_edition), ("Présentation", self.menu_presentation),
-                        ("Fenêtre", self.menu_fenetre), ("Aide", self.menu_aide)):
-            b = Gtk.Button(); b.add_css_class("hb"); b.set_child(label(nom)); self.titre(b, fn); g.append(b)
+        self.g_menus = g; self._profil = "?"; self.poser_menus()
         cb.set_start_widget(g)
         d = boite(False, 0, margin_end=8, valign=Gtk.Align.CENTER)
         # icônes des applis en fond, puis état (monochrome), Spotlight, Centre de contrôle, date et heure
         z = sh.zone_notif; par = z.get_parent()
         if par is not None: par.remove(z)
         z.set_visible(True); d.append(z)
-        for w in (sh.h_dnd, sh.h_bat, sh.h_wifi, sh.h_bt):
+        for w in (sh.h_dnd, sh.h_conc, sh.h_bat, sh.h_wifi, sh.h_bt):
             p_ = w.get_parent()
             if p_ is not None: p_.remove(w)
             d.append(w)
@@ -166,6 +227,23 @@ class MenusMac:
         cb.set_end_widget(d)
         sh.haut.set_child(cb); sh.haut.set_visible(True)
         self.tic(); self.maj_appli()
+
+    def poser_menus(self):
+        """Titres de la barre des menus selon l'appli au premier plan (menus de l'appli si OS XIII les connaît)."""
+        f = self.active(); m = menus_de(f.app_id if f else "")
+        cle = repr([t for t, _ in m]) if m else "generique"
+        if cle == self._profil: return
+        self._profil = cle
+        g = self.g_menus; c = self.b_appli.get_next_sibling()
+        while c is not None:
+            n = c.get_next_sibling(); g.remove(c); c = n
+        self.titres = [t for t in getattr(self, "titres", []) if t[0] in (g.get_first_child(), self.b_appli)]
+        if m:
+            liste = [(t, (lambda it=it: [None if x is None else (x[0], x[1], rac(x[2])) for x in it])) for t, it in m] + [("Fenêtre", self.menu_fenetre), ("Aide", self.menu_aide)]
+        else:
+            liste = [("Fichier", self.menu_fichier), ("Édition", self.menu_edition), ("Présentation", self.menu_presentation), ("Fenêtre", self.menu_fenetre), ("Aide", self.menu_aide)]
+        for nom, fn in liste:
+            b = Gtk.Button(); b.add_css_class("hb"); b.set_child(label(nom)); self.titre(b, fn); g.append(b)
 
     # ---------------------------------------------------------------- titres de menus
     def titre(self, b, fn):
@@ -276,6 +354,7 @@ class MenusMac:
     def maj_appli(self):
         t = self.nom_appli()
         if t != self.l_appli.get_text(): self.l_appli.set_text(t)
+        if self.pop is None: self.poser_menus()
 
 
 # ============================================================================== Launchpad (macOS)
@@ -322,10 +401,84 @@ class Launchpad:
         self.flou_fond(); self.entree.set_text(""); self.remplir()
         GLib.idle_add(lambda: (self.entree.grab_focus(), False)[1])
 
+    # ---- dossiers (glisser une appli sur une autre crée un dossier, comme sur macOS)
+    def dossiers(self):
+        return [dict(d) for d in (self.shell.cfg.get("launchpad_dossiers") or []) if d.get("apps")]
+
+    def ecrire_dossiers(self, D):
+        D = [d for d in D if len(d.get("apps", [])) >= 1]
+        self.shell.cfg["launchpad_dossiers"] = D; config.modifier(_histo=False, launchpad_dossiers=D)
+        GLib.idle_add(lambda: (self.remplir(), False)[1])
+
+    def deposer(self, src, cible):
+        """src / cible : « app:ID » ou « dossier:N »."""
+        D = self.dossiers()
+        if not src.startswith("app:"): return
+        sid = src[4:]
+        for d in D:
+            if sid in d["apps"]: d["apps"].remove(sid)
+        if cible.startswith("dossier:"):
+            i = int(cible[8:])
+            if i < len(D) and sid not in D[i]["apps"]: D[i]["apps"].append(sid)
+        else:
+            cid = cible[4:]
+            for d in D:
+                if cid in d["apps"]: d["apps"].append(sid); break
+            else:
+                a, b = apps.par_id(sid), apps.par_id(cid)
+                cats = lambda x: set((x.get_categories() or "").split(";")) - {"", "GTK", "GNOME", "XIII", "Qt", "KDE", "X-XIII"} if x else set()
+                commun = cats(a) & cats(b)
+                NOMS = {"Game": "Jeux", "AudioVideo": "Audio et vidéo", "Video": "Vidéo", "Audio": "Audio", "Graphics": "Graphisme", "Office": "Bureautique",
+                        "Network": "Internet", "Development": "Développement", "System": "Système", "Utility": "Utilitaires", "Settings": "Réglages", "Education": "Éducation"}
+                nom = next((NOMS[c] for c in NOMS if c in commun), "Dossier")
+                D.append({"nom": nom, "apps": [cid, sid]})
+        self.ecrire_dossiers(D)
+
+    def bouton_dossier(self, i, d):
+        b = Gtk.Button(); b.add_css_class("lp-app")
+        bx = boite(True, 6); gr = Gtk.Grid(row_spacing=3, column_spacing=3, halign=Gtk.Align.CENTER); gr.add_css_class("lp-dossier")
+        for k, aid in enumerate(d["apps"][:4]):
+            a = apps.par_id(aid)
+            if a: gr.attach(gicon_image(a.get_icon(), 32), k % 2, k // 2, 1, 1)
+        bx.append(gr); bx.append(label(d.get("nom") or "Dossier", "lp-nom", xalign=0.5, ellipsize=True, largeur=14)); b.set_child(bx)
+        b.set_tooltip_text("%s — %d applis" % (d.get("nom"), len(d["apps"])))
+        b.connect("clicked", lambda bb, i=i: self.ouvrir_dossier(bb, i))
+        glisser_deposer(b, "dossier:%d" % i, lambda src, i=i: self.deposer(src, "dossier:%d" % i))
+        return b
+
+    def ouvrir_dossier(self, b, i):
+        D = self.dossiers()
+        if i >= len(D): return
+        d = D[i]; pop = Gtk.Popover(); pop.add_css_class("lp-dossier-ouvert"); pop.set_parent(b)
+        v = boite(True, 12, margin_start=16, margin_end=16, margin_top=12, margin_bottom=12)
+        e = Gtk.Entry(text=d.get("nom", ""), halign=Gtk.Align.CENTER); e.add_css_class("lp-nom-dossier")
+        def renommer(*_):
+            D2 = self.dossiers()
+            if i < len(D2): D2[i]["nom"] = e.get_text().strip() or "Dossier"; self.ecrire_dossiers(D2)
+        e.connect("activate", lambda *_: (renommer(), pop.popdown())); v.append(e)
+        g = Gtk.FlowBox(max_children_per_line=4, selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, row_spacing=12, column_spacing=16)
+        for aid in d["apps"]:
+            a = apps.par_id(aid)
+            if not a: continue
+            x = Gtk.Button(); x.add_css_class("lp-app"); bx = boite(True, 4); bx.append(gicon_image(a.get_icon(), 56))
+            bx.append(label(a.get_display_name(), "lp-nom", xalign=.5, ellipsize=True, largeur=12)); x.set_child(bx)
+            x.connect("clicked", lambda _x, a=a: (pop.popdown(), self.shell.fermer(), apps.lancer(a)))
+            def retirer(aid=aid):
+                D2 = self.dossiers()
+                if i < len(D2) and aid in D2[i]["apps"]: D2[i]["apps"].remove(aid)
+                pop.popdown(); self.ecrire_dossiers(D2)
+            clic_droit(x, retirer); x.set_tooltip_text("Clic droit : retirer du dossier")
+            g.append(x)
+        v.append(g); v.append(label("Glissez une appli sur ce dossier pour l'y ranger · clic droit sur une appli : la sortir", "lp-nom", xalign=.5))
+        pop.set_child(v); pop.connect("closed", lambda p: (renommer() if e.get_text().strip() != d.get("nom") else None, GLib.idle_add(lambda: (p.unparent(), False)[1])))
+        pop.popup()
+
     def remplir(self):
         q = sans_accents(self.entree.get_text().strip())
-        L = [a for a in apps.toutes() if not q or q in sans_accents(a.get_display_name())]
-        self._liste = L
+        D = self.dossiers() if not q else []
+        ranges = {x for d in D for x in d["apps"]}
+        L = [("d", i, d) for i, d in enumerate(D)] + [a for a in apps.toutes() if (not q or q in sans_accents(a.get_display_name())) and a.get_id() not in ranges]
+        self._liste = [a for a in L if not isinstance(a, tuple)]
         for c in enfants(self.pile):
             self.pile.remove(c)
         vider(self.points)
@@ -334,10 +487,12 @@ class Launchpad:
             g = Gtk.FlowBox(max_children_per_line=7, min_children_per_line=7, selection_mode=Gtk.SelectionMode.NONE, homogeneous=True,
                             row_spacing=18, column_spacing=24, valign=Gtk.Align.START, halign=Gtk.Align.CENTER, margin_start=80, margin_end=80)
             for a in L[i * self.PAR_PAGE:(i + 1) * self.PAR_PAGE]:
+                if isinstance(a, tuple): g.append(self.bouton_dossier(a[1], a[2])); continue
                 b = Gtk.Button(); b.add_css_class("lp-app")
                 bx = boite(True, 6); bx.append(gicon_image(a.get_icon(), 76)); bx.append(label(a.get_display_name(), "lp-nom", xalign=0.5, ellipsize=True, largeur=14))
                 b.set_child(bx); b.set_tooltip_text(a.get_description() or a.get_display_name())
                 b.connect("clicked", lambda _b, a=a: (self.shell.fermer(), apps.lancer(a)))
+                if not q: glisser_deposer(b, "app:" + a.get_id(), lambda src, aid=a.get_id(): self.deposer(src, "app:" + aid))
                 g.append(b)
             self.pile.add_named(g, str(i))
             if n > 1:

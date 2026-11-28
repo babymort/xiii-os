@@ -408,6 +408,41 @@ class Parametres(Gtk.Application):
             fl.append(bouton(n, "play", "fantome", taille=13, rappel=lambda k=k: sons.jouer(k, self.cfg, force=True)))
         c.append(fl)
     def p_notifications(self, c, cle):
+        from . import concentration as CONC
+        c.append(groupe_titre("Modes de concentration"))
+        c.append(info("Un mode ne laisse passer que les notifications des applis choisies (les urgentes passent toujours). "
+                      "Il s'active d'un clic (Centre de contrôle › Concentration), tout seul à des horaires, ou pour une session minutée."))
+        act = CONC.actif(self.cfg)
+        c.append(reglage("timer", "Mode utilisé par les sessions minutées", "Centre de contrôle › Concentration › Session de 25, 50 ou 90 min",
+                         droite=deroulant([(k, n) for k, n, *_ in CONC.MODES], self.cfg.get("concentration_session_mode", "travail"), lambda v: self.regler(concentration_session_mode=v), 160)))
+        for k, nom, ic, desc, _ in CONC.MODES:
+            r = CONC.reglages(self.cfg, k)
+            def ecrire(k=k, **kw):
+                m = dict(self.cfg.get("concentration_modes") or {}); d = dict(CONC.reglages(self.cfg, k)); d.update(kw); m[k] = d
+                self.regler(concentration_modes=m)
+            c.append(reglage(ic, nom + ("  ●" if act and act[0] == k else ""), desc,
+                             droite=interrupteur(bool(act and act[0] == k), lambda on, k=k: self.regler(concentration=k if on else None, concentration_fin=0))))
+            e = Gtk.Entry(text=", ".join(r.get("apps", [])), placeholder_text="Applis autorisées, séparées par des virgules", hexpand=True)
+            e.connect("changed", lambda e, ecrire=ecrire: ecrire(apps=[x.strip() for x in e.get_text().split(",") if x.strip()]))
+            c.append(reglage("bell-ring", "Applis autorisées", None, droite=e))
+            h = r.get("horaires", {})
+            l = boite(False, 6)
+            sw = interrupteur(h.get("on"), lambda on, ecrire=ecrire, h=h: ecrire(horaires=dict(h, on=on)))
+            de = Gtk.Entry(text=h.get("debut", "09:00"), width_chars=5, max_length=5); fi = Gtk.Entry(text=h.get("fin", "18:00"), width_chars=5, max_length=5)
+            def hor(*_, ecrire=ecrire, h=h, de=de, fi=fi, k=k):
+                import re
+                if re.fullmatch(r"\d\d?:\d\d", de.get_text()) and re.fullmatch(r"\d\d?:\d\d", fi.get_text()):
+                    ecrire(horaires=dict(CONC.reglages(self.cfg, k).get("horaires", h), debut=de.get_text(), fin=fi.get_text()))
+            de.connect("activate", hor); fi.connect("activate", hor)
+            for w in (de, label("→", "attenue"), fi): l.append(w)
+            for j, jn in enumerate(["L", "M", "M", "J", "V", "S", "D"]):
+                t = Gtk.ToggleButton(label=jn, active=j in h.get("jours", [])); t.add_css_class("fantome")
+                def jour(t, j=j, ecrire=ecrire, k=k):
+                    hh = dict(CONC.reglages(self.cfg, k).get("horaires", {})); js = set(hh.get("jours", []))
+                    (js.add if t.get_active() else js.discard)(j); hh["jours"] = sorted(js); ecrire(horaires=hh)
+                t.connect("toggled", jour); l.append(t)
+            l.append(sw)
+            c.append(reglage("clock", "S'active tout seul", "Heures au format 23:00, puis Entrée", droite=l))
         c.append(groupe_titre("Ne pas déranger automatique"))
         c.append(reglage("monitor-play", "En plein écran et en présentation", "Film, jeu, diaporama : les notifications attendent (les urgentes passent toujours)",
                          droite=interrupteur(self.cfg.get("dnd_auto", True), lambda on: self.regler(dnd_auto=on))))
@@ -1386,6 +1421,8 @@ class Parametres(Gtk.Application):
         c.append(reglage("sparkles", "Effets de transparence (glassglow)", "Verre teinté, lueur ambre, action principale en pilule lumineuse",
                          droite=interrupteur(cfg["transparence"], lambda on: self.regler(transparence=on))))
         c.append(reglage("wand-sparkles", "Animations", "Ouverture des menus et panneaux, indicateur glissant de la barre des tâches", droite=interrupteur(cfg["animations"], lambda on: self.regler(animations=on))))
+        c.append(reglage("app-window", "Animer les fenêtres", "Une fenêtre qui s'ouvre s'envole de son icône dans la barre, et y retourne quand on la réduit ou la ferme",
+                         droite=interrupteur(cfg.get("animations_fenetres", True), lambda on: self.regler(animations_fenetres=on))))
         c.append(reglage("droplets", "Flou derrière la barre et les panneaux (effet Mica)", "Le fond d'écran flouté transparaît sous la barre des tâches, la barre du haut et les panneaux, comme Windows 11. "
                          "Désactivé par défaut et sans effet en mode léger (vieux PC)", droite=interrupteur(cfg.get("flou_panneaux", False), lambda on: self.regler(flou_panneaux=on))))
         c.append(reglage("rows-3" if os.path.exists(theme.LUCIDE + "/rows-3.svg") else "list", "Densité", "Espacement des listes et réglages",

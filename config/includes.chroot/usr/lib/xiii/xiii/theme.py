@@ -386,6 +386,7 @@ button.tb {{ background: transparent; border: none; box-shadow: none; border-rad
 button.tb:hover {{ background: {p['survol']}; }}
 button.tb.actif {{ background: alpha({p['texte']},0.09); }}
 button.tb.ouvert {{ background: alpha({p['accent']},0.14); }}
+button.tb.au-dessus {{ box-shadow: inset 0 0 0 2px alpha({p['accent']},0.85); }} .epingle-badge {{ background: {p['accent']}; color: {p['fond']}; border-radius: 99px; min-width: 14px; min-height: 14px; padding: 1px; }}
 button.hb {{ background: transparent; border: none; box-shadow: none; border-radius: 6px; padding: 0 8px; min-height: 26px; }}
 {('button.hb { padding: 0 5px; } button.tb.tb-notif { min-height: 28px; min-width: 26px; padding: 1px 3px; }' if cfg.get('notif_petites', True) else 'button.tb.tb-notif { min-height: 34px; min-width: 32px; padding: 2px 4px; }')}
 button.hb:hover {{ background: {p['survol']}; }}

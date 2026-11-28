@@ -22,7 +22,7 @@ verifier() {  # nom, motif du processus, journal
   else echo "OK        $nom" >> $R; fi
 }
 echo "== Applications" >> $R
-for a in regie prompteur mesure-audio mires lut multiview recuperer premiers-pas archives paquets acquisition bilan blackmagic console debit demarrage fichiers ia lecteurs logiciels qrwifi retour scanip somme store-github suite synthese taches tally timecode transferts windows bienvenue phonebox; do
+for a in regie prompteur mesure-audio mires lut multiview recuperer premiers-pas archives paquets acquisition bilan blackmagic console debit demarrage fichiers ia lecteurs logiciels qrwifi retour scanip somme store-github suite synthese taches tally timecode transferts windows bienvenue phonebox horloge assistance; do
   command -v xiii-$a >/dev/null || { echo "ABSENTE   xiii-$a" >> $R; continue; }
   xiii-$a > /out/app-$a.log 2>&1 &
   sleep 5; grim -s 0.5 /out/app-$a.png
@@ -329,6 +329,55 @@ n=$(ls /usr/share/applications/xiii-pack-*.desktop 2>/dev/null | wc -l); m=$(ls 
 gapplication action fr.xiii.Shell basculer "'demarrer-toutes'"; sleep 1.2; wtype "o"; sleep 1.5; grim -s 0.5 /out/pack-menu.png; gapplication action fr.xiii.Shell fermer; sleep 0.5
 xiii-pack czkawka > /out/pack.log 2>&1 & sleep 6; grim -s 0.5 /out/pack-premier-lancement.png; pkill -f "xiii.pack import"
 grep -q Traceback /out/pack.log && { echo "PLANTAGE  premier lancement d'un logiciel du pack"; grep -A6 Traceback /out/pack.log | tail -7; } >> $R || echo "OK        premier lancement : fenêtre d'installation sans erreur" >> $R
+
+echo "== Horloge, concentration, vignette, animations, menus macOS, dossiers, devises" >> $R
+python3 - >> $R 2>&1 <<'PY'
+import sys, datetime, json, os; sys.path.insert(0, "/usr/lib/xiii")
+from xiii import horloge as H, concentration as C, conversions as V, config
+d = H.charger(); d["alarmes"] = [{"id": "t1", "h": 7, "m": 30, "jours": [0, 1, 2, 3, 4], "nom": "Réveil", "on": True}, {"id": "t2", "h": 7, "m": 30, "jours": [], "nom": "Une fois", "on": True}]; H.enregistrer(d)
+lun = datetime.datetime(2026, 11, 30, 7, 30); sam = datetime.datetime(2026, 11, 28, 7, 30)
+a1 = [x["nom"] for x in H.alarmes_dues(lun)]; a2 = H.alarmes_dues(lun); a3 = [x["nom"] for x in H.alarmes_dues(sam)]
+ok = a1 == ["Réveil", "Une fois"] and a2 == [] and a3 == []
+print(("OK        " if ok else "ÉCHEC     ") + "alarmes : lundi 7 h 30 %s, 2e passage %s, samedi %s" % (a1, a2, a3))
+H.enregistrer({"villes": ["New York", "Tokyo"], "alarmes": []})
+cfg = dict(config.DEFAUTS); cfg["concentration_modes"] = {"sommeil": {"horaires": {"on": True, "debut": "23:00", "fin": "07:00", "jours": [4]}}}
+n1 = datetime.datetime(2026, 11, 27, 23, 30); n2 = datetime.datetime(2026, 11, 28, 6, 59); n3 = datetime.datetime(2026, 11, 28, 7, 1)
+r = (C.actif(cfg, n1), C.actif(cfg, n2), C.actif(cfg, n3))
+cfg2 = dict(config.DEFAUTS, concentration="travail")
+lp = (C.laisse_passer(cfg2, "Slack"), C.laisse_passer(cfg2, "Steam"), C.laisse_passer(cfg2, "Steam", 2))
+ok = r[0] and r[0][0] == "sommeil" and r[1] and not r[2] and lp == (True, False, True)
+print(("OK        " if ok else "ÉCHEC     ") + "concentration : horaires de nuit %s, Travail laisse passer Slack/Steam/urgent %s" % ([x and x[0] for x in r], lp))
+V.F_DEVISES = "/tmp/devises.json"
+V.maj_devises("<Cube time='2026-11-27'><Cube currency='USD' rate='1.08'/><Cube currency='GBP' rate='0.84'/></Cube>")
+dv = V.devises("100 usd en eur"); df = V.extraire_definitions("== Français ==\n=== Nom commun ===\nchat \\ʃa\\ masculin\nMammifère carnivore félin domestiqué de taille moyenne.\n== Anglais ==\n")
+ok = dv and dv[0].startswith("100 USD = 92,59 EUR") and df and df[0][1].startswith("Mammifère") and V.mot_a_definir("définition de chat") == "chat"
+print(("OK        " if ok else "ÉCHEC     ") + "recherche : devises %s, définition %s" % (dv[:1], df[:1]))
+from xiii import imitation_bureau as IB
+m = IB.menus_de("firefox-esr"); f = IB.menus_de("fr.xiii.fichiers")
+print(("OK        " if m and f and "Historique" in [t for t, _ in m] and "Aller" in [t for t, _ in f] and IB.menus_de("inconnu") is None else "ÉCHEC     ") + "menus macOS par appli : Firefox %s, Fichiers %s" % ([t for t, _ in m], [t for t, _ in f]))
+from xiii.anim_fenetres import AnimFenetres
+class F:
+    def __init__(s, i, red=False): s.id, s.reduite = i, red
+class Sh: cfg = {"animations": True}
+an = AnimFenetres(Sh()); vus = []; an.jouer = lambda s_, b: vus.append(s_)
+import gi; from gi.repository import GLib
+an.changement([F(1)], lambda: {}, lambda f: "a"); an.changement([F(1), F(2)], lambda: {}, lambda f: "a"); an.changement([F(1, True)], lambda: {}, lambda f: "a")
+ctx = GLib.MainContext.default()
+import time; t = time.time()
+while time.time() - t < .3: ctx.iteration(False)
+print(("OK        " if vus == ["ouvrir", "reduire", "fermer"] else "ÉCHEC     ") + "animations des fenêtres : événements %s" % vus)
+from xiii.shell import EST_PIP
+print(("OK        " if EST_PIP("Picture-in-Picture") and EST_PIP("Vignette XIII — film.mp4") and not EST_PIP("Firefox") else "ÉCHEC     ") + "vignettes vidéo reconnues (toujours au premier plan)")
+PY
+xiii-horloge --sonner "Test ZZ" > /out/horloge-sonne.log 2>&1 & sleep 3; grim -s 0.5 /out/horloge-sonnerie.png
+verifier "Horloge › sonnerie d'alarme" "xiii.horloge" /out/horloge-sonne.log; pkill -f "xiii.horloge"; pkill -f alarm-clock-elapsed; sleep 0.5
+xiii-ctl concentration-travail; sleep 1.5; grim -s 0.5 /out/concentration-barre.png
+gapplication action fr.xiii.Shell basculer "'centre'"; sleep 1.2; grim -s 0.5 /out/concentration-centre.png; gapplication action fr.xiii.Shell fermer
+xiii-ctl concentration-off; sleep 0.5
+python3 -c 'import sys; sys.path.insert(0,"/usr/lib/xiii"); from xiii import config; c=config.charger(); print("OK        concentration activée puis coupée depuis xiii-ctl" if c.get("concentration") is None else "ÉCHEC     concentration : %r" % c.get("concentration"))' >> $R
+python3 -c 'import xml.etree.ElementTree as E; E.parse("/etc/skel/.config/labwc/rc.xml")' 2>/dev/null && grep -q 'title="Picture-in-Picture"' /etc/skel/.config/labwc/rc.xml && grep -q "xiii-ctl epingle" /etc/skel/.config/labwc/rc.xml \
+  && echo "OK        rc.xml : règles des vignettes vidéo + Ctrl+Super+T signalé à la barre" >> $R || echo "ÉCHEC     rc.xml (vignettes / épingle)" >> $R
+grep -q Traceback /out/shell.log && { echo "PLANTAGE  barre (après concentration)"; grep -A8 Traceback /out/shell.log | tail -9; } >> $R
 
 echo "== Outils du quotidien (redimensionner, listes de raccourcis, pipette)" >> $R
 mkdir -p /tmp/redim; cp /usr/share/xiii/wallpapers/xiii-sombre.png /tmp/redim/photo.png

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Horloge XIII
+Comment=Horloges du monde, alarmes, minuteurs et chronomètre
+Exec=xiii-horloge %F
+Icon=xiii-horloge
+Type=Application
+Categories=Utility;Clock;XIII;
+Keywords=horloge;alarme;réveil;minuteur;chronomètre;timer;heure;fuseau;

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Vignette vidéo
+Comment=Une vidéo (fichier ou adresse copiée) en petite fenêtre toujours au premier plan — Super+Maj+V
+Exec=xiii-outil pip %f
+Icon=xiii-vignette
+Type=Application
+MimeType=video/mp4;video/x-matroska;video/webm;video/quicktime;
+Categories=AudioVideo;Video;XIII;
+Keywords=pip;image dans l image;picture in picture;vignette;flottant;
+NoDisplay=false

@@ -151,6 +151,7 @@ def completer_comptes(src):
                         os.makedirs(os.path.dirname(d), exist_ok=True); shutil.copy2(os.path.join(r, f), d); os.chown(d, u.pw_uid, u.pw_gid)
                     elif rel == ".config/labwc/rc.xml":
                         n = fusion_xml(os.path.join(r, f), d, "keybind", "key") + migrer_raccourcis(d)
+                        fusion_xml(os.path.join(r, f), d, "windowRule", "title")
                         os.chown(d, u.pw_uid, u.pw_gid)
                         if n: log("%s : %d raccourci(s) ajouté(s)" % (u.pw_name, n))
                     elif rel == ".config/Thunar/uca.xml":
@@ -169,6 +170,9 @@ def migrer_raccourcis(rc):
         for x in e:
             if loc(x.tag) == "action" and (e.get("key"), x.get("command")) in MIGRATIONS:
                 x.set("command", MIGRATIONS[(e.get("key"), x.get("command"))]); n += 1
+        acts = [x for x in e if loc(x.tag) == "action"]
+        if e.get("key") == "C-W-t" and [x.get("name") for x in acts] == ["ToggleAlwaysOnTop"]:     # la barre signale la fenêtre épinglée
+            ET.SubElement(e, "action", name="Execute", command="xiii-ctl epingle"); n += 1
     if n: a.write(rc, encoding="UTF-8", xml_declaration=True)
     return n
 
@@ -199,7 +203,10 @@ def fusion_xml(nouveau, actuel, balise, cle, texte=False):
     for p in n.getroot().iter():
         for e in list(p):
             if loc(e.tag) == balise and val(e) not in deja and not (balise == "keybind" and sig(e) in sigs):
-                cible = parents_a.get(loc(p.tag), a.getroot()); cible.append(e); deja.add(val(e)); ajout += 1
+                cible = parents_a.get(loc(p.tag))
+                if cible is None:          # bloc absent chez l'utilisateur (ex. <windowRules>) : on le crée
+                    cible = ET.SubElement(a.getroot(), p.tag); parents_a[loc(p.tag)] = cible
+                cible.append(e); deja.add(val(e)); ajout += 1
     if ajout:
         shutil.copy2(actuel, actuel + ".avant-maj"); a.write(actuel, encoding="UTF-8", xml_declaration=True)
     return ajout

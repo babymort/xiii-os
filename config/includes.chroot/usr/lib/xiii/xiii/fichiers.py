@@ -715,6 +715,8 @@ class Fichiers(Gtk.Application):
             items += [None, ("cloud-off" if os.path.exists("/usr/share/xiii/lucide/cloud-off.svg") else "cloud", "Libérer de l'espace (n'est plus synchronisé)", lambda: self.liberer(e))]
         if all(re.search(r"\.(jpe?g|png|webp|tiff?|bmp|heic)$", q, re.I) for q in L):
             items += [("image-down" if os.path.exists("/usr/share/xiii/lucide/image-down.svg") else "image", "Redimensionner %s…" % ("les %d images" % len(L) if len(L) > 1 else "l'image"), lambda: self.redimensionner(L))]
+        if len(L) == 1 and re.search(r"\.(mp4|mkv|mov|webm|avi|m4v|mxf|mts)$", p, re.I):
+            items += [("picture-in-picture", "Lire en vignette flottante", lambda: S.detacher(["xiii-outil", "pip", p]))]
         items += [("tag", "Étiquette de couleur…", lambda: self.menu_etiquette(L))]
         items += [("text-cursor-input", "Renommer %d éléments… (F2)" % len(L) if len(L) > 1 else "Renommer (F2)", lambda: self.renommer_lot(L) if len(L) > 1 else self.renommer(p)), ("archive", "Compresser (.zip)", lambda: self.compresser(L)),
                   ("smartphone", "Envoyer à un appareil proche", lambda: S.detacher(["xiii-envoi"] + L)),

@@ -37,7 +37,8 @@
     <keybind key="W-S-i"><action name="Execute" command="xiii-ctl ile" /></keybind>
     <keybind key="W-S-p"><action name="Execute" command="xiii-outil pipette" /></keybind>
     <keybind key="W-S-l"><action name="Execute" command="xiii-outil lire" /></keybind>
-    <keybind key="C-W-t"><action name="ToggleAlwaysOnTop" /></keybind>
+    <keybind key="W-S-v"><action name="Execute" command="xiii-outil pip" /></keybind>
+    <keybind key="C-W-t"><action name="ToggleAlwaysOnTop" /><action name="Execute" command="xiii-ctl epingle" /></keybind>
     <keybind key="W-S-s"><action name="Execute" command="xiii-outil-capture" /></keybind>
     <keybind key="Print"><action name="Execute" command="xiii-outil-capture" /></keybind>
     <keybind key="W-Print"><action name="Execute" command="xiii-capture menu" /></keybind>
@@ -109,6 +110,13 @@
     <keybind key="A-F4"><action name="Close" /></keybind>
     <keybind key="W-Up"><action name="ToggleMaximize" /></keybind>
   </keyboard>
+  <windowRules>
+    <!-- vignettes vidéo (image dans l'image) : toujours au premier plan, sur tous les bureaux, en bas à droite -->
+    <windowRule title="Picture-in-Picture" serverDecoration="no"><action name="ToggleAlwaysOnTop" /><action name="ToggleOmnipresent" /><action name="ResizeTo" width="480" height="270" /><action name="MoveToEdge" direction="right" snapWindows="no" /><action name="MoveToEdge" direction="down" snapWindows="no" /></windowRule>
+    <windowRule title="Picture in picture" serverDecoration="no"><action name="ToggleAlwaysOnTop" /><action name="ToggleOmnipresent" /><action name="ResizeTo" width="480" height="270" /><action name="MoveToEdge" direction="right" snapWindows="no" /><action name="MoveToEdge" direction="down" snapWindows="no" /></windowRule>
+    <windowRule title="Image dans l'image" serverDecoration="no"><action name="ToggleAlwaysOnTop" /><action name="ToggleOmnipresent" /><action name="ResizeTo" width="480" height="270" /><action name="MoveToEdge" direction="right" snapWindows="no" /><action name="MoveToEdge" direction="down" snapWindows="no" /></windowRule>
+    <windowRule title="Vignette XIII*" serverDecoration="no"><action name="ToggleAlwaysOnTop" /><action name="ToggleOmnipresent" /><action name="MoveToEdge" direction="right" snapWindows="no" /><action name="MoveToEdge" direction="down" snapWindows="no" /></windowRule>
+  </windowRules>
   <mouse><default /></mouse>
   <libinput><device category="touchpad"><tap>yes</tap><naturalScroll>yes</naturalScroll></device></libinput>
 </labwc_config>

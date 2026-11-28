@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Assistance XIII
+Comment=Recevoir de l'aide ou aider quelqu'un à distance (partage d'écran, RustDesk)
+Exec=xiii-assistance %F
+Icon=xiii-assistance
+Type=Application
+Categories=Network;RemoteAccess;XIII;
+Keywords=assistance;aide;à distance;remote;vnc;rustdesk;teamviewer;anydesk;partage d'écran;

@@ -31,6 +31,13 @@ class Panneau:
         self.widget.set_size_request(self.largeur, -1)
         self.construire()
     def construire(self): pass
+    def _tuile_conc(self, c):
+        from . import concentration as CONC
+        x = CONC.actif(c)
+        b = self.tuile(CONC.icone(x[0]) if x else "focus", "Concentration", (CONC.nom(x[0]) + (" · " + x[1] if x[1] != "activé" else "")) if x else "Désactivée", bool(x),
+                       lambda: self.shell.menu_concentration(b), "notifications")
+        return b
+
     def rafraichir(self): pass
 
 # =================================================================================== SON
@@ -352,6 +359,7 @@ class Centre(Panneau):
             self.tuile("plane", "Mode avion", None, et.get("avion"), lambda: S.en_fond(S.mode_avion, maj, not et.get("avion")), "avion"),
             self.tuile("bell-off" if c["ne_pas_deranger"] else "bell", "Ne pas déranger", None, c["ne_pas_deranger"],
                        lambda: (config.modifier(ne_pas_deranger=not c["ne_pas_deranger"])), "notifications"),
+            self._tuile_conc(c),
             self.tuile("moon-star", "Lumière nocturne", None, c["lumiere_nocturne"],
                        lambda: config.modifier(lumiere_nocturne=not c["lumiere_nocturne"]), "ecran"),
             self.tuile("leaf", "Économie", None, prof == "power-saver",

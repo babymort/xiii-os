@@ -26,6 +26,7 @@ La police Astoria n'est plus utilisée (remplacée le 23/11/2026) : plus aucune 
 | Élément | Licence |
 |---|---|
 | Icônes Tabler (Paweł Kuna) et Phosphor (Phosphor Icons) | MIT — bibliothèque d'Icônes XIII (`/usr/share/xiii/icones`), avec Lucide (ISC) |
+| Piper (Rhasspy) et voix française « siwis » | MIT (moteur) et CC BY 4.0 (voix, corpus SIWIS) — voix naturelle de « Lire la sélection » (`/usr/share/xiii/piper`) |
 | Icônes et curseurs Fluent, WhiteSur (vinceliuice) | GPL 3 — thèmes « Façon Windows 11 » et « Façon macOS ». Aucun logo, fond d'écran ni icône d'Apple ou de Microsoft : fonds dessinés par OS XIII, bouton Démarrer = icône générique à quatre carreaux |
 | Icônes Lucide | ISC |
 | Papirus (paquet Debian) | GPL-3.0 |

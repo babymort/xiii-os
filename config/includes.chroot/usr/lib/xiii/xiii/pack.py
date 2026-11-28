@@ -1,4 +1,4 @@
-# OS XIII — Pack conseillé : 19 logiciels libres choisis par Matthieu Lamotte, présents dans le menu dès l'installation
+# OS XIII — Pack conseillé : 21 logiciels libres choisis par Matthieu Lamotte, présents dans le menu dès l'installation
 # (nom, icône, description) mais téléchargés seulement au premier lancement : l'ISO reste légère, rien n'est installé
 # pour rien. Au premier clic : téléchargement et installation (paquet Debian, Flathub ou GitHub), puis l'appli s'ouvre ;
 # ensuite elle s'ouvre directement.
@@ -30,6 +30,8 @@ PACK = [
      ["distroav", "ndi"], "#6b2bd9", "cast"),
     ("sunshine", "Sunshine", "Diffuser ce PC vers Moonlight (jeux, bureau à distance)", "github:LizardByte/Sunshine", "sunshine", "Network;RemoteAccess;",
      ["sunshine", "dev.lizardbyte.app.Sunshine"], "#f4a71d", "sun"),
+    ("rustdesk", "RustDesk", "Assistance et bureau à distance par Internet (comme TeamViewer)", "flatpak:com.rustdesk.RustDesk", None, "Network;RemoteAccess;",
+     ["com.rustdesk.RustDesk", "rustdesk"], "#024eff", "life-buoy"),
     ("localsend", "LocalSend", "Envoyer des fichiers entre téléphones et PC du même réseau", "github:localsend/localsend", "localsend_app", "Network;FileTransfer;",
      ["localsend", "org.localsend.localsend_app", "localsend_app"], "#008080", "share-2"),
     ("ventoy", "Ventoy", "Clé USB qui démarre plusieurs ISO (Windows, Linux…)", "github:ventoy/Ventoy", None, "System;Utility;",

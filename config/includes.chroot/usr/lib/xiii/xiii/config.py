@@ -16,7 +16,7 @@ DEFAUTS = {
     "densite": "normal",
     "accent": "#f0b378",
     "transparence": True,
-    "animations": True,
+    "animations": True, "animations_fenetres": True, "voix_naturelle": True,
     "vieux_pc": False, "allegement_fait": False,     # mode léger : effets coupés, icônes moins souvent relues
     "fond": FONDS + "/xiii-sombre.png",
     "fond_mode": "fill",
@@ -45,7 +45,7 @@ DEFAUTS = {
     "haut_secondes": False,
     "haut_pourcentage": True,
     "horloge_24h": True,
-    "ne_pas_deranger": False,
+    "ne_pas_deranger": False, "concentration": None, "concentration_fin": 0, "concentration_modes": {}, "concentration_saute": [], "launchpad_dossiers": [], "tray_ordre": [], "tray_visibles": [], "concentration_session_mode": "travail", "conc_nuit": False,
     # saison 3 — phase B (graphisme)
     "accent_auto": False, "icones_tierces": True, "fond_anime": False,
     "sons_systeme": True, "sons_volume": 70,

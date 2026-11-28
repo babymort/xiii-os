@@ -1,0 +1,7 @@
+#!/bin/sh
+# xiii-maj: relancer (mise à jour d'OS XIII : ce script est relancé quand il change)
+# Assistance XIII : wayvnc (partage de l'écran avec contrôle, protocole wlroots de labwc) et gvncviewer (aider quelqu'un).
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wayvnc openssl || echo "wayvnc indisponible"
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gvncviewer || \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends remmina remmina-plugin-vnc || echo "visionneuse VNC indisponible"
+exit 0
